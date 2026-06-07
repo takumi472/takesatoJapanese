@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>受講生情報一覧 - 武里日本語教室</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0ebf8; /* 統一感のあるGoogleフォーム風背景色 */
+        }
+        .list-container {
+            max-width: 1100px;
+            margin: 40px auto;
+        }
+        .list-header {
+            background-color: #ffffff;
+            border-top: 10px solid #673ab7; /* 共通のパープルライン */
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 20px;
+        }
+        .student-table-card {
+            background-color: #ffffff;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 20px;
+        }
+        .student-thumb {
+            width: 50px;
+            height: 50px;
+            object-fit: cover;
+            border-radius: 50%; /* 丸型アイコン */
+            border: 1px solid #ddd;
+        }
+        .badge-jlpt {
+            font-size: 0.85rem;
+            padding: 5px 10px;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container list-container">
+    <div class="list-header shadow-sm d-flex justify-content-between align-items-center">
+        <div>
+            <h1 class="h3 mb-1 fw-bold">受講生情報一覧</h1>
+            <p class="text-muted small mb-0">現在登録されている受講生の一覧です。学習記録の追加やプロフィールの編集がここから行えます。</p>
+        </div>
+        <a href="{{ url_for('student.create_student') }}" class="btn text-white fw-bold px-3 shadow-sm" style="background-color: #673ab7;">
+            ➕ 新規受講生を登録
+        </a>
+    </div>
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <div class="student-table-card shadow-sm">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="width: 70px;">顔写真</th>
+                        <th>氏名（カタカナ）</th>
+                        <th>出身国</th>
+                        <th>居住地域</th>
+                        <th>JLPTレベル</th>
+                        <th class="text-center" style="width: 320px;">操作・記録</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for student in students %}
+                        <tr>
+                            <td>
+                                {% if student.face_photo_path %}
+                                    <img src="{{ url_for('static', filename=student.face_photo_path.replace('static/', '')) }}" alt="顔写真" class="student-thumb">
+                                {% else %}
+                                    <img src="https://via.placeholder.com/50" alt="未登録" class="student-thumb">
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="fw-bold text-dark">{{ student.name_kana }}</div>
+                                <div class="text-muted small">受講生ID: {{ student.id }}</div>
+                            </td>
+                            <td>{{ student.country_of_origin }}</td>
+                            <td>{{ student.residential_area }}</td>
+                            <td>
+                                {% if student.jlpt_level in ['N1', 'N2'] %}
+                                    <span class="badge bg-success badge-jlpt">{{ student.jlpt_level }}</span>
+                                {% elif student.jlpt_level in ['N3', 'N4', 'N5'] %}
+                                    <span class="badge bg-primary badge-jlpt">{{ student.jlpt_level }}</span>
+                                {% else %}
+                                    <span class="badge bg-secondary badge-jlpt">{{ student.jlpt_level }}</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div class="d-flex justify-content-end gap-2">
+                                    <a href="/student/{{ student.id }}/records" class="btn btn-sm btn-outline-secondary fw-bold">
+                                        📋 記録一覧
+                                    </a>
+                                    <a href="/student/{{ student.id }}/record/create" class="btn btn-sm btn-outline-primary fw-bold">
+                                        ✍️ 記録を付ける
+                                    </a>
+                                    <a href="/student/{{ student.id }}/update" class="btn btn-sm btn-light border fw-bold text-muted">
+                                        ⚙️ 編集
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5 text-muted">
+                                受講生がまだ登録されていません。「新規受講生を登録」から追加してください。
+                            </td>
+                        </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    
+    <div class="text-center mt-4">
+        <a href="{{ url_for('auth.logout') }}" class="text-muted small">ログアウトはこちら</a>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
