@@ -1,0 +1,106 @@
+import os
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask_login import login_required
+from datetime import date, datetime
+from flask_login import current_user
+
+# 必要なモデルとDBをインポート
+from app import db
+from app.models import Student, Staff, LearningRecord
+
+# ブループリントの定義
+record_bp = Blueprint('record', __name__)
+
+@record_bp.route('/create', methods=['GET', 'POST'])
+@login_required
+def create_record():
+    # URLパラメータから student_id を受け取る（例: /create?student_id=1）
+    # 管理者かどうかを判定
+    is_admin = (current_user.role == 'admin')
+    
+    # フォーム表示用のスタッフリストを取得
+    # 管理者なら全員を表示、そうでなければ自分だけを表示用に用意
+    if is_admin:
+        staff_list = Staff.query.all()
+    else:
+        # ログインユーザーが作成者本人であることを前提
+        staff_list = [current_user]
+    student_id = request.args.get('student_id')
+    
+    if request.method == 'POST':
+        try:
+            # フォームからデータ取得
+            s_id = request.form.get('student_id')
+            st_id = request.form.get('staff_id')
+            date_str = request.form.get('lesson_date')
+            progress = request.form.get('textbook_progress')
+            content = request.form.get('today_learning_content')
+            
+            # 日付変換
+            lesson_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.utcnow().date()
+            
+            # 学習記録の保存
+            new_record = LearningRecord(
+                student_id=s_id,
+                staff_id=st_id,
+                lesson_date=lesson_date,
+                textbook_progress=progress,
+                today_learning_content=content
+            )
+            
+            db.session.add(new_record)
+            db.session.commit()
+            
+            flash('学習記録を保存しました。', 'success')
+            return redirect(url_for('student.student_list'))
+            
+        except Exception as e:
+            db.session.rollback()
+            flash(f'保存中にエラーが発生しました: {str(e)}', 'danger')
+
+    # フォーム表示用のデータ準備
+    students = Student.query.all()
+    staff_list = Staff.query.all()
+    
+    return render_template(
+        'record/create.html', 
+        students=students, 
+        staff_list=staff_list, 
+        selected_student_id=int(student_id) if student_id else None,
+        today=date.today().isoformat(), # 今日の日付を渡す
+        is_admin=is_admin
+    )
+
+@record_bp.route('/list/<int:student_id>')
+@login_required
+def record_list(student_id):
+    # 生徒情報と、その生徒に紐づく全学習記録を取得
+    student = Student.query.get_or_404(student_id)
+    records = LearningRecord.query.filter_by(student_id=student_id).order_by(LearningRecord.lesson_date.desc()).all()
+    
+    return render_template('record/list.html', student=student, records=records)
+
+@record_bp.route('/<int:record_id>/edit', methods=['GET', 'POST'])
+@login_required
+def edit_record(record_id):
+    record = LearningRecord.query.get_or_404(record_id)
+    
+    # ★ 権限チェック: アドミンでない、かつ本人でない場合はエラー(403 Forbidden)を返す
+    if current_user.role != 'admin' and current_user.id != record.staff_id:
+        flash('この学習記録を編集する権限がありません。', 'danger')
+        return redirect(url_for('record.record_list', student_id=record.student_id))
+    
+    if request.method == 'POST':
+        try:
+            record.lesson_date = datetime.strptime(request.form.get('lesson_date'), '%Y-%m-%d').date()
+            record.textbook_progress = request.form.get('textbook_progress')
+            record.today_learning_content = request.form.get('today_learning_content')
+            
+            db.session.commit()
+            flash('学習記録を更新しました。', 'success')
+            return redirect(url_for('record.record_list', student_id=record.student_id))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'更新エラー: {str(e)}', 'danger')
+            
+    return render_template('record/edit.html', record=record)

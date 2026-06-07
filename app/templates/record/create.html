@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>学習記録作成 - 武里日本語教室</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0ebf8; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .form-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 30px; }
+        .form-card { background-color: #fff; border: 1px solid #dadce0; border-radius: 8px; padding: 25px; margin-top: 20px; }
+        .form-label { font-weight: 600; color: #3c4043; }
+        .btn-submit { background-color: #673ab7; color: white; padding: 10px 30px; font-weight: bold; }
+        .btn-submit:hover { background-color: #512da8; color: white; }
+    </style>
+</head>
+<body>
+
+<div class="container my-5" style="max-width: 700px;">
+    <div class="form-header shadow-sm">
+        <h1 class="h3 mb-2">学習記録入力フォーム</h1>
+        <p class="text-muted mb-0">本日のレッスン内容を記録してください。</p>
+    </div>
+
+    <form method="POST">
+        <div class="form-card shadow-sm">
+            <div class="mb-4">
+                <label class="form-label">レッスン日 <span class="text-danger">*</span></label>
+                <input type="date" name="lesson_date" class="form-control" value="{{ today }}" required>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">担当受講生 <span class="text-danger">*</span></label>
+                <select name="student_id" class="form-select" required>
+                    {% for student in students %}
+                    <option value="{{ student.id }}" {% if student.id == selected_student_id %}selected{% endif %}>
+                        {{ student.name_kana }}
+                    </option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">担当スタッフ <span class="text-danger">*</span></label>
+                {% if is_admin %}
+        <select name="staff_id" class="form-select" required>
+            {% for staff in staff_list %}
+            <option value="{{ staff.user_id }}">{{ staff.last_name_kanji }} {{ staff.first_name_kanji }}</option>
+            {% endfor %}
+        </select>
+    {% else %} 
+        <input type="text" class="form-control bg-light" 
+               value="{{ current_user.name }}" 
+               readonly>
+        <input type="hidden" name="staff_id" value="{{ current_user.user_id }}">
+    {% endif %}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">学習内容（テキストブック回数）</label>
+                <select name="textbook_progress" class="form-select">
+                    <option value="">選択してください</option>
+                    {% for i in range(1, 51) %}
+                    <option value="第{{ i }}回">第{{ i }}回</option>
+                    {% endfor %}
+                </select>
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label">学習内容の詳細（自由記述）</label>
+                <textarea name="today_learning_content" class="form-control" rows="5" placeholder="本日の学習内容を入力してください..."></textarea>
+            </div>
+
+            <div class="d-flex justify-content-end gap-3 mt-4">
+                <a href="{{ url_for('student.student_list') }}" class="btn btn-outline-secondary">キャンセル</a>
+                <button type="submit" class="btn btn-submit shadow-sm">送信する</button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

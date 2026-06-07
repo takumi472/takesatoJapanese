@@ -62,12 +62,37 @@
             background-color: #512da8;
             color: white;
         }
+        /* 全てのページで共通して使うクラス */
+.main-container {
+    max-width: 1000px;
+    margin-left: auto;
+    margin-right: auto;
+    margin-top: 60px;
+    padding-left: 15px;
+    padding-right: 15px;
+}
+
+/* ヘッダーの調整 */
+.welcome-header {
+    background-color: #fff;
+    border-top: 8px solid #673ab7;
+    border-radius: 8px;
+    padding: 30px;
+    /* コンテナの幅いっぱいに広がるように設定 */
+    width: 100%;
+}
     </style>
 </head>
 <body>
 
-<div class="page-header py-4 mb-5">
-    <div class="container d-flex justify-content-between align-items-center">
+<div class="container main-container mb-5">
+
+    <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-start">
+        <div class="mb-3">
+    <a href="{{ url_for('auth.dashboard') }}" class="text-decoration-none text-muted">
+        <i class="bi bi-arrow-left-circle"></i> ダッシュボードに戻る
+    </a>
+</div>
         <div>
             <h1 class="h3 mb-1" style="color: #202124; font-weight: 700;">武里日本語教室 スタッフ一覧</h1>
             <p class="text-muted mb-0" style="font-size: 14px;">登録されているボランティア・スタッフの一覧です。</p>
@@ -78,7 +103,7 @@
     </div>
 </div>
 
-<div class="container mb-5">
+<div class="container main-container mb-5" style="max-width: 1000px; margin-top: 60px;">
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
         {% for category, message in messages %}
