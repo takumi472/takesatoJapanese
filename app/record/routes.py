@@ -24,14 +24,18 @@ def create_record():
         staff_list = Staff.query.all()
     else:
         # ログインユーザーが作成者本人であることを前提
-        staff_list = [current_user]
+        staff_list = Staff.query.filter_by(user_id=current_user.id).first()
     student_id = request.args.get('student_id')
     
     if request.method == 'POST':
         try:
-            # フォームからデータ取得
-            s_id = request.form.get('student_id')
-            st_id = request.form.get('staff_id')
+            
+            # 修正後：空文字ならNoneを代入
+            staff_id = request.form.get('staff_id')
+
+            # 他の数値項目も同様に処理しておくと安心です
+            student_id_raw = request.form.get('student_id')
+            student_id = int(student_id_raw) if student_id_raw and student_id_raw.strip() != '' else None
             date_str = request.form.get('lesson_date')
             progress = request.form.get('textbook_progress')
             content = request.form.get('today_learning_content')
@@ -41,8 +45,8 @@ def create_record():
             
             # 学習記録の保存
             new_record = LearningRecord(
-                student_id=s_id,
-                staff_id=st_id,
+                student_id=student_id,
+                staff_id=staff_id,
                 lesson_date=lesson_date,
                 textbook_progress=progress,
                 today_learning_content=content

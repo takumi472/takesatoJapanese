@@ -52,10 +52,12 @@ def create_app(env_name="development"):
     from app.staff.routes import staff_bp
     from app.student.routes import student_bp
     from app.record.routes import record_bp
+    from app.meeting.routes import meeting_bp
 
     app.register_blueprint(auth_bp, url_prefix="/")
     app.register_blueprint(staff_bp, url_prefix="/staff")
     app.register_blueprint(student_bp, url_prefix="/student")
     app.register_blueprint(record_bp, url_prefix="/record")
+    app.register_blueprint(meeting_bp, url_prefix="/meeting")
 
     return app

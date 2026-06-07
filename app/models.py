@@ -99,3 +99,21 @@ class LearningRecord(db.Model):
     textbook_progress = db.Column(db.String(50))              # 第〇回目（選択式）
     today_learning_content = db.Column(db.Text)               # 学習内容（一般）
     recorded_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+
+class Meeting(db.Model):
+    __tablename__ = 'meetings'
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False) # ミーティングタイトル
+    date = db.Column(db.Date, nullable=False)
+    pdf_path = db.Column(db.String(255), nullable=True)
+    content = db.Column(db.Text, nullable=False)      # 議事録内容
+    created_by = db.Column(db.Integer, db.ForeignKey('users.id')) # 作成者
+    attachments = db.relationship('Attachment', backref='meeting', lazy=True, cascade="all, delete-orphan")
+
+class Attachment(db.Model):
+    __tablename__ = 'attachments'
+    id = db.Column(db.Integer, primary_key=True)
+    filename = db.Column(db.String(255), nullable=False) # 保存時のファイル名
+    original_name = db.Column(db.String(255), nullable=False) # 元のファイル名
+    meeting_id = db.Column(db.Integer, db.ForeignKey('meetings.id'), nullable=False)

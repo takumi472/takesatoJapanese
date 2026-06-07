@@ -1,6 +1,6 @@
 # app/staff/routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import login_required
+from flask_login import current_user, login_required
 from app.models import db, User, Staff
 from werkzeug.security import generate_password_hash
 from datetime import datetime
@@ -110,6 +110,9 @@ def create_staff():
 @login_required
 def edit_staff(id):
     staff = Staff.query.get_or_404(id)
+    if not current_user.is_admin and current_user.id != staff.user_id:
+        flash("他のユーザーの情報を編集する権限がありません。")
+        return redirect(url_for('staff.index'))
 
     if request.method == "POST":
         # --- ▼ 編集時の顔写真アップデート処理 ▼ ---
@@ -168,4 +171,4 @@ def staff_list():
     all_staff = Staff.query.order_by(Staff.id.asc()).all()
 
     # テンプレート（list.html）にスタッフ一覧データを渡してレンダリング
-    return render_template("staff/list.html", staff_list=all_staff)
+    return render_template("staff/list.html", staff_list=all_staff, current_user=current_user)
