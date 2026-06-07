@@ -1,10 +1,9 @@
-# app/__init__.py
+# app/__init__.py の該当箇所
+import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
-import os
 
-# 拡張機能のインスタンス化
 db = SQLAlchemy()
 login_manager = LoginManager()
 
@@ -18,25 +17,18 @@ def create_app(env_name='development'):
         raw_db_url = os.environ.get('DATABASE_URL')
         
         if raw_db_url:
-            # 2. 【PostgreSQL最適化①】postgres:// を postgresql:// に厳密に置換
+            # 2. 【重要】postgres:// を postgresql:// に直す処理だけを行う
+            # エラーの原因になっていた "options=-c search_path..." の追加処理は完全に削除します
             if raw_db_url.startswith("postgres://"):
                 raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
-            
-            # 3. 【PostgreSQL最適化②】SSL接続とパブリックススキーマの明示
-            # URLにまだクエリパラメータがついていない場合は、安全に付与する
-            if "?" not in raw_db_url:
-                raw_db_url += "?sslmode=require&options=-c%20search_path%3Dpublic"
-            elif "search_path" not in raw_db_url:
-                raw_db_url += "&options=-c%20search_path%3Dpublic"
                 
             app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
         else:
-            # 万が一URLが空だった場合のフォールバック
             app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
             
-        # 4. 【PostgreSQL最適化③】接続のタイムアウトやプール管理の追加
+        # 3. サーバーレス環境向けの接続プール最適化
         app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
-            "pool_pre_ping": True, # 接続が切れていないか毎回チェックする安全弁
+            "pool_pre_ping": True,
             "pool_recycle": 300,
         }
         
