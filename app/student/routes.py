@@ -27,8 +27,15 @@ def create_student():
         
         if file and allowed_file(file.filename):
             filename = secure_filename(file.filename)
-            upload_folder = os.path.join(current_app.root_path, 'static/uploads')
-            os.makedirs(upload_folder, exist_ok=True)
+            
+            if os.environ.get('VERCEL'):
+                # Vercel環境なら、唯一書き込みが許されている /tmp フォルダを使う
+                upload_folder = '/tmp'
+            else:
+                # ローカル環境なら、これまで通り static/uploads フォルダを使う
+                upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
             file.save(os.path.join(upload_folder, filename))
             face_photo_path = f'static/uploads/{filename}'
         else:
