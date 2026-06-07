@@ -11,18 +11,37 @@ login_manager = LoginManager()
 def create_app(env_name='development'):
     app = Flask(__name__)
     
-    if env_name == 'production':
-        app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-production-secret-key')
+    if env_name == 'production' or os.environ.get('VERCEL'):
+        app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-prod-key')
         
-        # Vercel上の環境変数 'DATABASE_URL' を読み込む
-        # SQLAlchemyの仕様上、先頭が 'postgres://' の場合は 'postgresql://' に自動置換する安全策を入れます
-        db_url = os.environ.get('DATABASE_URL')
-        if db_url and db_url.startswith("postgres://"):
-            db_url = db_url.replace("postgres://", "postgresql://", 1)
+        # 1. Vercelの環境変数からURLを取得
+        raw_db_url = os.environ.get('DATABASE_URL')
+        
+        if raw_db_url:
+            # 2. 【PostgreSQL最適化①】postgres:// を postgresql:// に厳密に置換
+            if raw_db_url.startswith("postgres://"):
+                raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
             
-        app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+            # 3. 【PostgreSQL最適化②】SSL接続とパブリックススキーマの明示
+            # URLにまだクエリパラメータがついていない場合は、安全に付与する
+            if "?" not in raw_db_url:
+                raw_db_url += "?sslmode=require&options=-c%20search_path%3Dpublic"
+            elif "search_path" not in raw_db_url:
+                raw_db_url += "&options=-c%20search_path%3Dpublic"
+                
+            app.config['SQLALCHEMY_DATABASE_URI'] = raw_db_url
+        else:
+            # 万が一URLが空だった場合のフォールバック
+            app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///:memory:'
+            
+        # 4. 【PostgreSQL最適化③】接続のタイムアウトやプール管理の追加
+        app.config['SQLALCHEMY_ENGINE_OPTIONS'] = {
+            "pool_pre_ping": True, # 接続が切れていないか毎回チェックする安全弁
+            "pool_recycle": 300,
+        }
+        
     else:
-        # ローカル開発環境（これまで通りSQLiteを使用）
+        # ローカル開発環境（SQLite）
         app.config['SECRET_KEY'] = 'dev-secret-key'
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dev_school.db'
         
