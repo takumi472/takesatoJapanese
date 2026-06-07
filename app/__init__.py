@@ -11,27 +11,21 @@ login_manager = LoginManager()
 def create_app(env_name='development'):
     app = Flask(__name__)
     
-    # # 簡易的な環境設定（本番環境では config.py などから読み込む）
-    # if env_name == 'production':
-    #     app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-production-secret-key')
-    #     app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///school.db')
-    # else:
-    #     app.config['SECRET_KEY'] = 'dev-secret-key'
-    #     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dev_school.db'
-        
-    # app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
-    
-    # app/__init__.py 内の config 部分を修正
     if env_name == 'production':
-        app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'placeholder-secret-key')
-    
-        # Vercel環境用のDB設定: 環境変数から取得。なければ一時的なメモリ内DB(sqlite:///:memory:)にしてエラーを防ぐ
-        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get('DATABASE_URL', 'sqlite:///:memory:')
+        app.config['SECRET_KEY'] = os.environ.get('SECRET_KEY', 'your-production-secret-key')
+        
+        # Vercel上の環境変数 'DATABASE_URL' を読み込む
+        # SQLAlchemyの仕様上、先頭が 'postgres://' の場合は 'postgresql://' に自動置換する安全策を入れます
+        db_url = os.environ.get('DATABASE_URL')
+        if db_url and db_url.startswith("postgres://"):
+            db_url = db_url.replace("postgres://", "postgresql://", 1)
+            
+        app.config['SQLALCHEMY_DATABASE_URI'] = db_url
     else:
+        # ローカル開発環境（これまで通りSQLiteを使用）
         app.config['SECRET_KEY'] = 'dev-secret-key'
         app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///dev_school.db'
-
-    # 拡張機能の初期化
+        
     db.init_app(app)
     login_manager.init_app(app)
     login_manager.login_view = 'auth.login' # 未ログイン時のリダイレクト先
