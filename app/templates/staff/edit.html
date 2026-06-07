@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% if staff %}【編集】{% else %}【登録】{% endif %}武里日本語教室スタッフ情報</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f0ebf8; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .form-header { border-top: 10px solid #673ab7; border-radius: 8px; background-color: #fff; }
+        .form-card { background-color: #fff; border: 1px solid #dadce0; border-radius: 8px; padding: 24px; margin-bottom: 12px; }
+        .required-star { color: #d93025; margin-left: 4px; }
+        .form-label { font-size: 16px; font-weight: 500; color: #202124; margin-bottom: 12px; display: block; }
+        .form-control-gf { width: 100%; border: none; border-bottom: 1px solid #dadce0; border-radius: 0; padding: 6px 0; background-color: transparent; color: #202124; font-size: 14px; outline: none; }
+        .form-control-gf:focus { border-color: #673ab7; border-bottom: 2px solid #673ab7; }
+        .btn-submit { background-color: #673ab7; color: white; font-weight: 500; padding: 8px 24px; border-radius: 4px; border: none; }
+        .btn-submit:hover { background-color: #512da8; color: white; }
+        
+        /* 写真アップロード用スタイル */
+        .preview-zone { max-width: 180px; margin-bottom: 15px; border: 1px solid #dadce0; padding: 4px; background: #fff; border-radius: 4px; }
+        .preview-zone img { width: 100%; height: auto; display: block; object-fit: cover; }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; font-size: 100px; cursor: pointer; }
+    </style>
+</head>
+<body>
+
+<div class="container my-4" style="max-width: 640px;">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-header p-4 mb-3 shadow-sm">
+        <h1 class="h3 mb-3">
+            {% if staff %}【編集】{% else %}【新規登録】{% endif %}2026年度 武里日本語教室スタッフ登録
+        </h1>
+        <p class="mb-0" style="font-size: 14px; color: #202124;">
+            本登録に記載された個人情報は「武里日本語教室」運営上必要な範囲においてのみ使用されます。<br>
+            <strong>※登録されたGmailとパスワードは、システムログイン時に使用します。</strong>
+        </p>
+        <div class="text-danger mt-3" style="font-size: 12px;">* Indicates required question</div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">Gmailの登録（Gmailのアドレスを入力してください）<span class="required-star">*</span></label>
+            <input type="email" name="email" class="form-control-gf" 
+                   value="{{ staff.email if staff else '' }}" 
+                   placeholder="Your answer" required {% if staff %}readonly style="color: #70757a;"{% endif %}>
+        </div>
+
+        {% if not staff %}
+        <div class="form-card shadow-sm">
+            <label class="form-label">初期パスワード（ログイン時に使用するパスワードを設定してください）<span class="required-star">*</span></label>
+            <input type="password" name="password" class="form-control-gf" placeholder="Your answer" required minlength="6">
+            <div class="text-muted mt-2" style="font-size: 12px;">※セキュリティのため、6文字以上で入力してください。</div>
+        </div>
+        {% endif %}
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">(1) 顔写真のアップロード <span class="required-star">*</span></label>
+            <p class="text-muted" style="font-size: 13px; margin-top: -8px;">※スタッフ一覧に表示される顔写真を撮影、または選択してください（画像ファイル Max 10MB）</p>
+            
+            <div class="preview-zone">
+                {% if staff and staff.face_photo_path %}
+                    <img id="photo_preview" src="{{ url_for('static', filename='uploads/' + staff.face_photo_path) }}" alt="現在の顔写真">
+                {% else %}
+                    <img id="photo_preview" src="https://via.placeholder.com/150x150?text=No+Image" alt="プレビュー">
+                {% endif %}
+            </div>
+
+            <div class="file-input-wrapper">
+                <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+                    <i class="bi bi-file-earmark-arrow-up"></i> Add File
+                </button>
+                <input type="file" name="face_photo" id="face_photo_input" accept="image/*" {% if not staff %}required{% endif %}>
+            </div>
+            <span id="file_name_display" class="text-muted ms-2" style="font-size: 13px;"></span>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">提出日（今日の日付を入力してください）<span class="required-star">*</span></label>
+            <input type="date" name="submission_date" class="form-control-gf" 
+                   value="{{ staff.submission_date.strftime('%Y-%m-%d') if staff and staff.submission_date else '' }}" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">苗字（漢字でご記入ください）<span class="required-star">*</span></label>
+            <input type="text" name="last_name_kanji" class="form-control-gf" 
+                   value="{{ staff.last_name_kanji if staff else '' }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">名前（漢字でご記入ください）<span class="required-star">*</span></label>
+            <input type="text" name="first_name_kanji" class="form-control-gf" 
+                   value="{{ staff.first_name_kanji if staff else '' }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">苗字（ふりがな）<span class="required-star">*</span></label>
+            <input type="text" name="last_name_kana" class="form-control-gf" 
+                   value="{{ staff.last_name_kana if staff else '' }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">名前（ふりがな）<span class="required-star">*</span></label>
+            <input type="text" name="first_name_kana" class="form-control-gf" 
+                   value="{{ staff.first_name_kana if staff else '' }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">郵便番号（記入例：3440102 ハイフンなし）<span class="required-star">*</span></label>
+            <input type="text" name="post_code" class="form-control-gf" 
+                   value="{{ staff.post_code if staff else '' }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">住所（記入例：春日部市大場1丁目1番1号 春日部アパート101号室）<span class="required-star">*</span></label>
+            <input type="text" name="address" class="form-control-gf" 
+                   value="{{ staff.address if staff else '' }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">電話番号（本人 必須）<span class="required-star">*</span></label>
+            <input type="tel" name="tel_main" class="form-control-gf" 
+                   value="{{ staff.tel_main if staff else '' }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">電話番号（本人以外）</label>
+            <input type="tel" name="tel_sub" class="form-control-gf" 
+                   value="{{ staff.tel_sub if staff else '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">ボランティア活動歴（日本語教室関係）</label>
+            <textarea name="exp_jp" class="form-control-gf" rows="2" placeholder="Your answer">{{ staff.exp_jp if staff else '' }}</textarea>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">ボランティア活動歴（日本語教室以外）</label>
+            <textarea name="exp_other" class="form-control-gf" rows="2" placeholder="Your answer">{{ staff.exp_other if staff else '' }}</textarea>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">趣味</label>
+            <input type="text" name="hobbies" class="form-control-gf" 
+                   value="{{ staff.hobbies if staff else '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">特技</label>
+            <input type="text" name="skills" class="form-control-gf" 
+                   value="{{ staff.skills if staff else '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">資格</label>
+            <input type="text" name="qualifications" class="form-control-gf" 
+                   value="{{ staff.qualifications if staff else '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">意向</label>
+            <textarea name="intent" class="form-control-gf" rows="3" placeholder="Your answer">{{ staff.intent if staff else '' }}</textarea>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
+            <button type="submit" class="btn btn-submit shadow-sm">Submit</button>
+            <a href="{{ url_for('staff.staff_list') }}" class="btn text-secondary" style="font-size: 14px; text-decoration: none;">キャンセル</a>
+        </div>
+
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    // ファイルが選択されたらプレビュー画像とファイル名をリアルタイムで切り替えるJS
+    document.getElementById('face_photo_input').addEventListener('change', function(e) {
+        const file = e.target.files[0];
+        const preview = document.getElementById('photo_preview');
+        const filenameDisplay = document.getElementById('file_name_display');
+        
+        if (file) {
+            filenameDisplay.textContent = file.name;
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                preview.src = e.target.result;
+            }
+            reader.readAsDataURL(file);
+        }
+    });
+</script>
+</body>
+</html>

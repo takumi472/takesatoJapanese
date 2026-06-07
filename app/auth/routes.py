@@ -2,14 +2,19 @@
 from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_user, logout_user, login_required, current_user
 from app.models import User
+from app.models import Student, Staff
 
 auth_bp = Blueprint('auth', __name__)
+
+@auth_bp.route('/', methods=['GET', 'POST'])
+def auth_route():
+    return redirect(url_for('auth.login'))
 
 @auth_bp.route('/login', methods=['GET', 'POST'])
 def login():
     # 既にログイン済みの場合は、生徒一覧へリダイレクト
     if current_user.is_authenticated:
-        return redirect(url_for('student.student_list'))
+        return redirect(url_for('auth.dashboard'))
 
     if request.method == 'POST':
         username = request.form.get('username')
@@ -24,12 +29,28 @@ def login():
             
             # 次にアクセスしようとしていたURL（あれば）を取得、なければ生徒一覧へ
             next_page = request.args.get('next')
-            return redirect(next_page) if next_page else redirect(url_for('student.student_list'))
+            return redirect(next_page) if next_page else redirect(url_for('auth.dashboard'))
         else:
             # エラーメッセージをフロントに通知
             flash('ユーザー名またはパスワードが正しくありません。', 'danger')
             
     return render_template('auth/login.html')
+
+@auth_bp.route('/dashboard')
+@login_required
+def dashboard():
+    student_count = Student.query.count()
+    staff_count = Staff.query.count()
+    
+    # もし議事録モデルがある場合はカウント（なければ固定文字列等で対応可能）
+    # meeting_count = MeetingMinutes.query.count()
+    
+    return render_template(
+        'dashboard.html', 
+        student_count=student_count, 
+        staff_count=staff_count
+        # meeting_count=meeting_count
+    )
 
 @auth_bp.route('/logout')
 @login_required

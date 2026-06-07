@@ -23,12 +23,38 @@ class User(db.Model, UserMixin):
     # スタッフが記入した学習記録（1対多）
     # ※LearningRecord側の 'writer_staff' バックレフと自動接続されます
     records_written = db.relationship('LearningRecord', backref='writer_staff', foreign_keys='LearningRecord.staff_id')
+    staff_profile = db.relationship('Staff', backref='user', uselist=False, cascade="all, delete-orphan")
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
 
     def check_password(self, password):
         return check_password_hash(self.password_hash, password)
+    
+class Staff(db.Model):
+    __tablename__ = 'staffs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    face_photo_path = db.Column(db.String(255), nullable=True)
+    
+    # プロフィール詳細項目
+    email = db.Column(db.String(120), nullable=False)
+    submission_date = db.Column(db.Date)
+    last_name_kanji = db.Column(db.String(50), nullable=False)
+    first_name_kanji = db.Column(db.String(50), nullable=False)
+    last_name_kana = db.Column(db.String(50), nullable=False)
+    first_name_kana = db.Column(db.String(50), nullable=False)
+    post_code = db.Column(db.String(10), nullable=False)
+    address = db.Column(db.String(255), nullable=False)
+    tel_main = db.Column(db.String(20), nullable=False)
+    tel_sub = db.Column(db.String(20))
+    exp_jp = db.Column(db.Text)
+    exp_other = db.Column(db.Text)
+    hobbies = db.Column(db.String(255))
+    skills = db.Column(db.String(255))
+    qualifications = db.Column(db.String(255))
+    intent = db.Column(db.Text)
 
 
 class Student(db.Model):

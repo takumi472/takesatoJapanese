@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>受講生一覧 - 武里日本語教室</title>
+    <title>スタッフ一覧 - 武里日本語教室</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <style>
@@ -15,59 +15,50 @@
         .page-header {
             background-color: #fff;
             border-bottom: 1px solid #e0e0e0;
-            border-top: 8px solid #673ab7; /* スタッフ画面と統一したアクセントカラー */
+            border-top: 8px solid #673ab7; /* Googleフォームと統一感を持たせるアクセントカラー */
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
-        .student-card {
+        .staff-card {
             background-color: #fff;
             border: 1px solid #e0e0e0;
             border-radius: 8px;
             transition: transform 0.2s, box-shadow 0.2s;
             overflow: hidden;
         }
-        .student-card:hover {
+        .staff-card:hover {
             transform: translateY(-4px);
             box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }
         .avatar-container {
             width: 100%;
-            aspect-ratio: 1 / 1;
+            aspect-ratio: 1 / 1; /* 正方形を維持 */
             overflow: hidden;
             background-color: #f1f3f4;
             display: flex;
             align-items: center;
             justify-content: center;
         }
-        .student-avatar {
+        .staff-avatar {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: cover; /* 画像の比率を崩さずにトリミング */
         }
-        .student-name {
+        .staff-name {
             font-size: 18px;
             font-weight: bold;
             color: #202124;
             margin-bottom: 4px;
         }
-        .student-meta {
-            font-size: 13px;
+        .staff-info {
+            font-size: 14px;
             color: #5f6368;
-            margin-bottom: 2px;
         }
-        .badge-jlpt {
-            background-color: #e8f0fe;
-            color: #1a73e8;
-            font-size: 11px;
-            font-weight: 600;
-            padding: 2px 8px;
-            border-radius: 4px;
-        }
-        .btn-add-student {
+        .btn-add-staff {
             background-color: #673ab7;
             color: white;
             font-weight: 500;
         }
-        .btn-add-student:hover {
+        .btn-add-staff:hover {
             background-color: #512da8;
             color: white;
         }
@@ -78,11 +69,11 @@
 <div class="page-header py-4 mb-5">
     <div class="container d-flex justify-content-between align-items-center">
         <div>
-            <h1 class="h3 mb-1" style="color: #202124; font-weight: 700;">武里日本語教室 受講生一覧</h1>
-            <p class="text-muted mb-0" style="font-size: 14px;">登録されている受講生（生徒カルテ）の一覧です。</p>
+            <h1 class="h3 mb-1" style="color: #202124; font-weight: 700;">武里日本語教室 スタッフ一覧</h1>
+            <p class="text-muted mb-0" style="font-size: 14px;">登録されているボランティア・スタッフの一覧です。</p>
         </div>
-        <a href="{{ url_for('student.create_student') }}" class="btn btn-add-student d-flex align-items-center gap-1 shadow-sm">
-            <i class="bi bi-person-plus-fill"></i> 新規受講生登録
+        <a href="{{ url_for('staff.create_staff') }}" class="btn btn-add-staff d-flex align-items-center gap-1 shadow-sm">
+            <i class="bi bi-person-plus-fill"></i> 新規スタッフ登録
         </a>
     </div>
 </div>
@@ -100,39 +91,33 @@
     {% endwith %}
 
     <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-6 g-4">
-        {% for s in student_list %}
+        {% for s in staff_list %}
         <div class="col">
-            <div class="student-card h-100 d-flex flex-column shadow-sm">
+            <div class="staff-card h-100 d-flex flex-column shadow-sm">
                 <div class="avatar-container">
                     {% if s.face_photo_path %}
-                        <img src="/{{ s.face_photo_path }}" class="student-avatar" alt="{{ s.name_kana }} さんの顔写真">
+                        <img src="{{ url_for('static', filename='uploads/' + s.face_photo_path) }}" class="staff-avatar" alt="{{ s.last_name_kanji }} さんの顔写真">
                     {% else %}
-                        <i class="bi bi-person-bounding-box text-muted" style="font-size: 4rem运行;"></i>
+                        <i class="bi bi-person-bounding-box text-muted" style="font-size: 4rem;"></i>
                     {% endif %}
                 </div>
                 
                 <div class="p-3 text-center d-flex flex-column flex-grow-1 justify-content-between">
                     <div>
-                        <div class="student-name text-truncate" title="{{ s.name_kana }}">
-                            {{ s.name_kana }}
+                        <div class="staff-name text-truncate">
+                            {{ s.last_name_kanji }} {{ s.first_name_kanji }}
                         </div>
-                        
-                        <div class="student-meta text-truncate">
-                            <i class="bi bi-globe2 text-secondary me-1"></i>{{ s.country_of_origin }}
+                        <div class="text-muted text-truncate mb-2" style="font-size: 12px;">
+                            {{ s.last_name_kana }} {{ s.first_name_kana }}
                         </div>
-                        
-                        <div class="student-meta text-truncate" style="font-size: 12px;">
-                            <i class="bi bi-geo-alt text-secondary me-1"></i>{{ s.residential_area }}
-                        </div>
-
-                        <div class="mt-2">
-                            <span class="badge-jlpt">{{ s.jlpt_level }}</span>
+                        <div class="staff-info text-truncate">
+                            {{ s.address.split(' ')[0] if s.address else '未登録' }}
                         </div>
                     </div>
                     
                     <div class="mt-3 pt-2 border-top">
-                        <a href="{{ url_for('student.update_student', id=s.id) }}" class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" style="font-size: 12px;">
-                            <i class="bi bi-journal-text"></i> カルテ編集
+                        <a href="{{ url_for('staff.edit_staff', id=s.id) }}" class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" style="font-size: 12px;">
+                            <i class="bi bi-pencil-square"></i> 編集する
                         </a>
                     </div>
                 </div>
@@ -141,7 +126,7 @@
         {% else %}
         <div class="col-12 text-center py-5">
             <i class="bi bi-people text-muted" style="font-size: 3rem;"></i>
-            <p class="text-muted mt-2">現在、登録されている受講生はいません。</p>
+            <p class="text-muted mt-2">現在、登録されているスタッフはいません。</p>
         </div>
         {% endfor %}
     </div>

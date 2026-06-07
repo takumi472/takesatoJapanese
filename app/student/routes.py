@@ -81,19 +81,61 @@ def create_student():
 
     return render_template('student/create.html')
 
-# app/student/routes.py の一覧部分を書き換え
 @student_bp.route('/')
 @login_required
-@roles_required('admin', 'staff')
 def student_list():
-    # Userモデルから、roleが'student'のユーザーをすべて取得（プロフィール情報も合わせて読み込まれます）
-    students = Student.query.all()
+    # studentsテーブルから全受講生データを取得
+    all_students = Student.query.order_by(Student.id.asc()).all()
     
-    # テンプレートにstudentsリストを渡してレンダリング
-    return render_template('student/list.html', students=students)
+    # テンプレートに student_list としてデータを引き渡す
+    return render_template('student/list.html', student_list=all_students)
 
 # app/student/routes.py 内
 @student_bp.route('/<int:id>/update', methods=['GET', 'POST'])
 def update_student(id): # 関数名が「update_student」で、引数が「id」になっている必要があります
-    # 今後ここに編集画面のロジックを書きます
-    return f"生徒更新画面 (ID: {id})"
+    # 1. 指定されたIDの生徒をPostgreSQLから厳密に取得（なければ404）
+    student = Student.query.get_or_404(id)
+
+    if request.method == 'POST':
+        # 2. フォームから送られてきた新しい値で上書き
+        student.name_kana = request.form.get('name_kana')
+        student.country_of_origin = request.form.get('country_of_origin')
+        student.native_language = request.form.get('native_language')
+        student.other_languages = request.form.get('other_languages')
+        student.occupation = request.form.get('occupation')
+        student.residential_area = request.form.get('residential_area')
+        student.jlpt_level = request.form.get('jlpt_level')
+        student.learning_purpose = request.form.get('learning_purpose')
+        student.life_troubles = request.form.get('life_troubles')
+        student.how_knew_class = request.form.get('how_knew_class')
+        student.how_knew_class_other = request.form.get('how_knew_class_other')
+
+        # 3. 画像ファイルが新しくアップロードされた場合のみ処理
+        file = request.files.get('face_photo')
+        if file and file.filename != '':
+            filename = secure_filename(file.filename)
+            
+            # Vercel環境かローカル環境かで保存先を変更（Read-only対策）
+            if os.environ.get('VERCEL'):
+                upload_folder = '/tmp'
+            else:
+                upload_folder = os.path.join(current_app.root_path, 'static', 'uploads')
+                
+            if not os.path.exists(upload_folder):
+                os.makedirs(upload_folder)
+                
+            file.save(os.path.join(upload_folder, filename))
+            # 新しい写真のファイル名に更新
+            student.face_photo_path = filename
+
+        # 4. データベースの変更を確定（コミット）
+        try:
+            db.session.commit()
+            flash(f'{student.name_kana} さんの情報を更新しました。', 'success')
+            return redirect(url_for('student.student_list'))
+        except Exception as e:
+            db.session.rollback()
+            flash(f'更新中にエラーが発生しました: {str(e)}', 'danger')
+
+    # GETリクエスト時は、現在の生徒データとosモジュール（HTML内判定用）を渡して表示
+    return render_template('student/edit.html', student=student, os=os)

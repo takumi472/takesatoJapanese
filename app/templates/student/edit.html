@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>【編集】新規受講生の登録＆学習記録</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        body {
+            background-color: #f0ebf8; /* Googleフォームの背景色 */
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        .form-header {
+            border-top: 10px solid #673ab7; /* Googleフォームのテーマカラー */
+            border-radius: 8px;
+            background-color: #fff;
+        }
+        .form-card {
+            background-color: #fff;
+            border: 1px solid #dadce0;
+            border-radius: 8px;
+            padding: 24px;
+            margin-bottom: 12px;
+        }
+        .required-star {
+            color: #d93025;
+            margin-left: 4px;
+        }
+        .form-label {
+            font-size: 16px;
+            font-weight: 500;
+            color: #202124;
+            margin-bottom: 12px;
+            display: block;
+        }
+        /* Googleフォーム風の下線入力フィールドスタイル */
+        .form-control-gf, .form-select-gf {
+            width: 100%;
+            border: none;
+            border-bottom: 1px solid #dadce0;
+            border-radius: 0;
+            padding: 6px 0;
+            background-color: transparent;
+            color: #202124;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.2s ease, border-width 0.1s ease;
+        }
+        .form-control-gf:focus, .form-select-gf:focus {
+            border-color: #673ab7;
+            border-bottom: 2px solid #673ab7;
+            padding-bottom: 5px; /* 2pxの線ズレ調整 */
+        }
+        .btn-submit {
+            background-color: #673ab7;
+            color: white;
+            font-weight: 500;
+            padding: 8px 24px;
+            border-radius: 4px;
+            border: none;
+            transition: background-color 0.2s;
+        }
+        .btn-submit:hover {
+            background-color: #512da8;
+            color: white;
+        }
+        .preview-img {
+            max-width: 150px;
+            border: 1px solid #dadce0;
+            border-radius: 4px;
+            padding: 4px;
+            background-color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container my-4" style="max-width: 640px;">
+
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'error' else 'danger' }} alert-dismissible fade show shadow-sm" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    <div class="form-header p-4 mb-3 bg-white shadow-sm">
+        <h1 class="h3 mb-3" style="color: #202124;">【編集】新規受講生の登録＆学習記録</h1>
+        <p class="mb-0" style="font-size: 14px; color: #202124;">
+            登録済みの受講生情報を修正し、本日の学習内容を更新してください。
+        </p>
+        <div class="text-danger mt-3" style="font-size: 12px;">* Indicates required question</div>
+    </div>
+
+    <form method="POST" enctype="multipart/form-data">
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">(1) 🔑 現在の顔写真</label>
+            <div class="mb-3">
+                {% if student.face_photo_path %}
+                    <img src="{{ '/tmp/' + student.face_photo_path if os.environ.get('VERCEL') else url_for('static', filename='uploads/' + student.face_photo_path) }}" alt="現在の顔写真" class="preview-img mb-2">
+                {% else %}
+                    <p class="text-muted" style="font-size: 14px;">写真が登録されていません</p>
+                {% endif %}
+            </div>
+            <div style="font-size: 12px; color: #70757a; margin-bottom: 8px;">※スマホで受講生の顔写真を撮影し、変更する場合のみここにアップロードしてください (画像のファイルサイズ 10MBまで 必須)</div>
+            <input type="file" class="form-control-gf" id="face_photo" name="face_photo">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="name_kana" class="form-label">(2) 受講生の氏名を、カタカナ表記でそれぞれ入力してください。（例） ジョ・ハドリー・ニカノール・ヘミングウェイ （※ミドルネームがない場合は書かなくても結構です。）<span class="required-star">*</span></label>
+            <input type="text" class="form-control-gf" id="name_kana" name="name_kana" value="{{ student.name_kana }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="country_of_origin" class="form-label">(3) 出身国<span class="required-star">*</span></label>
+            <input type="text" class="form-control-gf" id="country_of_origin" name="country_of_origin" value="{{ student.country_of_origin }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="native_language" class="form-label">(4) 話す言葉（母語）<span class="required-star">*</span></label>
+            <input type="text" class="form-control-gf" id="native_language" name="native_language" value="{{ student.native_language }}" placeholder="Your answer" required>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="other_languages" class="form-label">(5) 話す言葉（母語以外）</label>
+            <input type="text" class="form-control-gf" id="other_languages" name="other_languages" value="{{ student.other_languages or '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="occupation" class="form-label">(6) 職業</label>
+            <input type="text" class="form-control-gf" id="occupation" name="occupation" value="{{ student.occupation or '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="residential_area" class="form-label">(7) 居住地域<span class="required-star">*</span></label>
+            <select class="form-select-gf" id="residential_area" name="residential_area" required>
+                <option value="">Choose</option>
+                <option value="春日部市" {% if student.residential_area == '春日部市' %}selected{% endif %}>春日部市</option>
+                <option value="さいたま市" {% if student.residential_area == 'さいたま市' %}selected{% endif %}>さいたま市</option>
+                <option value="越谷市" {% if student.residential_area == '越谷市' %}selected{% endif %}>越谷市</option>
+                <option value="その他" {% if student.residential_area not in ['春日部市', 'さいたま市', '越谷市'] and student.residential_area %}selected{% endif %}>その他</option>
+            </select>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="jlpt_level" class="form-label">(8) 日本語能力試験（JLPT） 取得レベル<span class="required-star">*</span></label>
+            <select class="form-select-gf" id="jlpt_level" name="jlpt_level" required>
+                <option value="">Choose</option>
+                <option value="N1" {% if student.jlpt_level == 'N1' %}selected{% endif %}>N1</option>
+                <option value="N2" {% if student.jlpt_level == 'N2' %}selected{% endif %}>N2</option>
+                <option value="N3" {% if student.jlpt_level == 'N3' %}selected{% endif %}>N3</option>
+                <option value="N4" {% if student.jlpt_level == 'N4' %}selected{% endif %}>N4</option>
+                <option value="N5" {% if student.jlpt_level == 'N5' %}selected{% endif %}>N5</option>
+                <option value="その他" {% if student.jlpt_level == 'その他' %}selected{% endif %}>その他</option>
+            </select>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="learning_purpose" class="form-label">(9) 日本語学習の目的、目標、期限</label>
+            <input type="text" class="form-control-gf" id="learning_purpose" name="learning_purpose" value="{{ student.learning_purpose or '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="life_troubles" class="form-label">(10) 現在、生活で困っていること、わからない事</label>
+            <input type="text" class="form-control-gf" id="life_troubles" name="life_troubles" value="{{ student.life_troubles or '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="how_knew_class" class="form-label">(11) どうやってこの日本語教室を知りましたか？<span class="required-star">*</span></label>
+            <select class="form-select-gf" id="how_knew_class" name="how_knew_class" required>
+                <option value="">Choose</option>
+                <option value="知人の紹介" {% if student.how_knew_class == '知人の紹介' %}selected{% endif %}>知人の紹介</option>
+                <option value="チラシ・ポスター" {% if student.how_knew_class == 'チラシ・ポスター' %}selected{% endif %}>チラシ・ポスター</option>
+                <option value="インターネット検索" {% if student.how_knew_class == 'インターネット検索' %}selected{% endif %}>インターネット検索</option>
+                <option value="その他" {% if student.how_knew_class == 'その他' %}selected{% endif %}>その他</option>
+            </select>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="how_knew_class_other" class="form-label">(12) 上の(11)で「その他」を選んだ方は具体的に、どこでこの武里日本語教室を知ったか記入してください。</label>
+            <input type="text" class="form-control-gf" id="how_knew_class_other" name="how_knew_class_other" value="{{ student.how_knew_class_other or '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="today_learning_content" class="form-label">(13) 本日の学習内容 ※本日学習した内容を入力してください。</label>
+            <input type="text" class="form-control-gf" id="today_learning_content" name="today_learning_content" value="{{ student.today_learning_content or '' }}" placeholder="Your answer">
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label for="staff_id" class="form-label">(14) 記入担当者<span class="required-star">*</span></label>
+            <select class="form-select-gf" id="staff_id" name="staff_id" required>
+                <option value="">Choose</option>
+                <option value="1" {% if student.staff_id == 1 or student.staff_id == '1' %}selected{% endif %}>管理者 太郎</option>
+                <option value="2" {% if student.staff_id == 2 or student.staff_id == '2' %}selected{% endif %}>Phyo</option>
+            </select>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
+            <button type="submit" class="btn btn-submit shadow-sm">Submit</button>
+            <a href="{{ url_for('student.student_list') }}" class="btn text-secondary" style="font-size: 14px; text-decoration: none;">Clear form (キャンセル)</a>
+        </div>
+
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

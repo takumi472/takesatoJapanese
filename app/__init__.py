@@ -51,7 +51,7 @@ def create_app(env_name='development'):
     from app.staff.routes import staff_bp
     from app.student.routes import student_bp
 
-    app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(auth_bp, url_prefix='/')
     app.register_blueprint(staff_bp, url_prefix='/staff')
     app.register_blueprint(student_bp, url_prefix='/student')
 
