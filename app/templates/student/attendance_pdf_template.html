@@ -1,0 +1,109 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <style>
+        /* ★重要: xhtml2pdfに組み込まれている日本語フォントを全体に適用 */
+        @html {
+            font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif;
+        }
+        
+        @page {
+            size: A4 portrait;
+            margin: 20mm 15mm;
+        }
+        
+        body {
+            font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif;
+            color: #333333;
+        }
+        
+        .header {
+            border-bottom: 3px solid #673ab7;
+            padding-bottom: 5px;
+            margin-bottom: 20px;
+        }
+        
+        .title { font-size: 18pt; font-weight: bold; }
+        
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        
+        .table th {
+            background-color: #f8f9fa;
+            border-bottom: 2px solid #e0e0e0;
+            padding: 8px;
+            font-size: 10pt;
+            text-align: left;
+        }
+        
+        .table td {
+            padding: 8px;
+            border-bottom: 1px solid #e0e0e0;
+            font-size: 11pt;
+            vertical-align: middle; /* 写真と文字の上下中央揃え */
+        }
+        
+        .text-center { text-align: center; }
+        
+        /* ★追加: 写真のサイズ固定と円形（四角）の枠線スタイル */
+        .student-avatar {
+            width: 100px;
+            height: 100px;
+            border-radius: 20px; /* 丸型にする設定 */
+        }
+        
+        /* 写真がない場合のテキストスタイル */
+        .no-avatar {
+            font-size: 16pt;
+            color: #cccccc;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div class="title">武里日本語教室 出席管理台帳</div>
+        <div style="font-size: 10pt; color: #666;">対象日: {{ target_date }}</div>
+    </div>
+    <table class="table">
+        <thead>
+            <tr>
+                <th style="width: 10%;" class="text-center">番号</th>
+                <th style="width: 20%;">生徒の名前</th>
+                <th style="width: 15%;" class="text-center">写真</th>
+                <th style="width: 20%;">国籍</th>
+                <th style="width: 20%;">担当スタッフ</th>
+                {% if data_rows|length > 0 %}
+            {% for key in data_rows[0].keys() %}
+                {% if key not in ["内部連番", "顔写真", "生徒の名前", "国籍", "担当スタッフ"] %}
+                    <th>{{ key }}</th>
+                {% endif %}
+            {% endfor %}
+        {% endif %}
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in data_rows %}
+            <tr>
+                <td class="text-center" style="color: #888;">{{ row['内部連番'] }}</td>
+                <td style="font-weight: bold;">{{ row['生徒の名前'] }}</td>
+                
+                <td class="text-center">
+    {% if row['顔写真'] %}
+        <img src="{{ row['顔写真'] }}" class="student-avatar">
+    {% else %}
+        <span class="no-avatar">👤</span>
+    {% endif %}
+</td>
+                
+                <td>{{ row['国籍'] }}</td>
+                <td>{{ row['担当スタッフ'] }}</td>
+                <td></td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

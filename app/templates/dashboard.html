@@ -165,6 +165,30 @@
             </a>
         </div>
 
+        <div class="col">
+    <a href="{{ url_for('student.attendance_list') }}" class="text-decoration-none text-dark">
+        <div class="card h-100 border-0 shadow-sm text-center py-4 transition-card" style="border-top: 4px solid #673ab7 !important;">
+            <div class="card-body">
+                <div class="mb-3 text-primary">
+                    <i class="bi bi-calendar-check-fill" style="font-size: 2.5rem; color: #673ab7;"></i>
+                </div>
+                <h5 class="card-title fw-bold" style="font-size: 16px;">出席リスト</h5>
+                <p class="card-text text-muted d-none d-sm-block" style="font-size: 12px;">日別の受講生出席状況を確認</p>
+            </div>
+        </div>
+    </a>
+</div>
+
+<style>
+    .transition-card {
+        transition: transform 0.2s, box-shadow 0.2s;
+    }
+    .transition-card:hover {
+        transform: translateY(-3px);
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
+    }
+</style>
+
     </div>
 
 </div>

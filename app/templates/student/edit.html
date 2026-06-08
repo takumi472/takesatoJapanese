@@ -141,10 +141,9 @@
             <label for="residential_area" class="form-label">(7) 居住地域<span class="required-star">*</span></label>
             <select class="form-select-gf" id="residential_area" name="residential_area" required>
                 <option value="">Choose</option>
-                <option value="春日部市" {% if student.residential_area == '春日部市' %}selected{% endif %}>春日部市</option>
-                <option value="さいたま市" {% if student.residential_area == 'さいたま市' %}selected{% endif %}>さいたま市</option>
-                <option value="越谷市" {% if student.residential_area == '越谷市' %}selected{% endif %}>越谷市</option>
-                <option value="その他" {% if student.residential_area not in ['春日部市', 'さいたま市', '越谷市'] and student.residential_area %}selected{% endif %}>その他</option>
+                {% for city in city_list %}
+                    <option value="{{ city }}">{{ city  }}</option>
+                {% endfor %}
             </select>
         </div>
 
@@ -196,8 +195,11 @@
             <label for="staff_id" class="form-label">(14) 記入担当者<span class="required-star">*</span></label>
             <select class="form-select-gf" id="staff_id" name="staff_id" required>
                 <option value="">Choose</option>
-                <option value="1" {% if student.staff_id == 1 or student.staff_id == '1' %}selected{% endif %}>管理者 太郎</option>
-                <option value="2" {% if student.staff_id == 2 or student.staff_id == '2' %}selected{% endif %}>Phyo</option>
+                {% for staff in staff_list %}
+            <option value="{{ staff.id }}" {% if student.assigned_staff_id == staff.id %}selected{% endif %}>
+                {{ staff.last_name_kanji }}
+            </option>
+        {% endfor %}
             </select>
         </div>
 

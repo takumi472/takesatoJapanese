@@ -92,8 +92,9 @@
             <label for="residential_area" class="form-label fw-bold">(7) 居住地域 <span class="required-star">*</span></label>
             <select class="form-select w-50" id="residential_area" name="residential_area" required>
                 <option value="" selected disabled>選択</option>
-                <option value="選択肢1">選択肢1</option>
-                <option value="選択肢2">選択肢2</option>
+                {% for city in city_list %}
+                    <option value="{{ city }}">{{ city  }}</option>
+                {% endfor %}
                 </select>
         </div>
 
@@ -145,8 +146,9 @@
             <label for="staff_in_charge" class="form-label fw-bold">(14) 記入担当者 <span class="required-star">*</span></label>
             <select class="form-select w-50" id="staff_in_charge" name="staff_in_charge" required>
                 <option value="" selected disabled>選択</option>
-                <option value="担当者A">担当者A</option>
-                <option value="担当者B">担当者B</option>
+                {% for staff in staff_list %}
+            <option value="{{ staff.id }}">{{ staff.last_name_kanji  }}</option>
+        {% endfor %}
             </select>
         </div>
 

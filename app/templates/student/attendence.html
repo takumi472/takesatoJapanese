@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ target_date.strftime('%Y%m%d') }}_出席リスト</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        body { background-color: #f8f9fa; font-family: 'Helvetica Neue', Arial, sans-serif; }
+        .main-container { max-width: 900px; margin: 30px auto; padding: 0 15px; }
+        .header-box { background: white; border-top: 8px solid #673ab7; border-radius: 8px; padding: 20px; }
+        .country-section { background: white; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 25px; overflow: hidden; }
+        .country-header { background-color: #f1f3f4; padding: 12px 20px; font-weight: bold; font-size: 16px; color: #202124; border-bottom: 1px solid #e0e0e0; }
+        .student-avatar { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 1px solid #ddd; }
+        .avatar-placeholder { width: 45px; height: 45px; border-radius: 50%; background-color: #e8eaed; display: flex; align-items: center; justify-content: center; color: #5f6368; margin: 0 auto; }
+
+        /* ================= 🖨️ PDF・印刷専用のレイアウト微調整（超重要） ================= */
+        @media print {
+            @page {
+                size: A4;
+                margin: 20mm 15mm; /* 印刷時の余白を最適化 */
+            }
+            /* 画面用ボタンやフォーム、ナビゲーションをPDFから完全に除外 */
+            .no-print, .btn, form, .bi-house-door-fill {
+                display: none !important;
+            }
+            body {
+                background-color: #ffffff !important;
+                -webkit-print-color-adjust: exact;
+                print-color-adjust: exact;
+            }
+            .main-container {
+                margin: 0 !important;
+                padding: 0 !important;
+                max-width: 100% !important;
+            }
+            .header-box {
+                border: none !important;
+                box-shadow: none !important;
+                padding: 0 0 10px 0 !important;
+                border-bottom: 2px solid #673ab7 !important;
+                border-radius: 0 !important;
+                margin-bottom: 20px !important;
+            }
+            .country-section {
+                page-break-inside: avoid; /* テーブルがページの途中で不自然に切れるのを防ぐ */
+                box-shadow: none !important;
+                border: 1px solid #cccccc !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container main-container">
+    <div class="header-box shadow-sm mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ url_for('auth.dashboard') }}" class="btn btn-sm btn-light no-print"><i class="bi bi-house-door-fill"></i></a>
+                <h1 class="h4 mb-0 fw-bold">{{ target_date.strftime('%Y年%m月%d日') }} 出席リスト</h1>
+            </div>
+            <small class="text-muted">総出席数: <strong>{{ total_count }}</strong> 名（国籍順ソート）</small>
+        </div>
+        
+        <div class="no-print">
+            <form method="GET" action="{{ url_for('student.attendance_list') }}" class="d-flex gap-2">
+                <input type="date" id="datePicker" name="date" class="form-control form-control-sm" value="{{ target_date }}">
+                <button type="submit" class="btn btn-sm btn-primary">変更</button>
+                <button type="button" class="btn btn-sm btn-success d-flex align-items-center gap-1" onclick="downloadPDF()">
+            <i class="bi bi-file-earmark-pdf-fill"></i> PDF出力
+        </button>
+            </form>
+        </div>
+    </div>
+
+    {% for country, students in grouped_students.items() %}
+    <div class="country-section shadow-sm">
+        <div class="country-header d-flex justify-content-between align-items-center">
+            <span><i class="bi bi-flag-fill text-secondary me-2"></i>国籍: {{ country }}</span>
+            <span class="badge bg-secondary">{{ students|length }}名</span>
+        </div>
+        
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light" style="font-size: 13px;">
+                    <tr>
+                        <th scope="col" class="text-center" style="width: 10%;">番号</th>
+                        <th scope="col" class="text-center" style="width: 15%;">顔写真</th>
+                        <th scope="col" style="width: 35%;">生徒の名前</th>
+                        <th scope="col" style="width: 20%;">国籍</th>
+                        <th scope="col" style="width: 20%;">担当スタッフ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for s in students %}
+                    <tr>
+                        <td class="text-center text-muted fw-bold">{{ loop.index }}</td>
+                        
+                        <td class="text-center">
+                            {% if s.face_photo_path %}
+                                <img src="{{ s.face_photo_path }}" class="student-avatar" alt="{{ s.name_kana }}">
+                            {% else %}
+                                <div class="avatar-placeholder"><i class="bi bi-person-fill"></i></div>
+                            {% endif %}
+                        </td>
+                        
+                        <td><div class="fw-bold text-dark">{{ s.name_kana }}</div></td>
+                        
+                        <td><span class="text-secondary">{{ country }}</span></td>
+                        
+                        <td>
+                            <span class="badge bg-light text-dark border"><i class="bi bi-person-badge text-muted me-1"></i>{{ s.assigned_staff_name }}</span>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+    {% else %}
+    <div class="text-center py-5 bg-white rounded shadow-sm border">
+        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem运行;"></i>
+        <p class="text-muted mt-2 mb-0">この日の出席記録（学習録）はありません。</p>
+    </div>
+    {% endfor %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+function downloadPDF() {
+    // 1. カレンダーで今選択されている日付（YYYY-MM-DD）を取得
+    const selectedDate = document.getElementById('datePicker').value;
+    
+    if (!selectedDate) {
+        alert("日付が正しく選択されていません。");
+        return;
+    }
+    
+    // 2. Python側のPDFダウンロードURLを生成（日付パラメータを後ろにくっつける）
+    // 例: /attendance/download-pdf?date=2026-06-08
+    const baseUrl = "{{ url_for('student.download_attendance_pdf') }}";
+    const downloadUrl = `${baseUrl}?date=${selectedDate}`;
+    
+    // 3. 生成したURLへ画面を遷移させて、PDFのダウンロードを発火させる
+    window.location.href = downloadUrl;
+}
+</script>
+</body>
+
+</body>
+</html>
