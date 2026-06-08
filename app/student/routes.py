@@ -430,6 +430,14 @@ def download_attendance_pdf():
     
     count = 0
     for log in logs:
+        if (count % 12 == 0 and count != 0):
+            pdf.cell(15, 10, "No", border=1)
+            pdf.cell(60, 10, "Name", border=1)
+            pdf.cell(20, 10, "Photo", border=1)
+            pdf.cell(30, 10, "Country", border=1)
+            pdf.cell(30, 10, "Staff", border=1)
+            pdf.cell(30, 10, str(next_date), border=1)
+            pdf.ln()
         student = log.student
         if student:
             count += 1
