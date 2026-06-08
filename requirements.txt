@@ -27,3 +27,4 @@ SQLAlchemy==2.0.50
 typing_extensions==4.15.0
 urllib3==2.7.0
 Werkzeug==3.1.8
+xhtml2pdf==0.2.17
