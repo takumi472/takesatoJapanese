@@ -1,3 +1,4 @@
+# ─── 修正版 requirements.txt ───
 arabic-reshaper==3.0.1
 asn1crypto==1.5.1
 black==26.5.1
@@ -21,6 +22,7 @@ html5lib==1.1
 idna==3.18
 itsdangerous==2.2.0
 Jinja2==3.1.6
+lxml==6.1.1
 MarkupSafe==3.0.3
 mypy_extensions==1.1.0
 numpy==2.4.6
@@ -31,7 +33,6 @@ pathspec==1.1.1
 pillow==12.2.0
 platformdirs==4.10.0
 psycopg2-binary==2.9.12
-pycairo==1.21.0
 pycparser==3.0
 pydyf==0.12.1
 pyHanko==0.35.1
@@ -42,11 +43,10 @@ python-bidi==0.6.10
 python-dateutil==2.9.0.post0
 pytokens==0.4.1
 PyYAML==6.0.3
+reportlab==4.5.1
 requests==2.34.2
-rlPyCairo==0.4.0
 six==1.17.0
 SQLAlchemy==2.0.50
-svglib==1.5.1
 tinycss2==1.5.1
 tinyhtml5==2.1.0
 typing_extensions==4.15.0
@@ -55,5 +55,5 @@ uritools==6.1.2
 urllib3==2.7.0
 webencodings==0.5.1
 Werkzeug==3.1.8
-xhtml2pdf==0.2.11
+xhtml2pdf==0.2.17
 zopfli==0.4.2
