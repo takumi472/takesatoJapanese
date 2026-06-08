@@ -3,10 +3,10 @@
   "builds": [
     {
       "src": "run.py",
-      "use": "@vercel/python",
-      "config": {
-        "maxDuration": 15
-      }
+      "use": "@vercel/python"
+
+
+
     }
   ],
   "routes": [
@@ -14,10 +14,5 @@
       "src": "/(.*)",
       "dest": "run.py"
     }
-  ],
-  "functions": {
-    "app/__init__.py": {
-      "memory": 1024
-    }
-  }
+  ]
 }
