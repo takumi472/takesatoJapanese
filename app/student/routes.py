@@ -250,24 +250,145 @@ def attendance_list():
     )
     
     
-import io
-import csv
-import pandas as pd
-from flask import render_template, make_response, request
+# import io
+# import csv
+# import pandas as pd
+# from flask import render_template, make_response, request
+# from app.models import LearningRecord, User
+# from collections import defaultdict
+# from datetime import datetime
+# # ※PDF化ライブラリ（例: weasyprint や pdfkit など。ここではweasyprintの例）
+# import base64
+# import requests
+# import os
+# from flask import current_app
+# # from xhtml2pdf import pisa
+# import io
+# import base64
+# import requests
+# from fpdf import FPDF
+
+# # （前回のステップで作成した get_weasyprint_image などの関数はそのまま使えますが、名前を一般化しておきます）
+# def get_pdf_image(image_path_or_url):
+#     if not image_path_or_url: return ""
+#     if image_path_or_url.startswith(('http://', 'https://')):
+#         try:
+#             response = requests.get(image_path_or_url, timeout=5)
+#             if response.status_code == 200:
+#                 base64_data = base64.b64encode(response.content).decode('utf-8')
+#                 mime_type = "image/png" if "png" in image_path_or_url.lower() else "image/jpeg"
+#                 return f"data:{mime_type};base64,{base64_data}"
+#         except Exception: pass
+#     return ""
+
+# @student_bp.route('/attendance/download-pdf')
+# @login_required
+# def download_attendance_pdf():
+#     # 1. 日付の指定を取得
+#     date_str = request.args.get('date')
+#     target_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.now().date()
+#     next_date = datetime.strptime(date_str, '%Y-%m-%d').date() + timedelta(days=8) if date_str else datetime.now().date() + timedelta(days=8)
+
+#     # 2. データベースから該当日の出席（学習録）を取得
+#     logs = LearningRecord.query.filter_by(lesson_date=target_date).all()
+
+#     # 3. データを一度フラットなリストに変換（CSVおよびデータフレーム用）
+#     raw_data = []
+#     country_counts = defaultdict(int)
+    
+#     count = 0
+#     for log in logs:
+#         student = log.student
+#         if student:
+#             country = student.country_of_origin or "未登録"
+#             country_counts[country] += 1
+            
+#             staff_name = "未定"
+#             if log.staff_id:
+#                 staff_user = User.query.get(log.staff_id)
+#                 staff_name = staff_user.name if staff_user else "不明"
+            
+#             # ★ ここでヘルパー関数を使ってBase64に一発変換！
+#             base64_photo = get_pdf_image(student.face_photo_path)
+#             count+=1  
+#             raw_data.append({
+#                 "内部連番": count,
+#                 "顔写真": base64_photo,  # HTMLにテキストとして埋め込む
+#                 "生徒の名前": student.name_kana,
+#                 "国籍": country,
+#                 "担当スタッフ": staff_name,
+#                 next_date: ""
+#             })
+            
+
+#     # 4. Pandasを使って国籍順に綺麗にソート
+#     df = pd.DataFrame(raw_data)
+#     if not df.empty:
+#         df = df.sort_values(by=["内部連番", "国籍"]).reset_index(drop=True)
+    
+#     # ─── 【参考】もし背後でCSVファイル自体も同時に保存したい場合 ───
+#     # df.to_csv(f"attendance_{target_date}.csv", index=False, encoding="utf-8-sig")
+
+#     # 5. ソートされたCSVデータ（データフレーム）をPDF用のHTMLに流し込む
+#     # html_string = render_template(
+#     #     'student/attendance_pdf_template.html',
+#     #     target_date=target_date,
+#     #     data_rows=df.to_dict(orient='records')
+#     # )
+
+#     # 6. 【修正】WeasyPrintの代わりに xhtml2pdf (pisa) を使ってPDFを生成
+#     pdf_buffer = io.BytesIO()
+#     def df_to_pdf(df, output_path):
+#         pdf = FPDF()
+#         pdf.add_page()
+#         pdf.set_font("Arial", size=10)
+    
+#         # テーブルヘッダーの描画
+#         col_names = list(df.columns)
+#         for col in col_names:
+#             pdf.cell(40, 10, str(col), border=1)
+#         pdf.ln()
+    
+#         # データ行の描画
+#         for row in df.itertuples(index=False):
+#             for val in row:
+#                 pdf.cell(40, 10, str(val), border=1)
+#             pdf.ln()
+        
+#         pdf.output(output_path)
+#     # pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer, encoding='utf-8')
+    
+#     # if pisa_status.err:
+#     #     return "PDF生成エラーが発生しました。", 500
+#     df_to_pdf(df, 'output.pdf')
+#     pdf_buffer.seek(0)
+    
+#     response = make_response(pdf_buffer.getvalue())
+#     response.headers['Content-Type'] = 'application/pdf'
+#     response.headers['Content-Disposition'] = f'attachment; filename=attendance_{target_date}.pdf'
+#     return response
+
+from flask import render_template, make_response, request, current_app
 from app.models import LearningRecord, User
 from collections import defaultdict
-from datetime import datetime
-# ※PDF化ライブラリ（例: weasyprint や pdfkit など。ここではweasyprintの例）
-import base64
-import requests
-import os
-from flask import current_app
-# from xhtml2pdf import pisa
+from datetime import datetime, timedelta
 import io
+import requests
+from fpdf import FPDF
 import base64
 import requests
+import io
+from PIL import Image
 
-# （前回のステップで作成した get_weasyprint_image などの関数はそのまま使えますが、名前を一般化しておきます）
+# FPDFに日本語フォントを読み込ませるための準備
+# 1. プロジェクト内に .ttf フォントファイルを用意してください（例: fonts/ipaexg.ttf）
+# 2. Vercelの制限を回避するため、外部コンパイルが不要なこの構成で動かします
+
+class PDF(FPDF):
+    def header(self):
+        self.set_font("Arial", 'B', 12)
+        self.cell(0, 10, 'Attendance List', 0, 1, 'C')
+
 def get_pdf_image(image_path_or_url):
     if not image_path_or_url: return ""
     if image_path_or_url.startswith(('http://', 'https://')):
@@ -283,68 +404,83 @@ def get_pdf_image(image_path_or_url):
 @student_bp.route('/attendance/download-pdf')
 @login_required
 def download_attendance_pdf():
-    # 1. 日付の指定を取得
     date_str = request.args.get('date')
     target_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.now().date()
-    next_date = datetime.strptime(date_str, '%Y-%m-%d').date() + timedelta(days=8) if date_str else datetime.now().date() + timedelta(days=8)
-
-    # 2. データベースから該当日の出席（学習録）を取得
+    
     logs = LearningRecord.query.filter_by(lesson_date=target_date).all()
+    
+    # PDF生成
+    pdf = PDF()
+    pdf.add_page()
+    
+    # 簡易テーブル作成（FPDFのCellを使用）
+    font_path = os.path.join(current_app.root_path, 'fonts', 'ipaexg.ttf')
+    pdf.add_font("IPAexGothic", "", font_path, uni=True)
+    pdf.set_font("IPAexGothic", size=10)
 
-    # 3. データを一度フラットなリストに変換（CSVおよびデータフレーム用）
-    raw_data = []
-    country_counts = defaultdict(int)
+    next_date = datetime.strptime(date_str, '%Y-%m-%d').date() + timedelta(days=8) if date_str else datetime.now().date() + timedelta(days=8)
+    # headers = ["No", "Name", "", "Country", "Staff", str(next_date)]
+    pdf.cell(15, 10, "No", border=1)
+    pdf.cell(60, 10, "Name", border=1)
+    pdf.cell(20, 10, "Photo", border=1)
+    pdf.cell(30, 10, "Country", border=1)
+    pdf.cell(30, 10, "Staff", border=1)
+    pdf.cell(30, 10, str(next_date), border=1)
+    pdf.ln()
     
     count = 0
     for log in logs:
         student = log.student
         if student:
-            country = student.country_of_origin or "未登録"
-            country_counts[country] += 1
+            count += 1
+            staff_name = User.query.get(log.staff_id).name if log.staff_id else "未定"
             
-            staff_name = "未定"
-            if log.staff_id:
-                staff_user = User.query.get(log.staff_id)
-                staff_name = staff_user.name if staff_user else "不明"
+            # 画像データはVercelのメモリ制限を避けるため、今回は一旦テキスト情報のみで出力
+            # FPDFに画像を追加する場合は pdf.image() を使いますが、URLからは直接読み込めないため
+            # 必要であれば事前にキャッシュフォルダへ保存する等のロジックが必要です
+            row_height = 20
             
-            # ★ ここでヘルパー関数を使ってBase64に一発変換！
-            base64_photo = get_pdf_image(student.face_photo_path)
-            count+=1  
-            raw_data.append({
-                "内部連番": count,
-                "顔写真": base64_photo,  # HTMLにテキストとして埋め込む
-                "生徒の名前": student.name_kana,
-                "国籍": country,
-                "担当スタッフ": staff_name,
-                next_date: ""
-            })
-            
+            pdf.cell(15, row_height, str(count), border=1)
+            pdf.cell(60, row_height, student.name_kana, border=1) # 文字数制限
+            try:
+                response = requests.get(student.face_photo_path, timeout=5)
+                if response.status_code == 200:
+                    # 2. メモリ上に画像を読み込む
+                    image_data = io.BytesIO(response.content)
+                    x_pos = pdf.get_x()
+                    y_pos = pdf.get_y()
+                    cell_width = 20
+                    pdf.cell(cell_width, row_height, "", border=1)
+        
+                    # 3. PDFに画像を配置
+                    # x, y は枠内の位置、wは画像幅
+                    pdf.image(
+                        image_data,
+                        x=x_pos + 1, 
+                        y=y_pos + 1, 
+                        w=cell_width - 2, 
+                        h=row_height - 2
+                    )
+                    # pdf.set_x(x_pos + cell_width)
+                else:
+                    print(f"画像取得失敗: ステータスコード {response.status_code}")
+            except Exception as e:
+                print(f"画像ダウンロードエラー: {e}")
+            # pdf.image(student.face_photo_path, x=40 + 1, y=40 + 1, w=40 - 2, h=40 - 2)
+            # pdf.cell(40, 40, get_pdf_image(student.face_photo_path), border=1)
+            pdf.cell(30, row_height, student.country_of_origin or "N/A", border=1)
+            pdf.cell(30, row_height, staff_name, border=1)
+            pdf.cell(30, row_height, "", border=1)
+            pdf.ln()
 
-    # 4. Pandasを使って国籍順に綺麗にソート
-    df = pd.DataFrame(raw_data)
-    if not df.empty:
-        df = df.sort_values(by=["内部連番", "国籍"]).reset_index(drop=True)
-    
-    # ─── 【参考】もし背後でCSVファイル自体も同時に保存したい場合 ───
-    # df.to_csv(f"attendance_{target_date}.csv", index=False, encoding="utf-8-sig")
-
-    # 5. ソートされたCSVデータ（データフレーム）をPDF用のHTMLに流し込む
-    html_string = render_template(
-        'student/attendance_pdf_template.html',
-        target_date=target_date,
-        data_rows=df.to_dict(orient='records')
-    )
-
-    # 6. 【修正】WeasyPrintの代わりに xhtml2pdf (pisa) を使ってPDFを生成
+    # ストリームに出力
     pdf_buffer = io.BytesIO()
-    # pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer, encoding='utf-8')
+    pdf.output(pdf_buffer)
+    pdf_data = pdf_buffer.getvalue()
     
-    # if pisa_status.err:
-    #     return "PDF生成エラーが発生しました。", 500
-
-    pdf_buffer.seek(0)
-    
-    response = make_response(pdf_buffer.getvalue())
+    # 応答を作成
+    response = make_response(pdf_data)
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename=attendance_{target_date}.pdf'
+    
     return response

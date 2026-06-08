@@ -67,9 +67,9 @@
             <form method="GET" action="{{ url_for('student.attendance_list') }}" class="d-flex gap-2">
                 <input type="date" id="datePicker" name="date" class="form-control form-control-sm" value="{{ target_date }}">
                 <button type="submit" class="btn btn-sm btn-primary">変更</button>
-                <!-- <button type="button" class="btn btn-sm btn-success d-flex align-items-center gap-1" onclick="downloadPDF()">
+                <button type="button" class="btn btn-sm btn-success d-flex align-items-center gap-1" onclick="downloadPDF()">
             <i class="bi bi-file-earmark-pdf-fill"></i> PDF出力
-        </button> -->
+        </button>
             </form>
         </div>
     </div>
