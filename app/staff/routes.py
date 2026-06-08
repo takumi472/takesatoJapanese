@@ -4,6 +4,8 @@ from flask_login import current_user, login_required
 from app.models import db, User, Staff
 from werkzeug.security import generate_password_hash
 from datetime import datetime
+import cloudinary
+import cloudinary.uploader
 
 staff_bp = Blueprint("staff", __name__)
 
@@ -39,21 +41,28 @@ def create_staff():
             return redirect(url_for("staff.create_staff"))
 
         # --- ▼ 顔写真ファイルの保存処理 ▼ ---
-        filename = None
+        face_photo_path = None
         if "face_photo" in request.files:
             file = request.files["face_photo"]
             if file and file.filename != "":
                 if allowed_file(file.filename):
-                    # ファイル名の競合を防ぐため、タイムスタンプを付与して安全な名前に変換
-                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S_")
-                    filename = timestamp + secure_filename(file.filename)
-
-                    # 保存先フォルダ (app/static/uploads) の絶対パスを作成・存在確認
-                    upload_folder = os.path.join(current_app.root_path, "static", "uploads")
-                    os.makedirs(upload_folder, exist_ok=True)
-
-                    # ファイルを保存
-                    file.save(os.path.join(upload_folder, filename))
+                    upload_result = cloudinary.uploader.upload(
+                        file,
+                        folder = "staffs",
+                        eager=[
+                            {
+                            "crop": "thumb",      # 顔がきれいに収まるサムネイルモード
+                            "gravity": "face",    # AIによる顔認識（高精度なら "adv_face"）
+                            "zoom": 0.7,          # 顔を大きくする（数字が小さいほどドアップ）
+                            "width": 200,         # 最終的な横幅
+                            "height": 200,        # 最終的な縦幅
+                            "fetch_format": "auto", # PWA・スマホ用に自動軽量化
+                            "quality": "auto"       # 画質を自動最適化
+                            }
+                        ]
+                    )
+                    # 2. クラウド上の画像URL（https://res.cloudinary.com/...）を取得
+                    face_photo_path = upload_result.get('eager')[0].get('secure_url')
                 else:
                     flash("許可されていないファイル形式です。(png, jpg, jpeg, gif のみ)", "danger")
                     return redirect(url_for("staff.create_staff"))
@@ -71,7 +80,7 @@ def create_staff():
             new_staff = Staff(
                 user_id=new_user.id,
                 email=email,
-                face_photo_path=filename,  # ★ データベースにファイル名を保存
+                face_photo_path=face_photo_path,  # ★ データベースにファイル名を保存
                 last_name_kanji=last_name,
                 first_name_kanji=first_name,
                 last_name_kana=request.form.get("last_name_kana"),
@@ -110,7 +119,7 @@ def create_staff():
 @login_required
 def edit_staff(id):
     staff = Staff.query.get_or_404(id)
-    if not current_user.is_admin and current_user.id != staff.user_id:
+    if current_user.role != 'admin' and current_user.id != staff.user_id:
         flash("他のユーザーの情報を編集する権限がありません。")
         return redirect(url_for('staff.index'))
 
@@ -120,14 +129,23 @@ def edit_staff(id):
             file = request.files["face_photo"]
             if file and file.filename != "":
                 if allowed_file(file.filename):
-                    timestamp = datetime.now().strftime("%Y%m%d%H%M%S_")
-                    filename = timestamp + secure_filename(file.filename)
-
-                    upload_folder = os.path.join(current_app.root_path, "static", "uploads")
-                    os.makedirs(upload_folder, exist_ok=True)
-
-                    file.save(os.path.join(upload_folder, filename))
-                    staff.face_photo_path = filename  # ★ 新しい写真パスに上書き
+                    upload_result = cloudinary.uploader.upload(
+                        file,
+                        folder = "staffs",
+                        eager=[
+                            {
+                            "crop": "thumb",      # 顔がきれいに収まるサムネイルモード
+                            "gravity": "face",    # AIによる顔認識（高精度なら "adv_face"）
+                            "zoom": 0.7,          # 顔を大きくする（数字が小さいほどドアップ）
+                            "width": 200,         # 最終的な横幅
+                            "height": 200,        # 最終的な縦幅
+                            "fetch_format": "auto", # PWA・スマホ用に自動軽量化
+                            "quality": "auto"       # 画質を自動最適化
+                            }
+                        ]
+                    )
+                    # 2. クラウド上の画像URL（https://res.cloudinary.com/...）を取得
+                    staff.face_photo_path = upload_result.get('eager')[0].get('secure_url')
                 else:
                     flash("許可されていないファイル形式です。(png, jpg, jpeg, gif のみ)", "danger")
                     return render_template("staff/edit.html", staff=staff)

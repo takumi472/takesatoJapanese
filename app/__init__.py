@@ -3,6 +3,8 @@ import os
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
+import cloudinary
+import cloudinary.uploader
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -39,6 +41,12 @@ def create_app(env_name="development"):
         "pool_pre_ping": True,
         "pool_recycle": 300,
     }
+    cloudinary.config(
+        cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME', 'dga0a3qkd'),
+        api_key = os.environ.get('CLOUDINARY_API_KEY', '883285726535233'),
+        api_secret = os.environ.get('CLOUDINARY_API_SECRET', 'Md9aYHDqewNBlf8PFKeONPufc5c'),
+        secure = True
+    )
 
     # 各種マネージャーの初期化
     login_manager.init_app(app)
