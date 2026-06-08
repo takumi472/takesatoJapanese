@@ -262,7 +262,7 @@ import base64
 import requests
 import os
 from flask import current_app
-from xhtml2pdf import pisa
+# from xhtml2pdf import pisa
 import io
 import base64
 import requests
@@ -337,10 +337,10 @@ def download_attendance_pdf():
 
     # 6. 【修正】WeasyPrintの代わりに xhtml2pdf (pisa) を使ってPDFを生成
     pdf_buffer = io.BytesIO()
-    pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer, encoding='utf-8')
+    # pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer, encoding='utf-8')
     
-    if pisa_status.err:
-        return "PDF生成エラーが発生しました。", 500
+    # if pisa_status.err:
+    #     return "PDF生成エラーが発生しました。", 500
 
     pdf_buffer.seek(0)
     
