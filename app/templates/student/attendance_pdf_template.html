@@ -5,8 +5,11 @@
     <style>
         /* ★重要: xhtml2pdfに組み込まれている日本語フォントを全体に適用 */
         @html {
-            font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif;
-        }
+        font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif;
+    }
+    body {
+        font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif;
+    }
         
         @page {
             size: A4 portrait;
@@ -100,7 +103,7 @@
                 
                 <td>{{ row['国籍'] }}</td>
                 <td>{{ row['担当スタッフ'] }}</td>
-                <td></td>
+                <td>     </td>
             </tr>
             {% endfor %}
         </tbody>

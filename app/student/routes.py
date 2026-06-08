@@ -258,18 +258,18 @@ from app.models import LearningRecord, User
 from collections import defaultdict
 from datetime import datetime
 # ※PDF化ライブラリ（例: weasyprint や pdfkit など。ここではweasyprintの例）
-from weasyprint import HTML 
 import base64
 import requests
 import os
 from flask import current_app
+from xhtml2pdf import pisa
+import io
+import base64
+import requests
 
-def get_weasyprint_image(image_path_or_url):
-    """ローカルパスまたはURLから画像を読み込み、WeasyPrintが100%認識できるBase64に変換する"""
-    if not image_path_or_url:
-        return ""
-        
-    # ケースA: インターネット上の画像（http/https）の場合
+# （前回のステップで作成した get_weasyprint_image などの関数はそのまま使えますが、名前を一般化しておきます）
+def get_pdf_image(image_path_or_url):
+    if not image_path_or_url: return ""
     if image_path_or_url.startswith(('http://', 'https://')):
         try:
             response = requests.get(image_path_or_url, timeout=5)
@@ -277,21 +277,7 @@ def get_weasyprint_image(image_path_or_url):
                 base64_data = base64.b64encode(response.content).decode('utf-8')
                 mime_type = "image/png" if "png" in image_path_or_url.lower() else "image/jpeg"
                 return f"data:{mime_type};base64,{base64_data}"
-        except Exception as e:
-            print(f"URL画像読み込みエラー: {e}")
-            
-    # ケースB: サーバー内のローカル画像（/static/...など）の場合
-    else:
-        # 先頭のスラッシュを削って正しい絶対パスを作る
-        clean_path = image_path_or_url.lstrip('/')
-        full_path = os.path.join(current_app.root_path, clean_path)
-        
-        if os.path.exists(full_path):
-            with open(full_path, "rb") as image_file:
-                base64_data = base64.b64encode(image_file.read()).decode('utf-8')
-                mime_type = "image/png" if "png" in clean_path.lower() else "image/jpeg"
-                return f"data:{mime_type};base64,{base64_data}"
-                
+        except Exception: pass
     return ""
 
 @student_bp.route('/attendance/download-pdf')
@@ -322,7 +308,7 @@ def download_attendance_pdf():
                 staff_name = staff_user.name if staff_user else "不明"
             
             # ★ ここでヘルパー関数を使ってBase64に一発変換！
-            base64_photo = get_weasyprint_image(student.face_photo_path)
+            base64_photo = get_pdf_image(student.face_photo_path)
             count+=1  
             raw_data.append({
                 "内部連番": count,
@@ -346,13 +332,19 @@ def download_attendance_pdf():
     html_string = render_template(
         'student/attendance_pdf_template.html',
         target_date=target_date,
-        data_rows=df.to_dict(orient='records') # HTMLループ用に辞書のリストに変換
+        data_rows=df.to_dict(orient='records')
     )
 
-    # 6. WeasyPrintでHTMLをPDFバイナリに変換して即時ダウンロードさせる
-    pdf_file = HTML(string=html_string).write_pdf()
+    # 6. 【修正】WeasyPrintの代わりに xhtml2pdf (pisa) を使ってPDFを生成
+    pdf_buffer = io.BytesIO()
+    pisa_status = pisa.CreatePDF(html_string, dest=pdf_buffer, encoding='utf-8')
     
-    response = make_response(pdf_file)
+    if pisa_status.err:
+        return "PDF生成エラーが発生しました。", 500
+
+    pdf_buffer.seek(0)
+    
+    response = make_response(pdf_buffer.getvalue())
     response.headers['Content-Type'] = 'application/pdf'
     response.headers['Content-Disposition'] = f'attachment; filename=attendance_{target_date}.pdf'
     return response
