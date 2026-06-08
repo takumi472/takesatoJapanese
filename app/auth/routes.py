@@ -14,6 +14,7 @@ auth_bp = Blueprint("auth", __name__)
 
 
 @auth_bp.route("/", methods=["GET", "POST"])
+@auth_bp.before_app_request
 def auth_route():
     return redirect(url_for("auth.login"))
 
@@ -55,15 +56,17 @@ def dashboard():
     start_date = datetime.now() - timedelta(weeks=8)
     student_data = db.session.query(
         func.date_trunc('week', LearningRecord.lesson_date).label('week'),
-        func.count(LearningRecord.id).label('count')
+        func.count(LearningRecord.student_id.distinct()).label('count')  # ここを修正
     ).filter(LearningRecord.lesson_date >= start_date)\
      .group_by('week').order_by('week').all()
 
-    # 2. スタッフミーティングの集計
+    # 2. スタッフの参加人数（重複を除外してユニークなスタッフ数をカウント）
+    # ※もしMeetingが「開催されたミーティングの総数」なら distinct は不要ですが、
+    # 「参加したスタッフの重複を除いた人数」にしたい場合は以下のようにします。
     staff_data = db.session.query(
-        func.date_trunc('week', LearningRecord.lesson_date).label('week'),
-        func.count(LearningRecord.id).label('count')
-    ).filter(LearningRecord.lesson_date >= start_date)\
+        func.date_trunc('week', Meeting.date).label('week'),
+        func.count(Meeting.staff_id.distinct()).label('count')  # ここを修正
+    ).filter(Meeting.date >= start_date)\
      .group_by('week').order_by('week').all()
 
     # 辞書に変換してマッピング（週をキーにして集計）
