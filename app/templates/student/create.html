@@ -38,15 +38,22 @@
             text-align: center;
             background-color: #f8f9fa;
         }
+        .page-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 24px; }
     </style>
 </head>
 <body>
 
 <div class="container form-container">
-    <div class="form-header shadow-sm">
-        <h1 class="h3 mb-3">新規受講生の登録＆学習記録</h1>
-        <p class="text-muted small mb-0">初めての受講生について、まず、受講生の顔写真を撮影してください。次に、受講生登録と本日の学習内容を入力してください。</p>
-        <div class="text-danger small mt-2">* 必須項目</div>
+    <div class="page-header d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+            <a href="#" onclick="window.history.back(); return false;" class="btn btn-light me-3" title="戻る">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            <div>
+                <h1 class="h4 mb-0">新規受講生の登録＆学習記録</h1>
+                <p class="text-muted mb-0 small">初めての受講生について、顔写真の撮影、受講生登録、本日の学習内容を入力してください。</p>
+            </div>
+        </div>
     </div>
 
     <form action="{{ url_for('student.create_student') }}" method="POST" enctype="multipart/form-data">

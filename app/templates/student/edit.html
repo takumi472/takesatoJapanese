@@ -72,6 +72,7 @@
             padding: 4px;
             background-color: #fff;
         }
+        .page-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 24px; }
     </style>
 </head>
 <body>
@@ -88,13 +89,16 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
-
-    <div class="form-header p-4 mb-3 bg-white shadow-sm">
-        <h1 class="h3 mb-3" style="color: #202124;">【編集】新規受講生の登録＆学習記録</h1>
-        <p class="mb-0" style="font-size: 14px; color: #202124;">
-            登録済みの受講生情報を修正し、本日の学習内容を更新してください。
-        </p>
-        <div class="text-danger mt-3" style="font-size: 12px;">* Indicates required question</div>
+    <div class="page-header d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+            <a href="#" onclick="window.history.back(); return false;" class="btn btn-light me-3" title="戻る">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            <div>
+                <h1 class="h4 mb-0">【編集】新規受講生の登録＆学習記録</h1>
+                <p class="text-muted mb-0 small">登録済みの受講生情報を修正し、本日の学習内容を更新してください。</p>
+            </div>
+        </div>
     </div>
 
     <form method="POST" enctype="multipart/form-data">

@@ -143,9 +143,10 @@ function downloadPDF() {
     const baseUrl = "{{ url_for('student.download_attendance_pdf') }}";
     const downloadUrl = `${baseUrl}?date=${selectedDate}`;
     
-    // 3. 生成したURLへ画面を遷移させて、PDFのダウンロードを発火させる
-    window.location.href = downloadUrl;
+    // 3. 新しいタブで開く
+    window.open(downloadUrl, '_blank');
 }
+
 </script>
 </body>
 

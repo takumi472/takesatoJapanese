@@ -23,6 +23,8 @@
         .preview-zone img { width: 100%; height: auto; display: block; object-fit: cover; }
         .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
         .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; font-size: 100px; cursor: pointer; }
+        .page-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 24px; }
+
     </style>
 </head>
 <body>
@@ -40,16 +42,22 @@
       {% endif %}
     {% endwith %}
 
-    <div class="form-header p-4 mb-3 shadow-sm">
-        <h1 class="h3 mb-3">
-            {% if staff %}【編集】{% else %}【新規登録】{% endif %}2026年度 武里日本語教室スタッフ登録
-        </h1>
-        <p class="mb-0" style="font-size: 14px; color: #202124;">
-            本登録に記載された個人情報は「武里日本語教室」運営上必要な範囲においてのみ使用されます。<br>
-            <strong>※登録されたGmailとパスワードは、システムログイン時に使用します。</strong>
-        </p>
-        <div class="text-danger mt-3" style="font-size: 12px;">* Indicates required question</div>
+    <div class="page-header d-flex align-items-center justify-content-between mb-4">
+    <div class="d-flex align-items-center">
+        <a href="#" onclick="window.history.back(); return false;" class="btn btn-light me-3" title="戻る">
+            <i class="bi bi-chevron-left"></i>
+        </a>
+        <div>
+            <h1 class="h4 mb-0">
+                {% if staff %}【編集】{% else %}【新規登録】{% endif %}2026年度 武里日本語教室スタッフ登録
+            </h1>
+            <p class="text-muted small mb-0 mt-1">
+                本登録に記載された個人情報は運営上必要な範囲においてのみ使用されます。
+                <strong class="text-dark">※登録されたGmailとパスワードはログイン時に使用します。</strong>
+            </p>
+        </div>
     </div>
+</div>
 
     <form method="POST" enctype="multipart/form-data">
 

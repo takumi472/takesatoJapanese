@@ -10,6 +10,7 @@
     <style>
         body { background-color: #f0ebf8; font-family: 'Helvetica Neue', Arial, sans-serif; }
         .form-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 30px; }
+        .page-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 24px; }
         .form-card { background-color: #fff; border: 1px solid #dadce0; border-radius: 8px; padding: 25px; margin-top: 20px; }
         .form-label { font-weight: 600; color: #3c4043; }
         .btn-submit { background-color: #673ab7; color: white; padding: 10px 30px; font-weight: bold; }
@@ -19,9 +20,16 @@
 <body>
 
 <div class="container my-5" style="max-width: 700px;">
-    <div class="form-header shadow-sm">
-        <h1 class="h3 mb-2">学習記録入力フォーム</h1>
-        <p class="text-muted mb-0">本日のレッスン内容を記録してください。</p>
+    <div class="page-header d-flex align-items-center justify-content-between mb-4">
+        <div class="d-flex align-items-center">
+            <a href="#" onclick="window.history.back(); return false;" class="btn btn-light me-3" title="戻る">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            <div>
+                <h1 class="h4 mb-0">学習記録入力フォーム</h1>
+                <p class="text-muted mb-0 small">本日のレッスン内容を記録してください。</p>
+            </div>
+        </div>
     </div>
 
     <form method="POST">
