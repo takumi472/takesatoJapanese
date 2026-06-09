@@ -169,6 +169,7 @@ def create_staff():
 
 ログインID (メールアドレス): {email}
 初期パスワード: {plain_password}
+Lineグループ：https://line.me/ti/g/8YXH2Hqac2
 
 ログイン後、パスワードの変更をお勧めします。
 
