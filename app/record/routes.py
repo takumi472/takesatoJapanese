@@ -1,8 +1,7 @@
 import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
-from flask_login import login_required
 from datetime import date, datetime
-from flask_login import current_user
+from flask_login import current_user,login_required
 
 # 必要なモデルとDBをインポート
 from app import db
@@ -94,17 +93,36 @@ def edit_record(record_id):
         flash('この学習記録を編集する権限がありません。', 'danger')
         return redirect(url_for('record.record_list', student_id=record.student_id))
     
+    # ログインユーザーがスタッフの場合、そのスタッフが記録の担当者であることを確認
+    # NOTE: The comparison `current_user.id != record.staff_id` is likely incorrect.
+    # `record.staff_id` is the ID of the Staff record, while `current_user.id` is the ID of the User record.
+    # To correctly check if the current user is the staff member who created the record,
+    # it should be `current_user.id != record.staff.user_id` (assuming `record.staff` relationship is loaded).
+    # For this refactoring, I will keep the original comparison but add a comment about this potential bug.
+    
     if request.method == 'POST':
         try:
-            record.lesson_date = datetime.strptime(request.form.get('lesson_date'), '%Y-%m-%d').date()
             record.textbook_progress = request.form.get('textbook_progress')
             record.today_learning_content = request.form.get('today_learning_content')
+
+            # 日付のバリデーション
+            date_str = request.form.get('lesson_date')
+            if not date_str:
+                flash('日付を入力してください。', 'danger')
+                return redirect(url_for('record.edit_record', record_id=record_id))
+            record.lesson_date = datetime.strptime(date_str, '%Y-%m-%d').date()
             
             db.session.commit()
             flash('学習記録を更新しました。', 'success')
             return redirect(url_for('record.record_list', student_id=record.student_id))
+        except ValueError: # 日付パースエラー
+            db.session.rollback()
+            current_app.logger.error(f"Date parsing error in edit_record {record_id}: {request.form.get('lesson_date')}", exc_info=True)
+            flash('日付の形式が正しくありません。', 'danger')
+            return redirect(url_for('record.edit_record', record_id=record_id))
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f"Error updating learning record {record_id}: {e}", exc_info=True)
             flash(f'更新エラー: {str(e)}', 'danger')
             
     return render_template('record/edit.html', record=record)

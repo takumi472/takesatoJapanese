@@ -1,0 +1,19 @@
+{% from "macros/_form_helpers.html" import render_field, render_select %}
+
+<div class="row">
+    <div class="col-md-6">
+        {{ render_field('student_name_kana', '氏名（カナ）', value=student.name_kana if student else '', required=True) }}
+        {{ render_field('country_of_origin', '国籍', value=student.country_of_origin if student else '') }}
+        {{ render_select('residential_area', '居住地域', city_list, selected_value=student.residential_area if student else '') }}
+    </div>
+    <div class="col-md-6">
+        {{ render_field('native_language', '母語', value=student.native_language if student else '') }}
+        {{ render_field('occupation', '職業', value=student.occupation if student else '') }}
+        {{ render_select('jlpt_level', 'JLPTレベル', ['N1', 'N2', 'N3', 'N4', 'N5', 'なし'], selected_value=student.jlpt_level if student else '') }}
+    </div>
+</div>
+
+<div class="mb-3">
+    <label class="form-label">顔写真</label>
+    <input type="file" name="face_photo" class="form-control" accept="image/*">
+</div>

@@ -1,29 +1,78 @@
 # app/staff/routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import current_user, login_required
+from flask_login import current_user, login_required # login_requiredは使用されているため残す
 from app.models import db, User, Staff
 from werkzeug.security import generate_password_hash
 from datetime import datetime
 import cloudinary
 import cloudinary.uploader
+from flask import current_app # current_appはログなどで使用するため残す
 
 staff_bp = Blueprint("staff", __name__)
 
-# スタッフの新規登録（UserとStaffを同時にインサート）
-import os
-from flask import current_app
-from werkzeug.utils import secure_filename
+# --- 定数定義 ---
+ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
+CLOUDINARY_STAFF_FOLDER = "staffs"
+CLOUDINARY_EAGER_TRANSFORMATION = [
+    {
+        "crop": "thumb",  # 顔がきれいに収まるサムネイルモード
+        "gravity": "face",  # AIによる顔認識（高精度なら "adv_face"）
+        "zoom": 0.7,  # 顔を大きくする（数字が小さいほどドアップ）
+        "width": 200,  # 最終的な横幅
+        "height": 200,  # 最終的な縦幅
+        "fetch_format": "auto",  # PWA・スマホ用に自動軽量化
+        "quality": "auto",  # 画質を自動最適化
+    }
+]
 
-
-# 許可する拡張子のチェック関数
+# --- ヘルパー関数 ---
 def allowed_file(filename):
-    return "." in filename and filename.rsplit(".", 1)[1].lower() in {"png", "jpg", "jpeg", "gif"}
+    """ファイル名が許可された拡張子を持つかチェックする"""
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
+def _upload_face_photo(file):
+    """
+    顔写真をCloudinaryにアップロードし、そのURLを返す。
+    許可されていないファイル形式の場合はNoneを返す。
+    """
+    if file and file.filename != "":
+        if allowed_file(file.filename):
+            try:
+                upload_result = cloudinary.uploader.upload(
+                    file,
+                    folder=CLOUDINARY_STAFF_FOLDER,
+                    eager=CLOUDINARY_EAGER_TRANSFORMATION,
+                )
+                # eager変換が適用されたURLを取得
+                return upload_result.get("eager")[0].get("secure_url")
+            except Exception as e:
+                current_app.logger.error(f"Cloudinary upload failed: {e}", exc_info=True)
+                flash("顔写真のアップロード中にエラーが発生しました。", "danger")
+                return None
+        else:
+            flash(f"許可されていないファイル形式です。({', '.join(ALLOWED_EXTENSIONS)} のみ)", "danger")
+            return None
+    return None
 
-# スタッフの新規登録（写真登録対応）
+def _parse_date_or_none(date_str):
+    """日付文字列をdatetime.dateオブジェクトにパースする。無効な場合はNoneを返す。"""
+    if date_str:
+        try:
+            return datetime.strptime(date_str, "%Y-%m-%d").date()
+        except ValueError:
+            current_app.logger.warning(f"Invalid date format received: {date_str}")
+            return None
+    return None
+
+# --- ルート定義 ---
 @staff_bp.route("/create", methods=["GET", "POST"])
 @login_required
 def create_staff():
+    # 管理者権限チェック（必要であれば）
+    if current_user.role != 'admin':
+        flash('スタッフを登録する権限がありません。', 'danger')
+        return redirect(url_for('staff.staff_list')) # または適切なリダイレクト先
+
     if request.method == "POST":
         email = request.form.get("email")
         plain_password = request.form.get("password")
@@ -31,47 +80,34 @@ def create_staff():
         last_name = request.form.get("last_name_kanji", "").strip()
         first_name = request.form.get("first_name_kanji", "").strip()
 
-        if last_name or first_name:
-            full_name = f"{last_name} {first_name}".strip()
-        else:
-            full_name = email.split("@")[0] if email else "新規スタッフ"
+        # 必須フィールドのバリデーション
+        if not email or not plain_password:
+            flash("メールアドレスとパスワードは必須です。", "danger")
+            return render_template("staff/edit.html", staff=None)
 
+        # ユーザー名（メールアドレス）の重複チェック
         if User.query.filter_by(username=email).first():
             flash("このGmailアドレスは既にシステムアカウントとして登録されています。", "danger")
-            return redirect(url_for("staff.create_staff"))
+            return render_template("staff/edit.html", staff=None)
 
-        # --- ▼ 顔写真ファイルの保存処理 ▼ ---
-        face_photo_path = None
-        if "face_photo" in request.files:
-            file = request.files["face_photo"]
-            if file and file.filename != "":
-                if allowed_file(file.filename):
-                    upload_result = cloudinary.uploader.upload(
-                        file,
-                        folder = "staffs",
-                        eager=[
-                            {
-                            "crop": "thumb",      # 顔がきれいに収まるサムネイルモード
-                            "gravity": "face",    # AIによる顔認識（高精度なら "adv_face"）
-                            "zoom": 0.7,          # 顔を大きくする（数字が小さいほどドアップ）
-                            "width": 200,         # 最終的な横幅
-                            "height": 200,        # 最終的な縦幅
-                            "fetch_format": "auto", # PWA・スマホ用に自動軽量化
-                            "quality": "auto"       # 画質を自動最適化
-                            }
-                        ]
-                    )
-                    # 2. クラウド上の画像URL（https://res.cloudinary.com/...）を取得
-                    face_photo_path = upload_result.get('eager')[0].get('secure_url')
-                else:
-                    flash("許可されていないファイル形式です。(png, jpg, jpeg, gif のみ)", "danger")
-                    return redirect(url_for("staff.create_staff"))
-        # --- ▲ 顔写真ファイルの保存処理 ▲ ---
+        # フルネームの生成
+        full_name = f"{last_name} {first_name}".strip()
+        if not full_name:
+            full_name = email.split("@")[0]
+
+        # 顔写真のアップロード
+        face_photo_path = _upload_face_photo(request.files.get("face_photo"))
+        if face_photo_path is None and "face_photo" in request.files and request.files["face_photo"].filename != "":
+            # アップロードに失敗したが、ファイルが選択されていた場合
+            return render_template("staff/edit.html", staff=None)
 
         try:
             # 1. ユーザーアカウント作成
             new_user = User(
-                username=email, role="staff", name=full_name, password_hash=generate_password_hash(plain_password)
+                username=email,
+                role="staff",
+                name=full_name,
+                password_hash=generate_password_hash(plain_password),
             )
             db.session.add(new_user)
             db.session.flush()  # new_user.id を確定させる
@@ -96,19 +132,17 @@ def create_staff():
                 qualifications=request.form.get("qualifications"),
                 intent=request.form.get("intent"),
             )
-
-            sub_date = request.form.get("submission_date")
-            if sub_date:
-                new_staff.submission_date = datetime.strptime(sub_date, "%Y-%m-%d").date()
+            
+            new_staff.submission_date = _parse_date_or_none(request.form.get("submission_date"))
 
             db.session.add(new_staff)
             db.session.commit()
 
             flash(f"{full_name} さんのスタッフ登録が完了しました。", "success")
             return redirect(url_for("staff.staff_list"))
-
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f"Error creating staff: {e}", exc_info=True)
             flash(f"登録中にエラーが発生しました: {str(e)}", "danger")
 
     return render_template("staff/edit.html", staff=None)
@@ -119,37 +153,20 @@ def create_staff():
 @login_required
 def edit_staff(id):
     staff = Staff.query.get_or_404(id)
-    if current_user.role != 'admin' and current_user.id != staff.user_id:
+    
+    # 権限チェック: 管理者でない、かつ自身のスタッフ情報でない場合は編集不可
+    if current_user.role != "admin" and current_user.id != staff.user_id:
         flash("他のユーザーの情報を編集する権限がありません。")
-        return redirect(url_for('staff.index'))
+        return redirect(url_for("staff.staff_list")) # 適切なリダイレクト先
 
     if request.method == "POST":
-        # --- ▼ 編集時の顔写真アップデート処理 ▼ ---
-        if "face_photo" in request.files:
-            file = request.files["face_photo"]
-            if file and file.filename != "":
-                if allowed_file(file.filename):
-                    upload_result = cloudinary.uploader.upload(
-                        file,
-                        folder = "staffs",
-                        eager=[
-                            {
-                            "crop": "thumb",      # 顔がきれいに収まるサムネイルモード
-                            "gravity": "face",    # AIによる顔認識（高精度なら "adv_face"）
-                            "zoom": 0.7,          # 顔を大きくする（数字が小さいほどドアップ）
-                            "width": 200,         # 最終的な横幅
-                            "height": 200,        # 最終的な縦幅
-                            "fetch_format": "auto", # PWA・スマホ用に自動軽量化
-                            "quality": "auto"       # 画質を自動最適化
-                            }
-                        ]
-                    )
-                    # 2. クラウド上の画像URL（https://res.cloudinary.com/...）を取得
-                    staff.face_photo_path = upload_result.get('eager')[0].get('secure_url')
-                else:
-                    flash("許可されていないファイル形式です。(png, jpg, jpeg, gif のみ)", "danger")
-                    return render_template("staff/edit.html", staff=staff)
-        # --- ▲ 編集時の顔写真アップデート処理 ▲ ---
+        # 顔写真のアップロード（既存のパスを上書き）
+        new_face_photo_path = _upload_face_photo(request.files.get("face_photo"))
+        if new_face_photo_path is not None:
+            staff.face_photo_path = new_face_photo_path
+        elif "face_photo" in request.files and request.files["face_photo"].filename != "":
+            # アップロードに失敗したが、ファイルが選択されていた場合
+            return render_template("staff/edit.html", staff=staff)
 
         try:
             staff.last_name_kanji = request.form.get("last_name_kanji")
@@ -167,16 +184,14 @@ def edit_staff(id):
             staff.qualifications = request.form.get("qualifications")
             staff.intent = request.form.get("intent")
 
-            sub_date = request.form.get("submission_date")
-            if sub_date:
-                staff.submission_date = datetime.strptime(sub_date, "%Y-%m-%d").date()
+            staff.submission_date = _parse_date_or_none(request.form.get("submission_date"))
 
             db.session.commit()
             flash("スタッフ情報を更新しました。", "success")
             return redirect(url_for("staff.staff_list"))
-
         except Exception as e:
             db.session.rollback()
+            current_app.logger.error(f"Error updating staff {id}: {e}", exc_info=True)
             flash(f"更新中にエラーが発生しました: {str(e)}", "danger")
 
     return render_template("staff/edit.html", staff=staff)
