@@ -96,7 +96,7 @@
     {% endwith %}
     <div class="page-header d-flex align-items-center justify-content-between mb-4">
         <div class="d-flex align-items-center">
-            <a href="#" onclick="window.history.back(); return false;" class="btn btn-light me-3" title="戻る">
+            <a href="{{ url_for('student.student_list') }}" class="btn btn-light me-3" title="生徒一覧へ戻る">
                 <i class="bi bi-chevron-left"></i>
             </a>
             <div>
@@ -112,7 +112,7 @@
             <label class="form-label">(1) 🔑 現在の顔写真</label>
             <div class="mb-3">
                 {% if student.face_photo_path %}
-                    <img src="{{ '/tmp/' + student.face_photo_path if os.environ.get('VERCEL') else url_for('static', filename='uploads/' + student.face_photo_path) }}" alt="現在の顔写真" class="preview-img mb-2">
+                    <img src="{{ student.face_photo_path }}" alt="現在の顔写真" class="preview-img mb-2">
                 {% else %}
                     <p class="text-muted" style="font-size: 14px;">写真が登録されていません</p>
                 {% endif %}

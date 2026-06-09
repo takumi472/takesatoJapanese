@@ -1,0 +1,21 @@
+{% macro render_field(name, label, value='', type='text', placeholder='', required=False) %}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger">*</span>{% endif %}</label>
+    <input type="{{ type }}" class="form-control" id="{{ name }}" name="{{ name }}" 
+           value="{{ value }}" placeholder="{{ placeholder }}" {% if required %}required{% endif %}>
+</div>
+{% endmacro %}
+
+{% macro render_select(name, label, options, selected_value='', required=False) %}
+<div class="mb-3">
+    <label for="{{ name }}" class="form-label">{{ label }}{% if required %}<span class="text-danger">*</span>{% endif %}</label>
+    <select class="form-select" id="{{ name }}" name="{{ name }}" {% if required %}required{% endif %}>
+        <option value="">選択してください</option>
+        {% for option in options %}
+            {% set opt_val = option.id if option is mapping or option.__class__.__name__ == 'Staff' else option %}
+            {% set opt_label = option.name if option is mapping or option.__class__.__name__ == 'Staff' else option %}
+            <option value="{{ opt_val }}" {% if opt_val|string == selected_value|string %}selected{% endif %}>{{ opt_label }}</option>
+        {% endfor %}
+    </select>
+</div>
+{% endmacro %}
