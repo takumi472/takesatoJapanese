@@ -14,9 +14,12 @@
         .form-container { max-width: 740px; margin: 30px auto; }
         .card-question { background-color: #ffffff; border: 1px solid #dadce0; border-radius: 8px; padding: 24px; margin-bottom: 12px; }
         .required-star { color: #d93025; margin-left: 4px; }
+        .preview-image { max-width: 150px; border: 1px solid #dadce0; border-radius: 8px; margin-bottom: 10px; display: none; }
         .sample-image-box { max-width: 150px; border: 1px dashed #ccc; padding: 10px; text-align: center; background-color: #f8f9fa; }
         /* 他の画面と統一したpage-headerスタイル */
         .page-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 24px; }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; font-size: 100px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -39,8 +42,15 @@
         <div class="card-question shadow-sm">
             <label class="form-label fw-bold">(1) 顔写真のアップロード <span class="text-muted fw-normal small">※スマホで受講生の顔写真を撮影し、アップロードしてください (最大10MB)</span></label>
             <div class="mb-3">
-                <div class="sample-image-box mb-2 small text-muted"><span style="font-size: 2rem;">👤</span><br>顔写真の見本</div>
-                <input class="form-control" type="file" id="face_photo" name="face_photo" accept="image/*" required>
+                <img id="image_preview" src="#" alt="プレビュー" class="preview-image">
+                <div id="sample_box" class="sample-image-box mb-2 small text-muted"><span style="font-size: 2rem;">👤</span><br>顔写真の見本</div>
+                <div class="file-input-wrapper">
+                    <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+                        <i class="bi bi-file-earmark-arrow-up"></i> Add File
+                    </button>
+                    <input type="file" name="face_photo" id="face_photo_input" accept="image/*" {% if not staff %}required{% endif %}>
+                </div>
+                <span id="file_name_display" class="text-muted ms-2" style="font-size: 13px;"></span>
             </div>
         </div>
 
@@ -133,7 +143,7 @@
             </select>
         </div>
 
-        <div class="d-flex justify-content-between alignment-items-center mb-5">
+        <div class="d-flex justify-content-between align-items-center mb-5">
             <button type="submit" class="btn text-white px-4 fw-bold" style="background-color: #673ab7;">送信</button>
             <button type="reset" class="btn btn-link text-decoration-none text-muted small">形式をクリア</button>
         </div>
@@ -141,5 +151,23 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('face_photo_input').onchange = function (evt) {
+        const [file] = this.files;
+        const preview = document.getElementById('image_preview');
+        const sampleBox = document.getElementById('sample_box');
+        const filenameDisplay = document.getElementById('file_name_display');
+        if (file) {
+            filenameDisplay.textContent = file.name;
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+            sampleBox.style.display = 'none';
+        } else {
+            filenameDisplay.textContent = '';
+            preview.style.display = 'none';
+            sampleBox.style.display = 'block';
+        }
+    };
+</script>
 </body>
 </html>
