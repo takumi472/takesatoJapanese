@@ -4,6 +4,7 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import cloudinary
+from dotenv import load_dotenv # .envファイルをロードするために追加
 import cloudinary.uploader
 
 db = SQLAlchemy()
@@ -11,13 +12,15 @@ login_manager = LoginManager()
 
 
 def create_app(env_name="development"):
+    load_dotenv() # アプリケーション起動時に.envファイルをロード
+
     app = Flask(__name__)
 
     # 共通のシークレットキー設定
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-secret-key-placeholder")
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
 
     # 1. Vercel(本番)でもローカル(開発)でも、環境変数からDATABASE_URLを取得する
-    raw_db_url = os.environ.get("DATABASE_URL")
+    raw_db_url = os.environ.get("DATABASE_URL") # .envから読み込む
 
     # 【ローカル開発用のフォールバック設定】
     # もしローカル環境で環境変数を設定するのが面倒な場合は、
@@ -42,9 +45,9 @@ def create_app(env_name="development"):
         "pool_recycle": 300,
     }
     cloudinary.config(
-        cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME', 'dga0a3qkd'),
-        api_key = os.environ.get('CLOUDINARY_API_KEY', '883285726535233'),
-        api_secret = os.environ.get('CLOUDINARY_API_SECRET', 'Md9aYHDqewNBlf8PFKeONPufc5c'),
+        cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
+        api_key = os.environ.get('CLOUDINARY_API_KEY'),
+        api_secret = os.environ.get('CLOUDINARY_API_SECRET'),
         secure = True
     )
 

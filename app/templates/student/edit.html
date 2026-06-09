@@ -6,22 +6,18 @@
     <title>【編集】新規受講生の登録＆学習記録</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Vercel Speed Insights -->
-    <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-    </script>
-    <script defer src="/_vercel/speed-insights/script.js"></script>
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
     <style>
         body {
             background-color: #f0ebf8; /* Googleフォームの背景色 */
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', 'Hiragino Sans', Meiryo, sans-serif;
         }
         .form-header {
             border-top: 10px solid #673ab7; /* Googleフォームのテーマカラー */
             border-radius: 8px;
             background-color: #fff;
         }
-        .form-card {
+        .card-question {
             background-color: #fff;
             border: 1px solid #dadce0;
             border-radius: 8px;
@@ -33,7 +29,7 @@
             margin-left: 4px;
         }
         .form-label {
-            font-size: 16px;
+            font-size: 1rem;
             font-weight: 500;
             color: #202124;
             margin-bottom: 12px;
@@ -70,19 +66,21 @@
             background-color: #512da8;
             color: white;
         }
-        .preview-img {
+        .preview-image {
             max-width: 150px;
             border: 1px solid #dadce0;
-            border-radius: 4px;
-            padding: 4px;
-            background-color: #fff;
+            border-radius: 8px;
+            margin-bottom: 10px;
         }
+        .sample-image-box { max-width: 150px; border: 1px dashed #ccc; padding: 10px; text-align: center; background-color: #f8f9fa; }
         .page-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 24px; }
+        .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
+        .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; font-size: 100px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-<div class="container my-4" style="max-width: 640px;">
+<div class="container my-4" style="max-width: 740px;">
 
     {% with messages = get_flashed_messages(with_categories=true) %}
       {% if messages %}
@@ -108,102 +106,108 @@
 
     <form method="POST" enctype="multipart/form-data">
 
-        <div class="form-card shadow-sm">
-            <label class="form-label">(1) 🔑 現在の顔写真</label>
+        <div class="card-question shadow-sm">
+            <label class="form-label fw-bold">(1) 顔写真のアップロード <span class="text-muted fw-normal small">※スマホで受講生の顔写真を撮影し、アップロードしてください (最大10MB)</span></label>
             <div class="mb-3">
-                {% if student.face_photo_path %}
-                    <img src="{{ student.face_photo_path }}" alt="現在の顔写真" class="preview-img mb-2">
-                {% else %}
-                    <p class="text-muted" style="font-size: 14px;">写真が登録されていません</p>
-                {% endif %}
+                <img id="image_preview" src="{{ student.face_photo_path if student.face_photo_path else '#' }}" alt="プレビュー" class="preview-image" style="display: {{ 'block' if student.face_photo_path else 'none' }};">
+                <div id="sample_box" class="sample-image-box mb-2 small text-muted" style="display: {{ 'none' if student.face_photo_path else 'block' }};">
+                    <span style="font-size: 2rem;">👤</span><br>顔写真の見本
+                </div>
+                <div class="file-input-wrapper">
+                    <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
+                        <i class="bi bi-file-earmark-arrow-up"></i> Add File
+                    </button>
+                    <input type="file" name="face_photo" id="face_photo_input" accept="image/*">
+                </div>
+                <span id="file_name_display" class="text-muted ms-2" style="font-size: 13px;"></span>
             </div>
-            <div style="font-size: 12px; color: #70757a; margin-bottom: 8px;">※スマホで受講生の顔写真を撮影し、変更する場合のみここにアップロードしてください (画像のファイルサイズ 10MBまで 必須)</div>
-            <input type="file" class="form-control-gf" id="face_photo" name="face_photo">
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="name_kana" class="form-label">(2) 受講生の氏名を、カタカナ表記でそれぞれ入力してください。（例） ジョ・ハドリー・ニカノール・ヘミングウェイ （※ミドルネームがない場合は書かなくても結構です。）<span class="required-star">*</span></label>
-            <input type="text" class="form-control-gf" id="name_kana" name="name_kana" value="{{ student.name_kana }}" placeholder="Your answer" required>
+        <div class="card-question shadow-sm">
+            <label for="name_kana" class="form-label fw-bold">(2) 受講生の氏名（カタカナ） <span class="required-star">*</span></label>
+            <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="name_kana" name="name_kana" value="{{ student.name_kana }}" placeholder="回答を入力" required>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="country_of_origin" class="form-label">(3) 出身国<span class="required-star">*</span></label>
-            <input type="text" class="form-control-gf" id="country_of_origin" name="country_of_origin" value="{{ student.country_of_origin }}" placeholder="Your answer" required>
+        <div class="card-question shadow-sm">
+            <label for="country_of_origin" class="form-label fw-bold">(3) 出身国 <span class="required-star">*</span></label>
+            <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="country_of_origin" name="country_of_origin" value="{{ student.country_of_origin }}" placeholder="回答を入力" required>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="native_language" class="form-label">(4) 話す言葉（母語）<span class="required-star">*</span></label>
-            <input type="text" class="form-control-gf" id="native_language" name="native_language" value="{{ student.native_language }}" placeholder="Your answer" required>
+        <div class="card-question shadow-sm">
+            <label for="native_language" class="form-label fw-bold">(4) 話す言葉（母語） <span class="required-star">*</span></label>
+            <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="native_language" name="native_language" value="{{ student.native_language }}" placeholder="回答を入力" required>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="other_languages" class="form-label">(5) 話す言葉（母語以外）</label>
-            <input type="text" class="form-control-gf" id="other_languages" name="other_languages" value="{{ student.other_languages or '' }}" placeholder="Your answer">
+        <div class="card-question shadow-sm">
+            <label for="other_languages" class="form-label fw-bold">(5) 話す言葉（母語以外）</label>
+            <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="other_languages" name="other_languages" value="{{ student.other_languages or '' }}" placeholder="回答を入力">
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="occupation" class="form-label">(6) 職業</label>
-            <input type="text" class="form-control-gf" id="occupation" name="occupation" value="{{ student.occupation or '' }}" placeholder="Your answer">
+        <div class="card-question shadow-sm">
+            <label for="occupation" class="form-label fw-bold">(6) 職業</label>
+            <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="occupation" name="occupation" value="{{ student.occupation or '' }}" placeholder="回答を入力">
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="residential_area" class="form-label">(7) 居住地域<span class="required-star">*</span></label>
-            <select class="form-select-gf" id="residential_area" name="residential_area" required>
-                <option value="">Choose</option>
+        <div class="card-question shadow-sm">
+            <label for="residential_area" class="form-label fw-bold">(7) 居住地域 <span class="required-star">*</span></label>
+            <select class="form-select w-50" id="residential_area" name="residential_area" required>
+                <option value="" disabled>選択</option>
                 {% for city in city_list %}
-                    <option value="{{ city }}">{{ city  }}</option>
+                    <option value="{{ city }}" {% if student.residential_area == city %}selected{% endif %}>{{ city  }}</option>
                 {% endfor %}
             </select>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="jlpt_level" class="form-label">(8) 日本語能力試験（JLPT） 取得レベル<span class="required-star">*</span></label>
-            <select class="form-select-gf" id="jlpt_level" name="jlpt_level" required>
-                <option value="">Choose</option>
+        <div class="card-question shadow-sm">
+            <label for="jlpt_level" class="form-label fw-bold">(8) 日本語能力試験（JLPT）取得レベル <span class="required-star">*</span></label>
+            <select class="form-select w-50" id="jlpt_level" name="jlpt_level" required>
+                <option value="" disabled>選択</option>
                 <option value="N1" {% if student.jlpt_level == 'N1' %}selected{% endif %}>N1</option>
                 <option value="N2" {% if student.jlpt_level == 'N2' %}selected{% endif %}>N2</option>
                 <option value="N3" {% if student.jlpt_level == 'N3' %}selected{% endif %}>N3</option>
                 <option value="N4" {% if student.jlpt_level == 'N4' %}selected{% endif %}>N4</option>
                 <option value="N5" {% if student.jlpt_level == 'N5' %}selected{% endif %}>N5</option>
+                <option value="なし" {% if student.jlpt_level == 'なし' %}selected{% endif %}>なし</option>
                 <option value="その他" {% if student.jlpt_level == 'その他' %}selected{% endif %}>その他</option>
             </select>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="learning_purpose" class="form-label">(9) 日本語学習の目的、目標、期限</label>
-            <input type="text" class="form-control-gf" id="learning_purpose" name="learning_purpose" value="{{ student.learning_purpose or '' }}" placeholder="Your answer">
+        <div class="card-question shadow-sm">
+            <label for="learning_purpose" class="form-label fw-bold">(9) 日本語学習の目的、目標、期限</label>
+            <textarea class="form-control border-0 border-bottom rounded-0 px-0" id="learning_purpose" name="learning_purpose" rows="2" placeholder="回答を入力">{{ student.learning_purpose or '' }}</textarea>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="life_troubles" class="form-label">(10) 現在、生活で困っていること、わからない事</label>
-            <input type="text" class="form-control-gf" id="life_troubles" name="life_troubles" value="{{ student.life_troubles or '' }}" placeholder="Your answer">
+        <div class="card-question shadow-sm">
+            <label for="life_troubles" class="form-label fw-bold">(10) 現在、生活で困っていること、わからない事</label>
+            <textarea class="form-control border-0 border-bottom rounded-0 px-0" id="life_troubles" name="life_troubles" rows="2" placeholder="回答を入力">{{ student.life_troubles or '' }}</textarea>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="how_knew_class" class="form-label">(11) どうやってこの日本語教室を知りましたか？<span class="required-star">*</span></label>
-            <select class="form-select-gf" id="how_knew_class" name="how_knew_class" required>
-                <option value="">Choose</option>
+        <div class="card-question shadow-sm">
+            <label for="how_knew_class" class="form-label fw-bold">(11) どうやってこの日本語教室を知りましたか？ <span class="required-star">*</span></label>
+            <select class="form-select w-50" id="how_knew_class" name="how_knew_class" required>
+                <option value="" disabled>選択</option>
                 <option value="知人の紹介" {% if student.how_knew_class == '知人の紹介' %}selected{% endif %}>知人の紹介</option>
+                <option value="SNS・インターネット" {% if student.how_knew_class == 'SNS・インターネット' %}selected{% endif %}>SNS・インターネット</option>
                 <option value="チラシ・ポスター" {% if student.how_knew_class == 'チラシ・ポスター' %}selected{% endif %}>チラシ・ポスター</option>
                 <option value="インターネット検索" {% if student.how_knew_class == 'インターネット検索' %}selected{% endif %}>インターネット検索</option>
                 <option value="その他" {% if student.how_knew_class == 'その他' %}selected{% endif %}>その他</option>
             </select>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="how_knew_class_other" class="form-label">(12) 上の(11)で「その他」を選んだ方は具体的に、どこでこの武里日本語教室を知ったか記入してください。</label>
-            <input type="text" class="form-control-gf" id="how_knew_class_other" name="how_knew_class_other" value="{{ student.how_knew_class_other or '' }}" placeholder="Your answer">
+        <div class="card-question shadow-sm">
+            <label for="how_knew_class_other" class="form-label fw-bold">(12) 具体的なきっかけ（「その他」の場合など）</label>
+            <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="how_knew_class_other" name="how_knew_class_other" value="{{ student.how_knew_class_other or '' }}" placeholder="回答を入力">
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="today_learning_content" class="form-label">(13) 本日の学習内容 ※本日学習した内容を入力してください。</label>
-            <input type="text" class="form-control-gf" id="today_learning_content" name="today_learning_content" value="{{ student.today_learning_content or '' }}" placeholder="Your answer">
+        <div class="card-question shadow-sm">
+            <label for="today_learning_content" class="form-label fw-bold">(13) 本日の学習内容 <span class="text-muted fw-normal small">※本日学習した内容を入力してください。</span></label>
+            <textarea class="form-control border-0 border-bottom rounded-0 px-0" id="today_learning_content" name="today_learning_content" rows="3" placeholder="回答を入力">{{ student.today_learning_content or '' }}</textarea>
         </div>
 
-        <div class="form-card shadow-sm">
-            <label for="staff_id" class="form-label">(14) 記入担当者<span class="required-star">*</span></label>
-            <select class="form-select-gf" id="staff_id" name="staff_id" required>
-                <option value="">Choose</option>
+        <div class="card-question shadow-sm">
+            <label for="staff_id" class="form-label fw-bold">(14) 記入担当者 <span class="required-star">*</span></label>
+            <select class="form-select w-50" id="staff_id" name="staff_id" required>
+                <option value="" disabled>選択</option>
                 {% for staff in staff_list %}
             <option value="{{ staff.id }}" {% if student.assigned_staff_id == staff.id %}selected{% endif %}>
                 {{ staff.last_name_kanji }}
@@ -221,5 +225,26 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.getElementById('face_photo_input').onchange = function (evt) {
+        const [file] = this.files;
+        const preview = document.getElementById('image_preview');
+        const sampleBox = document.getElementById('sample_box');
+        const filenameDisplay = document.getElementById('file_name_display');
+        if (file) {
+            filenameDisplay.textContent = file.name;
+            preview.src = URL.createObjectURL(file);
+            preview.style.display = 'block';
+            sampleBox.style.display = 'none';
+        } else {
+            filenameDisplay.textContent = '';
+            // ファイルが選択されていない場合、元の画像があるかチェック
+            if (preview.src.endsWith('#')) {
+                preview.style.display = 'none';
+                sampleBox.style.display = 'block';
+            }
+        }
+    };
+</script>
 </body>
 </html>

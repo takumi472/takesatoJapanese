@@ -125,7 +125,7 @@
             <div class="staff-card h-100 d-flex flex-column shadow-sm">
                 <div class="avatar-container">
                     {% if s.face_photo_path %}
-                        <img src="{{ url_for('static', filename='uploads/' + s.face_photo_path) }}" class="staff-avatar" alt="{{ s.last_name_kanji }} さんの顔写真">
+                        <img src="{{ s.face_photo_path }}" class="staff-avatar" alt="{{ s.last_name_kanji }} さんの顔写真">
                     {% else %}
                         <i class="bi bi-person-bounding-box text-muted" style="font-size: 4rem;"></i>
                     {% endif %}
