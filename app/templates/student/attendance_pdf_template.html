@@ -3,14 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        /* ★重要: xhtml2pdfに組み込まれている日本語フォントを全体に適用 */
-        @html {
-        font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif;
-    }
-    body {
-        font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif;
-    }
-        
+        /* xhtml2pdf用の日本語フォント設定 */
+        html { font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif; }
+
         @page {
             size: A4 portrait;
             margin: 20mm 15mm;
@@ -51,13 +46,23 @@
         
         .text-center { text-align: center; }
         
-        /* ★追加: 写真のサイズ固定と円形（四角）の枠線スタイル */
+        /* 写真のサイズ固定 */
         .student-avatar {
             width: 100px;
             height: 100px;
-            border-radius: 20px; /* 丸型にする設定 */
+            border-radius: 10px;
         }
         
+        /* 会議資料一覧の「表示」ボタンに合わせたリンクスタイル */
+        .view-link {
+            font-size: 8pt;
+            color: #673ab7;
+            text-decoration: none;
+            border: 1px solid #673ab7;
+            padding: 1px 4px;
+            border-radius: 3px;
+        }
+
         /* 写真がない場合のテキストスタイル */
         .no-avatar {
             font-size: 16pt;
@@ -94,16 +99,23 @@
                 <td style="font-weight: bold;">{{ row['生徒の名前'] }}</td>
                 
                 <td class="text-center">
-    {% if row['顔写真'] %}
-        <img src="{{ row['顔写真'] }}" class="student-avatar">
-    {% else %}
-        <span class="no-avatar">👤</span>
-    {% endif %}
-</td>
-                
+                    {% if row['顔写真'] %}
+                        <div style="margin-bottom: 5px;">
+                            <img src="{{ row['顔写真'] }}" class="student-avatar">
+                        </div>
+                        <a href="{{ row['顔写真'] }}" target="_blank" rel="noopener noreferrer" class="view-link">表示</a>
+                    {% else %}
+                        <span class="no-avatar">👤</span>
+                    {% endif %}
+                </td>
                 <td>{{ row['国籍'] }}</td>
                 <td>{{ row['担当スタッフ'] }}</td>
-                <td>     </td>
+                {# 動的なカラム（備考など）がある場合のデータ出力 #}
+                {% for key, val in row.items() %}
+                    {% if key not in ["内部連番", "顔写真", "生徒の名前", "国籍", "担当スタッフ"] %}
+                        <td>{{ val }}</td>
+                    {% endif %}
+                {% endfor %}
             </tr>
             {% endfor %}
         </tbody>
