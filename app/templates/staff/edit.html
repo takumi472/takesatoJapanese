@@ -9,9 +9,14 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Vercel Speed Insights -->
     <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+            window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+            const s = document.createElement('script');
+            s.src = "/_vercel/speed-insights/script.js";
+            s.defer = true;
+            document.head.appendChild(s);
+        }
     </script>
-    <script defer src="/_vercel/speed-insights/script.js"></script>
     <style>
         body { background-color: #f0ebf8; font-family: 'Helvetica Neue', Arial, sans-serif; }
         .form-header { border-top: 10px solid #673ab7; border-radius: 8px; background-color: #fff; }
@@ -87,7 +92,7 @@
             
             <div class="preview-zone">
                 {% if staff and staff.face_photo_path %}
-                    <img id="photo_preview" src="{{ url_for('static', filename='uploads/' + staff.face_photo_path) }}" alt="現在の顔写真">
+                    <img id="photo_preview" src="{{ staff.face_photo_path }}" alt="現在の顔写真">
                 {% else %}
                     <img id="photo_preview" src="https://via.placeholder.com/150x150?text=No+Image" alt="プレビュー">
                 {% endif %}
@@ -133,14 +138,14 @@
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">郵便番号（記入例：3440102 ハイフンなし）<span class="required-star">*</span></label>
-            <input type="text" name="post_code" class="form-control-gf" 
+            <label class="form-label">郵便番号（記入例：3440102 ハイフンなし）<span class="required-star">*</span> <span id="address-loading-status" style="font-size: 12px; font-weight: normal;"></span></label>
+            <input type="text" id="zipcode" name="post_code" class="form-control-gf" 
                    value="{{ staff.post_code if staff else '' }}" placeholder="Your answer" required>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">住所（記入例：春日部市大場1丁目1番1号 春日部アパート101号室）<span class="required-star">*</span></label>
-            <input type="text" name="address" class="form-control-gf" 
+            <input type="text" id="address" name="address" class="form-control-gf" 
                    value="{{ staff.address if staff else '' }}" placeholder="Your answer" required>
         </div>
 
@@ -198,6 +203,7 @@
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="{{ url_for('static', filename='js/address_lookup.js') }}"></script>
 <script>
     // ファイルが選択されたらプレビュー画像とファイル名をリアルタイムで切り替えるJS
     document.getElementById('face_photo_input').addEventListener('change', function(e) {

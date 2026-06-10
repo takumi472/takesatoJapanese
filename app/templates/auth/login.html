@@ -14,7 +14,9 @@
     <script>
         window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
     </script>
-    <script defer src="/_vercel/speed-insights/script.js"></script>
+    {% if not config.DEBUG %}
+  <script src="/_vercel/speed-insights/script.js" defer></script>
+{% endif %}
     <style>
         body { background-color: #f0ebf8; }
         .login-container { max-width: 450px; margin: 100px auto; }
