@@ -84,14 +84,29 @@
             <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="occupation" name="occupation" placeholder="回答を入力">
         </div>
 
-        <div class="card-question shadow-sm">
-            <label for="residential_area" class="form-label fw-bold">(7) 居住地域 <span class="required-star">*</span></label>
-            <select class="form-select w-50" id="residential_area" name="residential_area" required>
-                <option value="" selected disabled>選択</option>
-                {% for city in city_list %}
-                    <option value="{{ city }}">{{ city  }}</option>
-                {% endfor %}
-                </select>
+        <!-- 既存の階層プルダウン（前回の回答のもの） -->
+        <div class="mb-3">
+            <label class="form-label">居住地域</label>
+            <div class="row g-2">
+                <div class="col-md-4">
+                    <select id="region-select" class="form-select">
+                        <option value="">地方を選択</option>
+                        {% for region in region_data.keys() %}
+                        <option value="{{ region }}">{{ region }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select id="pref-select" class="form-select" disabled>
+                        <option value="">都道府県を選択</option>
+                    </select>
+                </div>
+                <div class="col-md-4">
+                    <select id="city-select" name="residential_area" class="form-select" disabled required>
+                        <option value="">市区町村を選択</option>
+                    </select>
+                </div>
+            </div>
         </div>
 
         <div class="card-question shadow-sm">
@@ -175,6 +190,73 @@
             sampleBox.style.display = 'block';
         }
     };
+
+    const regionData = {{ region_data | tojson }};
+    const regionSelect = document.getElementById('region-select');
+    const prefSelect = document.getElementById('pref-select');
+    const citySelect = document.getElementById('city-select');
+    
+    // 既存の階層プルダウンのロジック
+    regionSelect.addEventListener('change', function() {
+        const region = this.value;
+        prefSelect.innerHTML = '<option value="">都道府県を選択</option>';
+        citySelect.innerHTML = '<option value="">市区町村を選択</option>';
+        prefSelect.disabled = true;
+        citySelect.disabled = true;
+
+        if (region && regionData[region]) {
+            Object.keys(regionData[region]).forEach(pref => {
+                const opt = document.createElement('option');
+                opt.value = pref;
+                opt.textContent = pref;
+                prefSelect.appendChild(opt);
+            });
+            prefSelect.disabled = false;
+        }
+    });
+
+    prefSelect.addEventListener('change', function() {
+        const region = regionSelect.value;
+        const pref = this.value;
+        citySelect.innerHTML = '<option value="">市区町村を選択</option>';
+        citySelect.disabled = true;
+
+        if (region && pref && regionData[region][pref]) {
+            regionData[region][pref].forEach(city => {
+                const opt = document.createElement('option');
+                opt.value = city;
+                opt.textContent = city;
+                citySelect.appendChild(opt);
+            });
+            citySelect.disabled = false;
+        }
+    });
+
+    function updateDropdownsFromAddress(prefecture, city) {
+        let foundRegion = null;
+        for (const region in regionData) {
+            if (regionData[region][prefecture]) {
+                foundRegion = region;
+                break;
+            }
+        }
+
+        if (foundRegion) {
+            regionSelect.value = foundRegion;
+            regionSelect.dispatchEvent(new Event('change')); // 都道府県リストを更新
+
+            prefSelect.value = prefecture;
+            prefSelect.dispatchEvent(new Event('change')); // 市区町村リストを更新
+
+            citySelect.value = city;
+            citySelect.focus();
+            citySelect.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        } else {
+            alert(`「${prefecture}」または「${city}」は定義された地域データに見つかりませんでした。手動で選択してください。`);
+        }
+    }
 </script>
+
+
 </body>
 </html>
