@@ -22,19 +22,84 @@ student_bp = Blueprint("student", __name__)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
-SAITAMA_MUNICIPALITIES = [
-    "さいたま市西区", "さいたま市北区", "さいたま市大宮区", "さいたま市見沼区", 
-    "さいたま市中央区", "さいたま市桜区", "さいたま市浦和区", "さいたま市南区", 
-    "さいたま市緑区", "さいたま市岩槻区",
-    "上尾市", "朝霞市", "伊奈町", "入間市", "小鹿野町", "小川町", "桶川市", "越生町",
-    "春日部市", "加須市", "神川町", "上里町", "川口市", "川越市", "川島町", "北本市", 
-    "行田市", "久喜市", "熊谷市", "鴻巣市", "越谷市", "さいたま市", "坂戸市", "幸手市", 
-    "狭山市", "志木市", "白岡市", "杉戸町", "草加市", "祖父江町", "秩父市", "鶴ヶ島市", 
-    "ときがわ町", "所沢市", "戸田市", "長瀞町", "滑川町", "新座市", "蓮田市", "鳩山町", 
-    "羽生市", "飯能市", "東松山市", "東秩父村", "日高市", "深谷市", "富士見市", 
-    "ふじみ野市", "本庄市", "松伏町", "三郷市", "美里町", "皆野町", "宮代町", "三芳町", 
-    "毛呂山町", "八潮市", "横瀬町", "吉川市", "吉見町", "寄居町", "和光市"
-]
+
+# 階層化された地域データ構造 (例として関東地方の一部を定義)
+REGION_DATA = {
+    "北海道": {
+        "北海道": ["札幌市", "函館市", "小樽市", "旭川市", "室蘭市", "釧路市", "帯広市", "北見市"]
+    },
+    "東北": {
+        "青森県": ["青森市", "弘前市", "八戸市"],
+        "岩手県": ["盛岡市", "釜石市"],
+        "宮城県": ["仙台市", "石巻市", "大崎市"],
+        "秋田県": ["秋田市", "横手市"],
+        "山形県": ["山形市", "米沢市", "酒田市"],
+        "福島県": ["福島市", "会津若松市", "郡山市", "いわき市"]
+    },
+    "関東": {
+        "茨城県": ["水戸市", "日立市", "つくば市"],
+        "栃木県": ["宇都宮市", "足利市", "栃木市"],
+        "群馬県": ["前橋市", "高崎市", "桐生市"],
+        "埼玉県": [
+            "さいたま市西区", "さいたま市北区", "さいたま市大宮区", "さいたま市見沼区",
+            "さいたま市中央区", "さいたま市桜区", "さいたま市浦和区", "さいたま市南区",
+            "さいたま市緑区", "さいたま市岩槻区", "川口市", "春日部市", "上尾市", "越谷市",
+            "川越市", "所沢市", "草加市", "朝霞市", "志木市", "和光市", "新座市", "桶川市", "北本市",
+            "鴻巣市", "久喜市", "蓮田市", "幸手市", "白岡市", "杉戸町", "宮代町"
+        ],
+        "千葉県": ["千葉市", "市川市", "船橋市", "松戸市", "柏市"],
+        "東京都": [
+            "千代田区", "中央区", "港区", "新宿区", "文京区", "台東区", "墨田区", "江東区",
+            "品川区", "目黒区", "大田区", "世田谷区", "渋谷区", "中野区", "杉並区", "豊島区",
+            "北区", "荒川区", "板橋区", "練馬区", "足立区", "葛飾区", "江戸川区", "八王子市", "立川市"
+        ],
+        "神奈川県": ["横浜市", "川崎市", "相模原市", "藤沢市", "横須賀市"]
+    },
+    "中部": {
+        "新潟県": ["新潟市", "長岡市", "上越市"],
+        "富山県": ["富山市", "高岡市"],
+        "石川県": ["金沢市", "小松市"],
+        "福井県": ["福井市", "敦賀市"],
+        "山梨県": ["甲府市", "大月市"],
+        "長野県": ["長野市", "松本市", "上田市"],
+        "岐阜県": ["岐阜市", "大垣市"],
+        "静岡県": ["静岡市", "浜松市", "沼津市", "熱海市"],
+        "愛知県": ["名古屋市", "豊田市", "岡崎市", "一宮市"]
+    },
+    "近畿": {
+        "三重県": ["津市", "四日市市", "伊勢市"],
+        "滋賀県": ["大津市", "彦根市"],
+        "京都府": ["京都市", "宇治市", "舞鶴市"],
+        "大阪府": ["大阪市", "堺市", "東大阪市", "豊中市", "枚方市"],
+        "兵庫県": ["神戸市", "姫路市", "尼崎市", "明石市", "西宮市"],
+        "奈良県": ["奈良市", "橿原市"],
+        "和歌山県": ["和歌山市", "田辺市"]
+    },
+    "中国": {
+        "鳥取県": ["鳥取市", "米子市"],
+        "島根県": ["松江市", "出雲市"],
+        "岡山県": ["岡山市", "倉敷市"],
+        "広島県": ["広島市", "呉市", "福山市"],
+        "山口県": ["山口市", "下関市", "岩国市"]
+    },
+    "四国": {
+        "徳島県": ["徳島市", "鳴門市"],
+        "香川県": ["高松市", "丸亀市"],
+        "愛媛県": ["松山市", "今治市"],
+        "高知県": ["高知市", "四万十市"]
+    },
+    "九州": {
+        "福岡県": ["福岡市", "北九州市", "久留米市", "飯塚市"],
+        "佐賀県": ["佐賀市", "唐津市"],
+        "長崎県": ["長崎市", "佐世保市"],
+        "熊本県": ["熊本市", "八代市"],
+        "大分県": ["大分市", "別府市"],
+        "宮崎県": ["宮崎市", "延岡市"],
+        "鹿児島県": ["鹿児島市", "鹿屋市"],
+        "沖縄県": ["那覇市", "沖縄市", "石垣市"]
+    }
+}
+
 
 
 def allowed_file(filename):
@@ -98,7 +163,7 @@ def create_student():
         
         if error_message:
             flash(error_message, "danger")
-            return render_template("student/create.html", staff_list=Staff.query.all(), city_list=SAITAMA_MUNICIPALITIES)
+            return render_template("student/create.html", staff_list=Staff.query.all(), region_data=REGION_DATA, google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"))
 
         try:
             new_student = Student(face_photo_path=face_photo_path)
@@ -129,7 +194,7 @@ def create_student():
             flash(f"エラーが発生しました: {str(e)}", "danger")
     staff_list = Staff.query.all()
 
-    return render_template("student/create.html", staff_list=staff_list, city_list=SAITAMA_MUNICIPALITIES)
+    return render_template("student/create.html", staff_list=staff_list, region_data=REGION_DATA, google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"))
 
 
 @student_bp.route("/")
@@ -185,7 +250,7 @@ def update_student(id):
             face_photo_path, error_message = upload_face_photo_to_cloudinary(file)
             if error_message:
                 flash(error_message, "danger")
-                return render_template("student/edit.html", student=student, staff_list=Staff.query.all(), city_list=SAITAMA_MUNICIPALITIES)
+                return render_template("student/edit.html", student=student, staff_list=Staff.query.all(), region_data=REGION_DATA, google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"))
             if face_photo_path:
                 student.face_photo_path = face_photo_path
 
@@ -196,8 +261,7 @@ def update_student(id):
         except Exception as e:
             db.session.rollback()
             flash(f"更新中にエラーが発生しました: {str(e)}", "danger")
-
-    return render_template("student/edit.html", student=student, staff_list=Staff.query.all(), city_list=SAITAMA_MUNICIPALITIES)
+    return render_template("student/edit.html", student=student, staff_list=Staff.query.all(), region_data=REGION_DATA, google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"))
 
 
 @student_bp.route('/attendance')
