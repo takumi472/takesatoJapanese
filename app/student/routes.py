@@ -203,8 +203,7 @@ def update_student(id):
 @student_bp.route('/attendance')
 @login_required
 def attendance_list():
-    """Show the attendance list for a specific date."""
-    # 1. クエリパラメータから日付を取得
+    # 1. クエリパラメータから日付を取得（指定がなければ今日の日付）
     date_str = request.args.get('date')
     if date_str:
         target_date = datetime.strptime(date_str, '%Y-%m-%d').date()
@@ -213,10 +212,7 @@ def attendance_list():
 
     # 2. その日の学習録（出席データ）をすべて取得
     # student や staff のリレーションをまとめて読み込む(joinedload)と処理が高速になります
-    logs = LearningRecord.query.options(
-        joinedload(LearningRecord.student),
-        joinedload(LearningRecord.staff)
-    ).filter_by(lesson_date=target_date).all()
+    logs = LearningRecord.query.filter_by(lesson_date=target_date).all()
 
     # 3. 国籍ごとに生徒をグループ化する辞書を作成
     # 構造: { "ベトナム": [生徒1, 生徒2], "ミャンマー": [生徒3] }
@@ -226,13 +222,15 @@ def attendance_list():
         student = log.student
         if student:
             # テンプレート側で表示しやすいように、担当スタッフの名前を一時的に生徒オブジェクトに持たせる
-            student.assigned_staff_name = log.staff.name if log.staff else "自習"
+            # print(dir(log.staff_id))
+            staff_info = User.query.filter_by(id=log.staff_id).first().name
+            student.assigned_staff_name =  staff_info if staff_info else "自習"
             # 国籍をキーにしてグループに追加
             country = student.country_of_origin or "不明"
             grouped_students[country].append(student)
 
     return render_template(
-        'student/attendance.html',
+        'student/attendence.html',
         target_date=target_date,
         grouped_students=dict(grouped_students), # 扱いやすいように通常の辞書型に変換
         total_count=len(logs)
@@ -258,33 +256,28 @@ PDF_NEXT_DATE_OFFSET_DAYS = 8 # 次回日付の計算オフセット
 
 class PDF(FPDF):
     def header(self):
-        """Set PDF header."""
         self.set_font("Arial", 'B', 12)
         self.cell(0, 10, 'Attendance List', 0, 1, 'C')
 
-
-def add_pdf_table_header(pdf, next_date_header):
-    """PDFテーブルのヘッダー行を追加します。"""
-    pdf.cell(PDF_COL_WIDTH_NO, PDF_HEADER_ROW_HEIGHT, "No", border=1)
-    pdf.cell(PDF_COL_WIDTH_NAME, PDF_HEADER_ROW_HEIGHT, "Name", border=1)
-    pdf.cell(PDF_COL_WIDTH_PHOTO, PDF_HEADER_ROW_HEIGHT, "Photo", border=1)
-    pdf.cell(PDF_COL_WIDTH_COUNTRY, PDF_HEADER_ROW_HEIGHT, "Country", border=1)
-    pdf.cell(PDF_COL_WIDTH_STAFF, PDF_HEADER_ROW_HEIGHT, "Staff", border=1)
-    pdf.cell(PDF_COL_WIDTH_NEXT_DATE, PDF_HEADER_ROW_HEIGHT, next_date_header, border=1)
-    pdf.ln()
-
+def get_pdf_image(image_path_or_url):
+    if not image_path_or_url: return ""
+    if image_path_or_url.startswith(('http://', 'https://')):
+        try:
+            response = requests.get(image_path_or_url, timeout=5)
+            if response.status_code == 200:
+                base64_data = base64.b64encode(response.content).decode('utf-8')
+                mime_type = "image/png" if "png" in image_path_or_url.lower() else "image/jpeg"
+                return f"data:{mime_type};base64,{base64_data}"
+        except Exception: pass
+    return ""
 
 @student_bp.route('/attendance/download-pdf')
 @login_required
 def download_attendance_pdf():
-    """Generate and download the attendance list as a PDF."""
     date_str = request.args.get('date')
     target_date = datetime.strptime(date_str, '%Y-%m-%d').date() if date_str else datetime.now().date()
     
-    logs = LearningRecord.query.options(
-        joinedload(LearningRecord.student),
-        joinedload(LearningRecord.staff)
-    ).filter_by(lesson_date=target_date).all()
+    logs = LearningRecord.query.filter_by(lesson_date=target_date).all()
     
     # PDF生成
     pdf = PDF()
@@ -295,21 +288,30 @@ def download_attendance_pdf():
     pdf.add_font("IPAexGothic", "", font_path, uni=True)
     pdf.set_font("IPAexGothic", size=10)
 
-    next_date_header = (target_date + timedelta(days=PDF_NEXT_DATE_OFFSET_DAYS)).strftime('%Y-%m-%d')
-    add_pdf_table_header(pdf, next_date_header)
+    next_date = datetime.strptime(date_str, '%Y-%m-%d').date() + timedelta(days=8) if date_str else datetime.now().date() + timedelta(days=8)
+    # headers = ["No", "Name", "", "Country", "Staff", str(next_date)]
+    pdf.cell(15, 10, "No", border=1)
+    pdf.cell(60, 10, "Name", border=1)
+    pdf.cell(20, 10, "Photo", border=1)
+    pdf.cell(30, 10, "Country", border=1)
+    pdf.cell(30, 10, "Staff", border=1)
+    pdf.cell(30, 10, str(next_date), border=1)
+    pdf.ln()
     
     count = 0
     for log in logs:
-        if count > 0 and count % PDF_ROWS_PER_PAGE == 0:
-            pdf.add_page()
-            pdf.set_font("IPAexGothic", size=10) # フォント設定を再度適用
-            add_pdf_table_header(pdf, next_date_header)
-
+        if (count % 12 == 0 and count != 0):
+            pdf.cell(15, 10, "No", border=1)
+            pdf.cell(60, 10, "Name", border=1)
+            pdf.cell(20, 10, "Photo", border=1)
+            pdf.cell(30, 10, "Country", border=1)
+            pdf.cell(30, 10, "Staff", border=1)
+            pdf.cell(30, 10, str(next_date), border=1)
+            pdf.ln()
         student = log.student
         if student:
             count += 1
-            # joinedloadで取得済みなので、直接アクセス
-            staff_name = log.staff.name if log.staff else "未定"
+            staff_name = User.query.get(log.staff_id).name if log.staff_id else "未定"
             
             # 画像データはVercelのメモリ制限を避けるため、今回は一旦テキスト情報のみで出力
             # FPDFに画像を追加する場合は pdf.image() を使いますが、URLからは直接読み込めないため
@@ -317,35 +319,38 @@ def download_attendance_pdf():
             row_height = 20
             
             pdf.cell(15, row_height, str(count), border=1)
-            pdf.cell(PDF_COL_WIDTH_NAME, PDF_DATA_ROW_HEIGHT, student.name_kana, border=1) # 文字数制限
-
-            # 画像枠（セル）を必ず作成し、カーソル位置を正しく制御
-            x_pos = pdf.get_x()
-            y_pos = pdf.get_y()
-            pdf.cell(PDF_COL_WIDTH_PHOTO, PDF_DATA_ROW_HEIGHT, "", border=1)
-
-            if student.face_photo_path:
-                try:
-                    response = requests.get(student.face_photo_path, timeout=5)
-                    if response.status_code == 200:
-                        image_data = io.BytesIO(response.content)
-                        # 画像をセルの中央に配置
-                        pdf.image(
-                            image_data,
-                            x=x_pos + (PDF_COL_WIDTH_PHOTO - (PDF_DATA_ROW_HEIGHT - 2)) / 2, # セル幅 - (画像高さ) / 2
-                            y=y_pos + 1,
-                            w=PDF_DATA_ROW_HEIGHT - 2, # 画像の幅をセルの高さに合わせて調整（正方形を想定）
-                            h=PDF_DATA_ROW_HEIGHT - 2
-                        )
-                    else:
-                        current_app.logger.warning(f"Failed to fetch image: Status {response.status_code}")
-                except Exception as e:
-                    current_app.logger.error(f"Image download error: {e}")
-
+            pdf.cell(60, row_height, student.name_kana, border=1) # 文字数制限
+            try:
+                response = requests.get(student.face_photo_path, timeout=5)
+                if response.status_code == 200:
+                    # 2. メモリ上に画像を読み込む
+                    image_data = io.BytesIO(response.content)
+                    x_pos = pdf.get_x()
+                    y_pos = pdf.get_y()
+                    cell_width = 20
+                    pdf.cell(cell_width, row_height, "", border=1)
+        
+                    # 3. PDFに画像を配置
+                    # x, y は枠内の位置、wは画像幅
+                    pdf.image(
+                        image_data,
+                        x=x_pos + 1, 
+                        y=y_pos + 1, 
+                        w=cell_width - 2, 
+                        h=row_height - 2
+                    )
+                    # pdf.set_x(x_pos + cell_width)
+                else:
+                    print(f"画像取得失敗: ステータスコード {response.status_code}")
+            except Exception as e:
+                print(f"画像ダウンロードエラー: {e}")
+            # pdf.image(student.face_photo_path, x=40 + 1, y=40 + 1, w=40 - 2, h=40 - 2)
+            # pdf.cell(40, 40, get_pdf_image(student.face_photo_path), border=1)
             pdf.cell(30, row_height, student.country_of_origin or "N/A", border=1)
-            pdf.cell(PDF_COL_WIDTH_STAFF, PDF_DATA_ROW_HEIGHT, staff_name, border=1)
-            pdf.cell(PDF_COL_WIDTH_NEXT_DATE, PDF_DATA_ROW_HEIGHT, "", border=1)
+            pdf.cell(30, row_height, staff_name, border=1)
+            pdf.cell(30, row_height, "", border=1)
             pdf.ln()
+
     # ストリームに出力
     pdf_buffer = io.BytesIO()
     pdf.output(pdf_buffer)

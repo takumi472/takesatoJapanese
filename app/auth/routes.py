@@ -5,6 +5,7 @@ from sqlalchemy import Interval, cast, func
 from datetime import datetime, timedelta
 from app import db
 from app.models import User, Student, Staff, Meeting, LearningRecord
+from collections import Counter
 
 auth_bp = Blueprint("auth", __name__)
 
@@ -70,6 +71,20 @@ def dashboard():
     labels = [(w + timedelta(days=6)).strftime('%Y年%m月%d日') for w in all_weeks]
     student_map = {r.week: r.count for r in student_data}
     staff_map = {r.week: r.count for r in staff_data}
+    
+    students = Student.query.all()
+    
+    # 1. 知ったきっかけの集計
+    how_knew_counts = Counter([s.how_knew_class for s in students if s.how_knew_class])
+    
+    # 2. JLPTレベルの集計
+    jlpt_counts = Counter([s.jlpt_level for s in students if s.jlpt_level])
+    
+    # 3. 居住地域の集計
+    area_counts = Counter([s.residential_area for s in students if s.residential_area])
+    
+    # 4. 出身国の集計
+    country_counts = Counter([s.country_of_origin for s in students if s.country_of_origin])
 
     return render_template(
         "dashboard.html",
@@ -77,7 +92,16 @@ def dashboard():
         latest_meetings=latest_meetings,
         labels=labels, 
         student_counts=[student_map.get(w, 0) for w in all_weeks],
-        staff_counts=[staff_map.get(w, 0) for w in all_weeks]
+        staff_counts=[staff_map.get(w, 0) for w in all_weeks],
+        # --- 新規追加するグラフ用変数 ---
+        how_knew_labels=list(how_knew_counts.keys()),
+        how_knew_data=list(how_knew_counts.values()),
+        jlpt_labels=list(jlpt_counts.keys()),
+        jlpt_data=list(jlpt_counts.values()),
+        area_labels=list(area_counts.keys()),
+        area_data=list(area_counts.values()),
+        country_labels=list(country_counts.keys()),
+        country_data=list(country_counts.values())
     )
 
 

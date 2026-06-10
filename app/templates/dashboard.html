@@ -6,88 +6,32 @@
     <title>ダッシュボード - 武里日本語教室</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
     <!-- Vercel Speed Insights -->
     <script>
         window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
     </script>
-    <script defer src="/_vercel/speed-insights/script.js"></script>
+    {% if not config.DEBUG %}
+  <script src="/_vercel/speed-insights/script.js" defer></script>
+{% endif %}
     <style>
-        body {
-            background-color: #f0ebf8; /* システム共通の背景色 */
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            color: #202124;
-        }
-        .main-container {
-            max-width: 1000px; /* 3枚並ぶため、少し横幅を広げました */
-            margin-top: 60px;
-        }
-        .welcome-header {
-            background-color: #fff;
-            border-top: 10px solid #673ab7; /* テーマカラー紫 */
-            border-radius: 8px;
-            padding: 30px;
-        }
-        .menu-card {
-            background-color: #fff;
-            border: 1px solid #dadce0;
-            border-radius: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            cursor: pointer;
-            text-decoration: none;
-            color: inherit;
-            display: block;
-        }
-        .menu-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 8px 16px rgba(0,0,0,0.1);
-            border-color: #673ab7;
-        }
-        .icon-circle {
-            width: 60px;
-            height: 60px;
-            background-color: #f0ebf8;
-            color: #673ab7;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            margin-bottom: 15px;
-        }
-        .count-badge {
-            font-size: 14px;
-            background-color: #e8f0fe;
-            color: #1a73e8;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-weight: bold;
-        }
-        .btn-logout {
-            color: #5f6368;
-            text-decoration: none;
-            font-size: 14px;
-        }
-        .btn-logout:hover {
-            color: #d93025;
-            text-decoration: underline;
-        }
-    </style>
+    body { background-color: #f0ebf8; color: #202124; }
+    .dashboard-container { max-width: 1000px; margin: 20px auto; }
+    .welcome-header { background-color: #fff; border-top: 10px solid #673ab7; border-radius: 8px; padding: 30px; }
+    .menu-card { background-color: #fff; border: 1px solid #dadce0; border-radius: 8px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; text-decoration: none; color: inherit; display: block; }
+    .menu-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); border-color: #673ab7; }
+    .icon-circle { width: 60px; height: 60px; background-color: #f0ebf8; color: #673ab7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 15px; }
+    .count-badge { font-size: 14px; background-color: #e8f0fe; color: #1a73e8; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
+    .btn-logout { color: #5f6368; text-decoration: none; font-size: 14px; }
+    .btn-logout:hover { color: #d93025; text-decoration: underline; }
+    .transition-card { transition: transform 0.2s, box-shadow 0.2s; }
+    .transition-card:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
+    .chart-container-pie { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
+</style>
 </head>
 <body>
 
-<div class="container main-container mb-5">
-
-    {% with messages = get_flashed_messages(with_categories=true) %}
-      {% if messages %}
-        {% for category, message in messages %}
-          <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm mb-4" role="alert">
-            {{ message }}
-            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-          </div>
-        {% endfor %}
-      {% endif %}
-    {% endwith %}
+<div class="dashboard-container mb-5">
 
     <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-start">
         <div>
@@ -98,108 +42,124 @@
             <i class="bi bi-box-arrow-right"></i> ログアウト
         </a>
     </div>
+
     <div class="mt-5">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h4 class="h5">最新のミーティング</h4>
-    </div>
-    
-    <div class="list-group shadow-sm ">
-        {% for m in latest_meetings %}
-        <a href="{{ url_for('meeting.detail_meeting', id=m.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
-            <span>{{ m.title }}</span>
-            <span class="badge bg-secondary">{{ m.date }}</span>
-        </a>
-        {% else %}
-        <div class="list-group-item text-muted">現在ミーティングの予定・記録はありません。</div>
-        {% endfor %}
-    </div>
-</div>
-<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-
-<div class="card p-4 shadow-sm mb-4 mt-2">
-    <div class="d-flex justify-content-between align-items-center mb-3">
-        <h5 class="card-title">週間出席者数 推移</h5>
-        <select class="form-select form-select-sm w-auto">
-            {% for label in labels %}
-                <option>{{ label }}週</option>
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h4 class="h5">最新のミーティング</h4>
+        </div>
+        <div class="list-group shadow-sm ">
+            {% for m in latest_meetings %}
+            <a href="{{ url_for('meeting.detail_meeting', id=m.id) }}" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center">
+                <span>{{ m.title }}</span>
+                <span class="badge bg-secondary">{{ m.date }}</span>
+            </a>
+            {% else %}
+            <div class="list-group-item text-muted">現在ミーティングの予定・記録はありません。</div>
             {% endfor %}
-        </select>
+        </div>
     </div>
-    <canvas id="attendanceChart" height="100"></canvas>
-</div>
 
+    <h4 class="h5 mb-3 mt-3 fw-bold">受講生データ分析</h4>
+    <div class="row g-4 mb-5">
+        <div class="col-md-6">
+            <div class="card p-4 shadow-sm border-0 h-100">
+                <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">教室を知ったきっかけ</h5>
+                <div class="chart-container-pie">
+                    <canvas id="howKnewChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-4 shadow-sm border-0 h-100">
+                <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">JLPT（日本語能力試験）レベル</h5>
+                <div class="chart-container-pie">
+                    <canvas id="jlptChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-4 shadow-sm border-0 h-100">
+                <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">居住地域</h5>
+                <div class="chart-container-pie">
+                    <canvas id="areaChart"></canvas>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-6">
+            <div class="card p-4 shadow-sm border-0 h-100">
+                <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">出身国</h5>
+                <div class="chart-container-pie">
+                    <canvas id="countryChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
 
-    <div class="row g-4 pt-2">
-        
+    <div class="card p-4 shadow-sm mb-4 mt-4 border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title fw-bold" style="font-size: 16px;">週間出席者数 推移</h5>
+            <select class="form-select form-select-sm w-auto">
+                {% for label in labels %}
+                    <option>{{ label }}週</option>
+                {% endfor %}
+            </select>
+        </div>
+        <canvas id="attendanceChart" height="100"></canvas>
+    </div>
+
+    <div class="row g-4 mb-5">
         <div class="col-md-4">
             <a href="{{ url_for('student.student_list') }}" class="menu-card p-4 shadow-sm h-100">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div class="icon-circle">
-                        <i class="bi bi-mortarboard-fill"></i>
-                    </div>
+                    <div class="icon-circle"><i class="bi bi-mortarboard-fill"></i></div>
                     <span class="count-badge">登録: {{ student_count }} 名</span>
                 </div>
                 <h3 class="h5 mb-2" style="font-weight: 600;">受講生一覧</h3>
                 <p class="text-muted small mb-0">生徒の個人カルテの確認、新規登録、学習記録（カルテ）の編集を行います。</p>
             </a>
         </div>
-
         <div class="col-md-4">
             <a href="{{ url_for('staff.staff_list') }}" class="menu-card p-4 shadow-sm h-100">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div class="icon-circle">
-                        <i class="bi bi-people-fill"></i>
-                    </div>
+                    <div class="icon-circle"><i class="bi bi-people-fill"></i></div>
                     <span class="count-badge">登録: {{ staff_count }} 名</span>
                 </div>
                 <h3 class="h5 mb-2" style="font-weight: 600;">スタッフ一覧</h3>
-                <p class="text-muted small mb-0">ボランティアスタッフのプロフィール一覧の確認、アカウント作成・編集を行います。</p>
+                <p class="text-muted small mb-0">プロフィール一覧の確認、アカウント作成・編集を行います。</p>
             </a>
         </div>
-
         <div class="col-md-4">
             <a href="{{ url_for('meeting.meeting_list') }}" class="menu-card p-4 shadow-sm h-100">
                 <div class="d-flex justify-content-between align-items-start">
-                    <div class="icon-circle">
-                        <i class="bi bi-journal-text"></i>
-                    </div>
+                    <div class="icon-circle"><i class="bi bi-journal-text"></i></div>
                     <span class="count-badge">ミーティング: {{ meeting_count }} 件</span>
                 </div>
                 <h3 class="h5 mb-2" style="font-weight: 600;">スタッフミーティング</h3>
-                <p class="text-muted small mb-0">運営ミーティングやスタッフ会議の議事録の閲覧、作成、管理を行います。</p>
+                <p class="text-muted small mb-0">運営ミーティングや議事録の閲覧、作成、管理を行います。</p>
             </a>
         </div>
-
-        <div class="col">
-    <a href="{{ url_for('student.attendance_list') }}" class="text-decoration-none text-dark">
-        <div class="card h-100 border-0 shadow-sm text-center py-4 transition-card" style="border-top: 4px solid #673ab7 !important;">
-            <div class="card-body">
-                <div class="mb-3 text-primary">
-                    <i class="bi bi-calendar-check-fill" style="font-size: 2.5rem; color: #673ab7;"></i>
+        <div class="col-12">
+            <a href="{{ url_for('student.attendance_list') }}" class="text-decoration-none text-dark">
+                <div class="card h-100 border-0 shadow-sm text-center py-4 transition-card" style="border-top: 4px solid #673ab7 !important;">
+                    <div class="card-body">
+                        <div class="mb-3 text-primary"><i class="bi bi-calendar-check-fill" style="font-size: 2.5rem; color: #673ab7;"></i></div>
+                        <h5 class="card-title fw-bold" style="font-size: 16px;">出席リスト</h5>
+                        <p class="card-text text-muted d-none d-sm-block" style="font-size: 12px;">日別の受講生出席状況を確認</p>
+                    </div>
                 </div>
-                <h5 class="card-title fw-bold" style="font-size: 16px;">出席リスト</h5>
-                <p class="card-text text-muted d-none d-sm-block" style="font-size: 12px;">日別の受講生出席状況を確認</p>
-            </div>
+            </a>
         </div>
-    </a>
-</div>
-
-<style>
-    .transition-card {
-        transition: transform 0.2s, box-shadow 0.2s;
-    }
-    .transition-card:hover {
-        transform: translateY(-3px);
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
-    }
-</style>
-
     </div>
-
 </div>
-
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+</script>
+{% if not config.DEBUG %}
+  <script src="/_vercel/speed-insights/script.js" defer></script>
+{% endif %}
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+    // 既存の折れ線グラフ
     const ctx = document.getElementById('attendanceChart').getContext('2d');
     new Chart(ctx, {
         type: 'line',
@@ -213,17 +173,87 @@
                     backgroundColor: 'rgba(103, 58, 183, 0.1)',
                     fill: true
                 },
-{
-    label: 'スタッフ出席数',
-    data: {{ staff_counts | tojson }},
-    borderColor: '#10b981',             // エメラルドグリーン（実線）
-    backgroundColor: 'rgba(16, 185, 129, 0.1)',
-    borderWidth: 2,                     // 線の太さを指定（少し太めに）
-    fill: false,
-    tension: 0.3
-}
+                {
+                    label: 'スタッフ出席数',
+                    data: {{ staff_counts | tojson }},
+                    borderColor: '#10b981',
+                    backgroundColor: 'rgba(16, 185, 129, 0.1)',
+                    borderWidth: 2,
+                    fill: false,
+                    tension: 0.3
+                }
             ]
         }
+    });
+
+    // 共通のグラフカラーパレット
+    const pieColors = [
+        '#673ab7', '#1a73e8', '#10b981', '#f59e0b', '#ef4444', '#14b8a6', '#8b5cf6', '#f43f5e'
+    ];
+    
+    // 円グラフ共通オプション
+    const pieOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: { position: 'bottom', labels: { boxWidth: 12 } }
+        }
+    };
+
+    // 1. 教室を知ったきっかけ
+    new Chart(document.getElementById('howKnewChart').getContext('2d'), {
+        type: 'doughnut', // pie に変更も可
+        data: {
+            labels: {{ how_knew_labels | default([]) | tojson }},
+            datasets: [{
+                data: {{ how_knew_data | default([]) | tojson }},
+                backgroundColor: pieColors,
+                borderWidth: 1
+            }]
+        },
+        options: pieOptions
+    });
+
+    // 2. JLPTレベル
+    new Chart(document.getElementById('jlptChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ jlpt_labels | default([]) | tojson }},
+            datasets: [{
+                data: {{ jlpt_data | default([]) | tojson }},
+                backgroundColor: pieColors,
+                borderWidth: 1
+            }]
+        },
+        options: pieOptions
+    });
+
+    // 3. 居住地域
+    new Chart(document.getElementById('areaChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ area_labels | default([]) | tojson }},
+            datasets: [{
+                data: {{ area_data | default([]) | tojson }},
+                backgroundColor: pieColors,
+                borderWidth: 1
+            }]
+        },
+        options: pieOptions
+    });
+
+    // 4. 出身国
+    new Chart(document.getElementById('countryChart').getContext('2d'), {
+        type: 'doughnut',
+        data: {
+            labels: {{ country_labels | default([]) | tojson }},
+            datasets: [{
+                data: {{ country_data | default([]) | tojson }},
+                backgroundColor: pieColors,
+                borderWidth: 1
+            }]
+        },
+        options: pieOptions
     });
 </script>
 </body>
