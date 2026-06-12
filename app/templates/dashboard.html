@@ -43,6 +43,62 @@
         </a>
     </div>
 
+    <div class="row g-4 mb-5">
+        <div class="col-md-4">
+            <a href="{{ url_for('student.student_list') }}" class="menu-card p-4 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="icon-circle"><i class="bi bi-mortarboard-fill"></i></div>
+                    <span class="count-badge">登録: {{ student_count }} 名</span>
+                </div>
+                <h3 class="h5 mb-2" style="font-weight: 600;">受講生一覧</h3>
+                <p class="text-muted small mb-0">生徒の個人カルテの確認、新規登録、学習記録（カルテ）の編集を行います。</p>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('staff.staff_list') }}" class="menu-card p-4 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="icon-circle"><i class="bi bi-people-fill"></i></div>
+                    <span class="count-badge">登録: {{ staff_count }} 名</span>
+                </div>
+                <h3 class="h5 mb-2" style="font-weight: 600;">スタッフ一覧</h3>
+                <p class="text-muted small mb-0">プロフィール一覧の確認、アカウント作成・編集を行います。</p>
+            </a>
+        </div>
+        <div class="col-md-4">
+            <a href="{{ url_for('meeting.meeting_list') }}" class="menu-card p-4 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="icon-circle"><i class="bi bi-journal-text"></i></div>
+                    <span class="count-badge">ミーティング: {{ meeting_count }} 件</span>
+                </div>
+                <h3 class="h5 mb-2" style="font-weight: 600;">スタッフミーティング</h3>
+                <p class="text-muted small mb-0">運営ミーティングや議事録の閲覧、作成、管理を行います。</p>
+            </a>
+        </div>
+        <div class="col-12">
+            <a href="{{ url_for('student.attendance_list') }}" class="text-decoration-none text-dark">
+                <div class="card h-100 border-0 shadow-sm text-center py-4 transition-card" style="border-top: 4px solid #673ab7 !important;">
+                    <div class="card-body">
+                        <div class="mb-3 text-primary"><i class="bi bi-calendar-check-fill" style="font-size: 2.5rem; color: #673ab7;"></i></div>
+                        <h5 class="card-title fw-bold" style="font-size: 16px;">出席リスト</h5>
+                        <p class="card-text text-muted d-none d-sm-block" style="font-size: 12px;">日別の受講生出席状況を確認</p>
+                    </div>
+                </div>
+            </a>
+        </div>
+    </div>
+
+    <div class="card p-4 shadow-sm mb-4 mt-4 border-0">
+        <div class="d-flex justify-content-between align-items-center mb-3">
+            <h5 class="card-title fw-bold" style="font-size: 16px;">週間出席者数 推移</h5>
+            <select class="form-select form-select-sm w-auto">
+                {% for label in labels %}
+                    <option>{{ label }}週</option>
+                {% endfor %}
+            </select>
+        </div>
+        <canvas id="attendanceChart" height="100"></canvas>
+    </div>
+
     <div class="mt-5">
         <div class="d-flex justify-content-between align-items-center mb-3">
             <h4 class="h5">最新のミーティング</h4>
@@ -92,62 +148,6 @@
                     <canvas id="countryChart"></canvas>
                 </div>
             </div>
-        </div>
-    </div>
-
-    <div class="card p-4 shadow-sm mb-4 mt-4 border-0">
-        <div class="d-flex justify-content-between align-items-center mb-3">
-            <h5 class="card-title fw-bold" style="font-size: 16px;">週間出席者数 推移</h5>
-            <select class="form-select form-select-sm w-auto">
-                {% for label in labels %}
-                    <option>{{ label }}週</option>
-                {% endfor %}
-            </select>
-        </div>
-        <canvas id="attendanceChart" height="100"></canvas>
-    </div>
-
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
-            <a href="{{ url_for('student.student_list') }}" class="menu-card p-4 shadow-sm h-100">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="icon-circle"><i class="bi bi-mortarboard-fill"></i></div>
-                    <span class="count-badge">登録: {{ student_count }} 名</span>
-                </div>
-                <h3 class="h5 mb-2" style="font-weight: 600;">受講生一覧</h3>
-                <p class="text-muted small mb-0">生徒の個人カルテの確認、新規登録、学習記録（カルテ）の編集を行います。</p>
-            </a>
-        </div>
-        <div class="col-md-4">
-            <a href="{{ url_for('staff.staff_list') }}" class="menu-card p-4 shadow-sm h-100">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="icon-circle"><i class="bi bi-people-fill"></i></div>
-                    <span class="count-badge">登録: {{ staff_count }} 名</span>
-                </div>
-                <h3 class="h5 mb-2" style="font-weight: 600;">スタッフ一覧</h3>
-                <p class="text-muted small mb-0">プロフィール一覧の確認、アカウント作成・編集を行います。</p>
-            </a>
-        </div>
-        <div class="col-md-4">
-            <a href="{{ url_for('meeting.meeting_list') }}" class="menu-card p-4 shadow-sm h-100">
-                <div class="d-flex justify-content-between align-items-start">
-                    <div class="icon-circle"><i class="bi bi-journal-text"></i></div>
-                    <span class="count-badge">ミーティング: {{ meeting_count }} 件</span>
-                </div>
-                <h3 class="h5 mb-2" style="font-weight: 600;">スタッフミーティング</h3>
-                <p class="text-muted small mb-0">運営ミーティングや議事録の閲覧、作成、管理を行います。</p>
-            </a>
-        </div>
-        <div class="col-12">
-            <a href="{{ url_for('student.attendance_list') }}" class="text-decoration-none text-dark">
-                <div class="card h-100 border-0 shadow-sm text-center py-4 transition-card" style="border-top: 4px solid #673ab7 !important;">
-                    <div class="card-body">
-                        <div class="mb-3 text-primary"><i class="bi bi-calendar-check-fill" style="font-size: 2.5rem; color: #673ab7;"></i></div>
-                        <h5 class="card-title fw-bold" style="font-size: 16px;">出席リスト</h5>
-                        <p class="card-text text-muted d-none d-sm-block" style="font-size: 12px;">日別の受講生出席状況を確認</p>
-                    </div>
-                </div>
-            </a>
         </div>
     </div>
 </div>

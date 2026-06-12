@@ -94,7 +94,7 @@
     {% endwith %}
     <div class="page-header d-flex align-items-center justify-content-between mb-4">
         <div class="d-flex align-items-center">
-            <a href="{{ url_for('student.student_list') }}" class="btn btn-light me-3" title="生徒一覧へ戻る">
+            <a href="{{ url_for('student.student_list') }}" class="btn btn-primary me-3" title="生徒一覧へ戻る">
                 <i class="bi bi-chevron-left"></i>
             </a>
             <div>
@@ -115,7 +115,7 @@
                 </div>
                 <div class="file-input-wrapper">
                     <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
-                        <i class="bi bi-file-earmark-arrow-up"></i> Add File
+                        <i class="bi bi-file-earmark-arrow-up"></i> 画像を選択
                     </button>
                     <input type="file" name="face_photo" id="face_photo_input" accept="image/*">
                 </div>
@@ -149,8 +149,8 @@
         </div>
 
         <!-- 既存の階層プルダウン -->
-        <div class="mb-3">
-            <label class="form-label">居住地域</label>
+        <div class="card-question shadow-sm">
+            <label for="region-select" class="form-label fw-bold">(7) 居住地域 <span class="required-star">*</span></label>
             <div class="row g-2">
                 <div class="col-md-4">
                     <select id="region-select" class="form-select">
@@ -170,7 +170,7 @@
                         <option value="">市区町村を選択</option>
                     </select>
                 </div>
-            </select>
+            </div>
         </div>
 
         <div class="card-question shadow-sm">
@@ -232,8 +232,13 @@
         </div>
 
         <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
-            <button type="submit" class="btn btn-submit shadow-sm">Submit</button>
-            <a href="{{ url_for('student.student_list') }}" class="btn text-secondary" style="font-size: 14px; text-decoration: none;">Clear form (キャンセル)</a>
+            <button type="submit" class="btn btn-submit shadow-sm">送信</button>
+            <div class="d-flex gap-2">
+                <a href="{{ url_for('student.student_list') }}" class="btn text-white px-4 fw-bold" style="background-color: #673ab7;" title="生徒一覧へ戻る">
+                    戻る
+                </a>
+                <button type="reset" class="btn text-white px-4 fw-bold" style="background-color: #673ab7;">クリア</button>
+            </div>
         </div>
     </form>
 </div>

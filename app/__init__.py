@@ -17,21 +17,14 @@ def create_app(env_name="development"):
     app = Flask(__name__)
 
     # 共通のシークレットキー設定
-    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY")
+    app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key-placeholder")
 
     # 1. Vercel(本番)でもローカル(開発)でも、環境変数からDATABASE_URLを取得する
-    raw_db_url = os.environ.get("DATABASE_URL") # .envから読み込む
-
-    # 【ローカル開発用のフォールバック設定】
-    # もしローカル環境で環境変数を設定するのが面倒な場合は、
-    # 以下の '' の中に Neon の postgres://... のURLを直接貼り付けておくと確実です。
-    if env_name == "development" and not raw_db_url:
-        raw_db_url = "ここにNeonでコピーした接続URLを貼り付ける"
+    raw_db_url = os.environ.get("DATABASE_URL")
 
     if raw_db_url:
         # 2. postgres:// を postgresql:// に変換（SQLAlchemyの必須対策）
-        if raw_db_url.startswith("postgres://"):
-            raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
+        raw_db_url = raw_db_url.replace("postgres://", "postgresql://", 1)
 
         app.config["SQLALCHEMY_DATABASE_URI"] = raw_db_url
     else:
