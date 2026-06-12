@@ -111,6 +111,24 @@
             padding: 2px 8px;
             border-radius: 4px;
         }
+        /* 浮遊（Floating）戻るボタンのスタイル */
+        .btn-floating-back {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            width: 56px;
+            height: 56px;
+            border-radius: 50%;
+            background-color: #673ab7;
+            color: white;
+            z-index: 1050;
+            transition: transform 0.2s, background-color 0.2s;
+        }
+        .btn-floating-back:hover {
+            background-color: #512da8;
+            transform: scale(1.1);
+            color: white;
+        }
         .btn-add-student {
             background-color: #673ab7;
             color: white;
@@ -257,6 +275,11 @@
     </div>
 
 </div>
+
+<!-- 浮遊戻るボタン -->
+<button type="button" class="btn btn-floating-back shadow d-flex align-items-center justify-content-center border-0" onclick="window.history.back()" title="戻る">
+    戻る
+</button>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>

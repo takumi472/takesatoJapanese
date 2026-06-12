@@ -134,7 +134,6 @@ def create_staff():
                 hobbies=request.form.get("hobbies"),
                 skills=request.form.get("skills"),
                 qualifications=request.form.get("qualifications"),
-                intent=request.form.get("intent"),
             )
             
             new_staff.submission_date = _parse_date_or_none(request.form.get("submission_date"))
@@ -241,7 +240,6 @@ def edit_staff(id):
             staff.hobbies = request.form.get("hobbies")
             staff.skills = request.form.get("skills")
             staff.qualifications = request.form.get("qualifications")
-            staff.intent = request.form.get("intent")
 
             staff.submission_date = _parse_date_or_none(request.form.get("submission_date"))
 
