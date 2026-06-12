@@ -16,14 +16,6 @@ def create_record():
     # URLパラメータから student_id を受け取る（例: /create?student_id=1）
     # 管理者かどうかを判定
     is_admin = (current_user.role == 'admin')
-    
-    # フォーム表示用のスタッフリストを取得
-    # 管理者なら全員を表示、そうでなければ自分だけを表示用に用意
-    if is_admin:
-        staff_list = Staff.query.all()
-    else:
-        # ログインユーザーが作成者本人であることを前提
-        staff_list = Staff.query.filter_by(user_id=current_user.id).first()
     student_id = request.args.get('student_id')
     
     if request.method == 'POST':
@@ -62,8 +54,13 @@ def create_record():
             flash(f'保存中にエラーが発生しました: {str(e)}', 'danger')
 
     # フォーム表示用のデータ準備
+    # 管理者なら全員を表示、そうでなければ自分だけを表示
+    if is_admin:
+        staff_list = Staff.query.all()
+    else:
+        staff_list = Staff.query.filter(Staff.user_id == current_user.id).all()
+
     students = Student.query.all()
-    staff_list = Staff.query.all()
     
     return render_template(
         'record/create.html', 

@@ -15,6 +15,10 @@ meeting_bp = Blueprint('meeting', __name__, url_prefix='/meeting')
 
 PDF_EXTENSION = '.pdf'
 
+# Get folder prefix from environment to support multiple sites easily
+# Example: 'takesato' or 'school_b'
+FOLDER_PREFIX = os.environ.get('CLOUDINARY_FOLDER_PREFIX', 'general')
+
 # Cloudinaryの設定は、通常、アプリケーションの初期化時に行われます（例: app/__init__.pyまたはconfig.py）。
 # ここでは、current_app.configから設定が読み込まれることを想定しています。
 # 例: current_app.config['CLOUDINARY_CLOUD_NAME'], current_app.config['CLOUDINARY_API_KEY'], etc.
@@ -60,9 +64,10 @@ def create_meeting():
                     
                     # Cloudinaryにファイルをアップロード
                     # folderパラメータでCloudinary上のフォルダを指定できます
+                    # サイトごとのプレフィックスを使用して整理
                     upload_result = cloudinary.uploader.upload(
                         file, 
-                        folder="takesato_meeting_attachments",
+                        folder=f"{FOLDER_PREFIX}/meeting_attachments",
                         resource_type="auto"
                     )
                     save_name = upload_result['secure_url'] # CloudinaryのURLを保存
@@ -119,7 +124,7 @@ def edit_meeting(id):
                         # URLからpublic_idを抽出 (例: .../takesato_meeting_attachments/xxxx.pdf)
                         filename_with_ext = attachment.filename.split('/')[-1]
                         public_id_no_ext = os.path.splitext(filename_with_ext)[0]
-                        full_public_id = f"takesato_meeting_attachments/{public_id_no_ext}"
+                        full_public_id = f"{FOLDER_PREFIX}/meeting_attachments/{public_id_no_ext}"
                         # PDFなどのリソースは通常 'image' として扱われます
                         cloudinary.uploader.destroy(full_public_id)
                     except Exception as ce:
@@ -134,7 +139,7 @@ def edit_meeting(id):
                     original_name = file.filename
                     upload_result = cloudinary.uploader.upload(
                         file, 
-                        folder="takesato_meeting_attachments",
+                        folder=f"{FOLDER_PREFIX}/meeting_attachments",
                         resource_type="auto"
                     )
                     save_name = upload_result['secure_url']

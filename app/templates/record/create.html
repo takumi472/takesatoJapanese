@@ -29,7 +29,7 @@
 <div class="container my-5" style="max-width: 700px;">
     <div class="page-header d-flex align-items-center justify-content-between mb-4">
         <div class="d-flex align-items-center">
-            <a href="#" onclick="window.history.back(); return false;" class="btn btn-light me-3" title="戻る">
+            <a href="#" onclick="window.history.back(); return false;" class="btn btn-primary me-3" title="戻る">
                 <i class="bi bi-chevron-left"></i>
             </a>
             <div>
@@ -90,7 +90,7 @@
             </div>
 
             <div class="d-flex justify-content-end gap-3 mt-4">
-                <a href="{{ url_for('student.student_list') }}" class="btn btn-outline-secondary">キャンセル</a>
+                <a href="{{ url_for('record.record_list', student_id=record.student_id) }}" class="btn btn-outline-secondary">キャンセル</a>
                 <button type="submit" class="btn btn-submit shadow-sm">送信する</button>
             </div>
         </div>

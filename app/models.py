@@ -19,7 +19,7 @@ class User(db.Model, UserMixin):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(50), unique=True, nullable=False)  # ログインID（メールアドレス）
     password_hash = db.Column(db.String(256), nullable=False)  # ハッシュ化パスワード
-    role = db.Column(db.String(20), nullable=False)  # 'admin' または 'staff'
+    role = db.Column(db.String(20), nullable=False)  # '管理者' または 'スタッフ'
     name = db.Column(db.String(50), nullable=False)  # 氏名
 
     # スタッフが記入した学習記録（1対多）
