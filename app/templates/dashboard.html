@@ -22,8 +22,20 @@
     .menu-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); border-color: #673ab7; }
     .icon-circle { width: 60px; height: 60px; background-color: #f0ebf8; color: #673ab7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 15px; }
     .count-badge { font-size: 14px; background-color: #e8f0fe; color: #1a73e8; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-    .btn-logout { color: #5f6368; text-decoration: none; font-size: 14px; }
-    .btn-logout:hover { color: #d93025; text-decoration: underline; }
+    .btn-logout { 
+        color: #d93025; 
+        text-decoration: none; 
+        font-size: 14px; 
+        border: 1px solid #d93025; 
+        padding: 6px 16px; 
+        border-radius: 50px; 
+        transition: all 0.2s; 
+        font-weight: 500;
+    }
+    .btn-logout:hover { 
+        background-color: #d93025; 
+        color: #fff !important; 
+    }
     .transition-card { transition: transform 0.2s, box-shadow 0.2s; }
     .transition-card:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
     .chart-container-pie { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
@@ -33,7 +45,7 @@
 
 <div class="dashboard-container mb-5">
 
-    <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-start">
+    <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-center">
         <div>
             <h1 class="h3 mb-2" style="font-weight: 700;">武里日本語教室 管理システム</h1>
             <p class="text-muted mb-0">こんにちは、<strong>{{ current_user.name }}</strong> さん（権限: {{ current_user.role }}）</p>
@@ -186,11 +198,17 @@
         }
     });
 
-    // 共通のグラフカラーパレット
-    const pieColors = [
-        '#673ab7', '#1a73e8', '#10b981', '#f59e0b', '#ef4444', '#14b8a6', '#8b5cf6', '#f43f5e'
-    ];
-    
+    // ラベルの数に基づいて、重複を避けた視認性の高いカラーパレットを生成する関数
+    function generateDynamicColors(count, offset = 0) {
+        const colors = [];
+        for (let i = 0; i < count; i++) {
+            // 黄金角(約137.5度)を利用して、隣り合う色が似すぎないように散らす
+            const hue = (offset + (i * 137.508)) % 360;
+            colors.push(`hsla(${hue}, 70%, 60%, 0.8)`);
+        }
+        return colors;
+    }
+
     // 円グラフ共通オプション
     const pieOptions = {
         responsive: true,
@@ -201,13 +219,14 @@
     };
 
     // 1. 教室を知ったきっかけ
+    const howKnewLabels = {{ how_knew_labels | default([]) | tojson }};
     new Chart(document.getElementById('howKnewChart').getContext('2d'), {
-        type: 'doughnut', // pie に変更も可
+        type: 'doughnut',
         data: {
-            labels: {{ how_knew_labels | default([]) | tojson }},
+            labels: howKnewLabels,
             datasets: [{
                 data: {{ how_knew_data | default([]) | tojson }},
-                backgroundColor: pieColors,
+                backgroundColor: generateDynamicColors(howKnewLabels.length, 0),
                 borderWidth: 1
             }]
         },
@@ -215,13 +234,14 @@
     });
 
     // 2. JLPTレベル
+    const jlptLabels = {{ jlpt_labels | default([]) | tojson }};
     new Chart(document.getElementById('jlptChart').getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: {{ jlpt_labels | default([]) | tojson }},
+            labels: jlptLabels,
             datasets: [{
                 data: {{ jlpt_data | default([]) | tojson }},
-                backgroundColor: pieColors,
+                backgroundColor: generateDynamicColors(jlptLabels.length, 60),
                 borderWidth: 1
             }]
         },
@@ -229,13 +249,14 @@
     });
 
     // 3. 居住地域
+    const areaLabels = {{ area_labels | default([]) | tojson }};
     new Chart(document.getElementById('areaChart').getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: {{ area_labels | default([]) | tojson }},
+            labels: areaLabels,
             datasets: [{
                 data: {{ area_data | default([]) | tojson }},
-                backgroundColor: pieColors,
+                backgroundColor: generateDynamicColors(areaLabels.length, 120),
                 borderWidth: 1
             }]
         },
@@ -243,13 +264,14 @@
     });
 
     // 4. 出身国
+    const countryLabels = {{ country_labels | default([]) | tojson }};
     new Chart(document.getElementById('countryChart').getContext('2d'), {
         type: 'doughnut',
         data: {
-            labels: {{ country_labels | default([]) | tojson }},
+            labels: countryLabels,
             datasets: [{
                 data: {{ country_data | default([]) | tojson }},
-                backgroundColor: pieColors,
+                backgroundColor: generateDynamicColors(countryLabels.length, 180),
                 borderWidth: 1
             }]
         },

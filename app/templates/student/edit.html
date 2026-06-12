@@ -151,6 +151,10 @@
         <!-- 既存の階層プルダウン -->
         <div class="card-question shadow-sm">
             <label for="region-select" class="form-label fw-bold">(7) 居住地域 <span class="required-star">*</span></label>
+            <div class="mb-3"> 
+                <input type="text" id="area-search" class="form-control-gf" placeholder="🔍 市区町村名で検索 (例: 春日部市)"> 
+                <div id="search-feedback" class="small text-muted mt-1">入力してEnterを押すと該当する地域を自動で選択します</div> 
+            </div>
             <div class="row g-2">
                 <div class="col-md-4">
                     <select id="region-select" class="form-select">
@@ -338,6 +342,55 @@
             alert(`「${prefecture}」または「${city}」は定義された地域データに見つかりませんでした。手動で選択してください。`);
         }
     }
+
+    // --- 居住地域のキーワード検索機能 ---
+    const areaSearchInput = document.getElementById('area-search');
+    const searchFeedback = document.getElementById('search-feedback');
+
+    areaSearchInput.addEventListener('keydown', function(event) {
+        // IME変換中（未確定）のEnterキー入力は無視する
+        if (event.isComposing || event.keyCode === 229) {
+            return;
+        }
+        if (event.key === 'Enter') {
+            event.preventDefault(); // Enterキーによるフォーム送信などを防止
+            const query = this.value.trim();
+
+            // 以前のフィードバックをクリアし、スタイルをリセット
+            searchFeedback.textContent = '';
+            searchFeedback.style.color = '#6c757d';
+            // 2文字以上で検索開始
+            if (query.length < 2) {
+                searchFeedback.textContent = '入力すると該当する地域を自動で選択します';
+                searchFeedback.style.color = '#6c757d';
+                return;
+            }
+
+            let found = false;
+            let foundPref = '';
+            let foundCity = '';
+            for (const region in regionData) {
+                for (const pref in regionData[region]) {
+                    const city = regionData[region][pref].find(c => c.includes(query));
+                    if (city) {
+                        foundPref = pref;
+                        foundCity = city;
+                        found = true;
+                        break;
+                    }
+                }
+                if (found) break; // 該当地域が見つかったら外側のループも抜ける
+            }
+            if (found) {
+                updateDropdownsFromAddress(foundPref, foundCity);
+                searchFeedback.textContent = `✅ 「${foundPref} ${foundCity}」を見つけて選択しました`;
+                searchFeedback.style.color = '#198754';
+            } else {
+                searchFeedback.textContent = `「${query}」に一致する地域は見つかりませんでした。`;
+                searchFeedback.style.color = '#dc3545'; // 見つからない場合は赤色
+            }
+        }
+    });
 </script>
 </body>
 </html>

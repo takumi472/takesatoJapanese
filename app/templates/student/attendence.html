@@ -85,7 +85,7 @@
     <div class="header-box shadow-sm mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <a href="{{ url_for('auth.dashboard') }}" class="btn btn-sm btn-light no-print"><i class="bi bi-house-door-fill"></i></a>
+                <a href="{{ url_for('auth.dashboard') }}" class="btn btn-sm btn-primary no-print"><i class="bi bi-house-door-fill"></i></a>
                 <h1 class="h4 mb-0 fw-bold">{{ target_date.strftime('%Y年%m月%d日') }} 出席リスト</h1>
             </div>
             <small class="text-muted">総出席数: <strong>{{ total_count }}</strong> 名（国籍順ソート）</small>
@@ -94,10 +94,10 @@
         <div class="no-print">
             <form method="GET" action="{{ url_for('student.attendance_list') }}" class="d-flex gap-2">
                 <input type="date" id="datePicker" name="date" class="form-control form-control-sm" value="{{ target_date }}">
-                <button type="submit" class="btn btn-sm btn-primary">変更</button>
-                <button type="button" class="btn btn-sm btn-success d-flex align-items-center gap-1" onclick="downloadPDF()">
-            <i class="bi bi-file-earmark-pdf-fill"></i> PDF出力
-        </button>
+                <button type="submit" class="btn btn-sm btn-primary" style="min-width:70px;">変更</button>
+                <button type="button" class="btn btn-sm btn-success align-items-center gap-1" onclick="downloadPDF()" style="min-width: 150px;">
+                    <i class="bi bi-file-earmark-pdf-fill"></i> PDF出力
+                </button>
             </form>
         </div>
     </div>
