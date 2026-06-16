@@ -85,6 +85,7 @@
         <div class="card-question shadow-sm">
             <label for="country_of_origin" class="form-label fw-bold">(3) 出身国 <span class="required-star">*</span></label>
             <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="country_of_origin" name="country_of_origin" placeholder="回答を入力" required>
+            <div id="country-feedback" class="small text-muted mt-1">国名を入力すると母語が自動入力されます</div>
         </div>
 
         <div class="card-question shadow-sm">
@@ -329,6 +330,19 @@
                 searchFeedback.textContent = `「${query}」に一致する地域は見つかりませんでした。`;
                 searchFeedback.style.color = '#dc3545'; // 見つからない場合は赤色
             }
+        }
+    });
+
+    // --- 出身国から母語を自動入力する機能 ---
+    const motherLanguageData = {{ mother_language_data | default({}) | tojson }};
+    const countryInput = document.getElementById('country_of_origin');
+    const nativeLangInput = document.getElementById('native_language');
+
+    countryInput.addEventListener('input', function() {
+        const countryName = this.value.trim();
+        if (motherLanguageData[countryName]) {
+            // 複数の言語がある場合は「、」で繋いで表示
+            nativeLangInput.value = motherLanguageData[countryName].join('、');
         }
     });
 </script>

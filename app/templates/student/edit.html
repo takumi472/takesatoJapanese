@@ -131,6 +131,7 @@
         <div class="card-question shadow-sm">
             <label for="country_of_origin" class="form-label fw-bold">(3) 出身国 <span class="required-star">*</span></label>
             <input type="text" class="form-control border-0 border-bottom rounded-0 px-0" id="country_of_origin" name="country_of_origin" value="{{ student.country_of_origin }}" placeholder="回答を入力" required>
+            <div id="country-feedback" class="small text-muted mt-1">国名を入力すると母語が自動入力されます</div>
         </div>
 
         <div class="card-question shadow-sm">
@@ -159,8 +160,8 @@
                 <div class="col-md-4">
                     <select id="region-select" class="form-select">
                         <option value="">地方を選択</option>
-                        {% for region in region_data.keys() %}
-                        <option value="{{ region }}" {% if student.residential_area and region_data[region] and student.residential_area in region_data[region].values() %}selected{% endif %}>{{ region }}</option>
+                        {% for region in region_data.keys() | sort %}
+                        <option value="{{ region }}">{{ region }}</option>
                         {% endfor %}
                     </select>
                 </div>
@@ -389,6 +390,44 @@
                 searchFeedback.textContent = `「${query}」に一致する地域は見つかりませんでした。`;
                 searchFeedback.style.color = '#dc3545'; // 見つからない場合は赤色
             }
+        }
+    });
+
+    // ページロード時に初期値を設定
+    document.addEventListener('DOMContentLoaded', function() {
+        if (initialResidentialArea) {
+            let foundPrefecture = null;
+            // initialResidentialArea (市区町村名) を含む都道府県を検索
+            for (const regionName in regionData) {
+                for (const prefectureName in regionData[regionName]) {
+                    // regionData[regionName][prefectureName] は市区町村名の配列
+                    if (regionData[regionName][prefectureName].includes(initialResidentialArea)) {
+                        foundPrefecture = prefectureName;
+                        break; // 都道府県が見つかったら内側のループを抜ける
+                    }
+                }
+                if (foundPrefecture) {
+                    break; // 都道府県が見つかったら外側のループも抜ける
+                }
+            }
+
+            if (foundPrefecture) {
+                updateDropdownsFromAddress(foundPrefecture, initialResidentialArea);
+            } else {
+                console.warn(`初期居住地域 "${initialResidentialArea}" が地域データに見つかりませんでした。`);
+            }
+        }
+    });
+
+    // --- 出身国から母語を自動入力する機能 ---
+    const motherLanguageData = {{ mother_language_data | default({}) | tojson }};
+    const countryInput = document.getElementById('country_of_origin');
+    const nativeLangInput = document.getElementById('native_language');
+
+    countryInput.addEventListener('input', function() {
+        const countryName = this.value.trim();
+        if (motherLanguageData[countryName]) {
+            nativeLangInput.value = motherLanguageData[countryName].join('、');
         }
     });
 </script>

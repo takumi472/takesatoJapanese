@@ -30,7 +30,7 @@ def login():
 
         # ユーザーが存在し、パスワードが一致するか確認
         if user and user.check_password(password):
-            login_user(user)  # セッション開始
+            login_user(user, remember=True)  # セッション開始
 
             # 次にアクセスしようとしていたURL（あれば）を取得、なければ生徒一覧へ
             next_page = request.args.get("next")
