@@ -207,7 +207,7 @@
                             </a>
                             {% if current_user.role == 'admin' %}
                             <a href="{{ url_for('student.update_student', id=s.id) }}" class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" style="font-size: 12px;">
-                                <i class="bi bi-journal-text"></i> カルテ編集
+                                <i class="bi bi-journal-text"></i> 学習者情報
                             </a>
                             {% endif %}
                         </div>
@@ -261,9 +261,11 @@
                             <a href="{{ url_for('record.record_list', student_id=s.id) }}" class="btn btn-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-1 mb-2" style="font-size: 12px;">
                                 <i class="bi bi-pencil-square"></i> 学習記録リスト
                             </a>
+                            {% if current_user.role == 'admin' %}
                             <a href="{{ url_for('student.update_student', id=s.id) }}" class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" style="font-size: 12px;">
-                                <i class="bi bi-journal-text"></i> カルテ編集
+                                <i class="bi bi-journal-text"></i> 学習者情報
                             </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
