@@ -1,6 +1,9 @@
 # app/staff/routes.py
 from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import current_user, login_required # login_requiredは使用されているため残す
+from flask_login import (
+    current_user,
+    login_required,
+)  # login_requiredは使用されているため残す
 from app.models import db, User, Staff
 from werkzeug.security import generate_password_hash
 from datetime import datetime
@@ -8,8 +11,9 @@ import smtplib
 import ssl
 import cloudinary
 import cloudinary.uploader
-from flask import current_app # current_appはログなどで使用するため残す
+from flask import current_app  # current_appはログなどで使用するため残す
 import os
+import json
 from email.message import EmailMessage
 
 staff_bp = Blueprint("staff", __name__)
@@ -29,10 +33,22 @@ CLOUDINARY_EAGER_TRANSFORMATION = [
     }
 ]
 
+REGION_DATA = {}
+# JSONファイルを開いて読み込む
+with open("app/common/region_data.json", "r", encoding="utf-8") as f:
+    REGION_DATA = json.load(f)
+
+MOTHER_LANGUAGE = {}
+# JSONファイルを開いて読み込む
+with open("app/common/mother_language.json", "r", encoding="utf-8") as f:
+    MOTHER_LANGUAGE = json.load(f)
+
+
 # --- ヘルパー関数 ---
 def allowed_file(filename):
     """ファイル名が許可された拡張子を持つかチェックする"""
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
 
 def _upload_face_photo(file):
     """
@@ -50,13 +66,19 @@ def _upload_face_photo(file):
                 # eager変換が適用されたURLを取得
                 return upload_result.get("eager")[0].get("secure_url")
             except Exception as e:
-                current_app.logger.error(f"Cloudinary upload failed: {e}", exc_info=True)
+                current_app.logger.error(
+                    f"Cloudinary upload failed: {e}", exc_info=True
+                )
                 flash("顔写真のアップロード中にエラーが発生しました。", "danger")
                 return None
         else:
-            flash(f"許可されていないファイル形式です。({', '.join(ALLOWED_EXTENSIONS)} のみ)", "danger")
+            flash(
+                f"許可されていないファイル形式です。({', '.join(ALLOWED_EXTENSIONS)} のみ)",
+                "danger",
+            )
             return None
     return None
+
 
 def _parse_date_or_none(date_str):
     """日付文字列をdatetime.dateオブジェクトにパースする。無効な場合はNoneを返す。"""
@@ -68,14 +90,15 @@ def _parse_date_or_none(date_str):
             return None
     return None
 
+
 # --- ルート定義 ---
 @staff_bp.route("/create", methods=["GET", "POST"])
 @login_required
 def create_staff():
     # 管理者権限チェック（必要であれば）
-    if current_user.role != 'admin':
-        flash('スタッフを登録する権限がありません。', 'danger')
-        return redirect(url_for('staff.staff_list')) # または適切なリダイレクト先
+    # if current_user.role != 'admin':
+    #     flash('スタッフを登録する権限がありません。', 'danger')
+    #     return redirect(url_for('staff.staff_list')) # または適切なリダイレクト先
 
     if request.method == "POST":
         email = request.form.get("email")
@@ -91,7 +114,10 @@ def create_staff():
 
         # ユーザー名（メールアドレス）の重複チェック
         if User.query.filter_by(username=email).first():
-            flash("このGmailアドレスは既にシステムアカウントとして登録されています。", "danger")
+            flash(
+                "このGmailアドレスは既にシステムアカウントとして登録されています。",
+                "danger",
+            )
             return render_template("staff/edit.html", staff=None)
 
         # フルネームの生成
@@ -101,7 +127,11 @@ def create_staff():
 
         # 顔写真のアップロード
         face_photo_path = _upload_face_photo(request.files.get("face_photo"))
-        if face_photo_path is None and "face_photo" in request.files and request.files["face_photo"].filename != "":
+        if (
+            face_photo_path is None
+            and "face_photo" in request.files
+            and request.files["face_photo"].filename != ""
+        ):
             # アップロードに失敗したが、ファイルが選択されていた場合
             return render_template("staff/edit.html", staff=None)
 
@@ -135,14 +165,16 @@ def create_staff():
                 skills=request.form.get("skills"),
                 qualifications=request.form.get("qualifications"),
             )
-            
-            new_staff.submission_date = _parse_date_or_none(request.form.get("submission_date"))
+
+            new_staff.submission_date = _parse_date_or_none(
+                request.form.get("submission_date")
+            )
 
             db.session.add(new_staff)
             db.session.commit()
 
             flash(f"{full_name} さんのスタッフ登録が完了しました。", "success")
-            
+
             # ==========================================
             # 3. メール送信処理
             # ==========================================
@@ -153,14 +185,19 @@ def create_staff():
                 smtp_port = os.getenv("MAIL_PORT")
 
                 if not all([sender_email, sender_password, smtp_server, smtp_port]):
-                    current_app.logger.warning("Email configuration is incomplete. Skipping email sending.")
-                    flash("スタッフ登録は完了しましたが、メール設定が不完全なため通知メールは送信されませんでした。", "warning")
+                    current_app.logger.warning(
+                        "Email configuration is incomplete. Skipping email sending."
+                    )
+                    flash(
+                        "スタッフ登録は完了しましたが、メール設定が不完全なため通知メールは送信されませんでした。",
+                        "warning",
+                    )
                 else:
                     # EmailMessageを使って件名と本文を設定
                     msg = EmailMessage()
-                    msg['Subject'] = "武里日本語教室 スタッフ登録完了のお知らせ"
-                    msg['From'] = sender_email
-                    msg['To'] = email
+                    msg["Subject"] = "武里日本語教室 スタッフ登録完了のお知らせ"
+                    msg["From"] = sender_email
+                    msg["To"] = email
                     msg.set_content(f"""{full_name}様
 
 武里日本語教室のスタッフ登録が完了しました。
@@ -175,26 +212,34 @@ Lineグループ：https://line.me/ti/g/8YXH2Hqac2
 よろしくお願いいたします。
 武里日本語教室 運営事務局
 """)
-                    
+
                     # Mac環境のSSL証明書エラーをスキップするための設定
                     context = ssl._create_unverified_context()
-                    
+
                     # ポート587 (TLS/STARTTLS) と ポート465 (SSL) で接続方式を切り替える
                     if str(smtp_port) == "587":
                         with smtplib.SMTP(smtp_server, smtp_port) as server:
-                            server.starttls(context=context) # unverified_contextを適用
+                            server.starttls(context=context)  # unverified_contextを適用
                             server.login(sender_email, sender_password)
-                            server.send_message(msg) # send_messageに変更
+                            server.send_message(msg)  # send_messageに変更
                     else:
-                        with smtplib.SMTP_SSL(smtp_server, smtp_port, context=context) as server:
+                        with smtplib.SMTP_SSL(
+                            smtp_server, smtp_port, context=context
+                        ) as server:
                             server.login(sender_email, sender_password)
                             server.send_message(msg)
-                            
+
                     flash("スタッフ登録完了の通知メールを送信しました。", "info")
             except Exception as mail_e:
-                current_app.logger.error(f"Failed to send registration email to {email}: {mail_e}", exc_info=True)
-                flash("スタッフ登録は完了しましたが、通知メールの送信に失敗しました。", "warning")
-            
+                current_app.logger.error(
+                    f"Failed to send registration email to {email}: {mail_e}",
+                    exc_info=True,
+                )
+                flash(
+                    "スタッフ登録は完了しましたが、通知メールの送信に失敗しました。",
+                    "warning",
+                )
+
             # 処理がすべて終わったら一覧画面へリダイレクト
             return redirect(url_for("staff.staff_list"))
 
@@ -211,18 +256,20 @@ Lineグループ：https://line.me/ti/g/8YXH2Hqac2
 @login_required
 def edit_staff(id):
     staff = Staff.query.get_or_404(id)
-    
+
     # 権限チェック: 管理者でない、かつ自身のスタッフ情報でない場合は編集不可
     if current_user.role != "admin" and current_user.id != staff.user_id:
         flash("他のユーザーの情報を編集する権限がありません。")
-        return redirect(url_for("staff.staff_list")) # 適切なリダイレクト先
+        return redirect(url_for("staff.staff_list"))  # 適切なリダイレクト先
 
     if request.method == "POST":
         # 顔写真のアップロード（既存のパスを上書き）
         new_face_photo_path = _upload_face_photo(request.files.get("face_photo"))
         if new_face_photo_path is not None:
             staff.face_photo_path = new_face_photo_path
-        elif "face_photo" in request.files and request.files["face_photo"].filename != "":
+        elif (
+            "face_photo" in request.files and request.files["face_photo"].filename != ""
+        ):
             # アップロードに失敗したが、ファイルが選択されていた場合
             return render_template("staff/edit.html", staff=staff)
 
@@ -241,7 +288,9 @@ def edit_staff(id):
             staff.skills = request.form.get("skills")
             staff.qualifications = request.form.get("qualifications")
 
-            staff.submission_date = _parse_date_or_none(request.form.get("submission_date"))
+            staff.submission_date = _parse_date_or_none(
+                request.form.get("submission_date")
+            )
 
             db.session.commit()
             flash("スタッフ情報を更新しました。", "success")
@@ -260,5 +309,20 @@ def staff_list():
     # staffsテーブルから、IDの昇順で全スタッフのレコードを取得
     all_staff = Staff.query.order_by(Staff.id.asc()).all()
 
+    for staff in all_staff:
+        temp_prefecture = ""
+        temp_city = ""
+        for region in REGION_DATA.keys():
+            for pref in REGION_DATA[region].keys():
+                for city in REGION_DATA[region][pref]:
+                    if city in staff.address:
+                        temp_prefecture = pref
+                        temp_city = city
+                        staff.address = f"{temp_prefecture}{temp_city}"
+                        break
+
+
     # テンプレート（list.html）にスタッフ一覧データを渡してレンダリング
-    return render_template("staff/list.html", staff_list=all_staff, current_user=current_user)
+    return render_template(
+        "staff/list.html", staff_list=all_staff, current_user=current_user
+    )

@@ -4,15 +4,16 @@ from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
 import cloudinary
-from dotenv import load_dotenv # .envファイルをロードするために追加
+from dotenv import load_dotenv  # .envファイルをロードするために追加
 import cloudinary.uploader
+from datetime import timedelta
 
 db = SQLAlchemy()
 login_manager = LoginManager()
 
 
 def create_app(env_name="development"):
-    load_dotenv() # アプリケーション起動時に.envファイルをロード
+    load_dotenv()  # アプリケーション起動時に.envファイルをロード
 
     app = Flask(__name__)
 
@@ -30,18 +31,24 @@ def create_app(env_name="development"):
     else:
         # 万が一接続URLがどこにもない場合の安全弁
         app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///dev_school.db"
-        print("Warning: DATABASE_URL が設定されていないため、一時的にSQLiteを使用します。")
+        print(
+            "Warning: DATABASE_URL が設定されていないため、一時的にSQLiteを使用します。"
+        )
 
     # 3. 接続プール・タイムアウトの設定
     app.config["SQLALCHEMY_ENGINE_OPTIONS"] = {
         "pool_pre_ping": True,
         "pool_recycle": 300,
     }
+    app.config.update(
+        REMEMBER_COOKIE_DURATION=timedelta(days=3650),  # 10年間保持
+        PERMANENT_SESSION_LIFETIME=timedelta(days=3650),  # セッションも長くする
+    )
     cloudinary.config(
-        cloud_name = os.environ.get('CLOUDINARY_CLOUD_NAME'),
-        api_key = os.environ.get('CLOUDINARY_API_KEY'),
-        api_secret = os.environ.get('CLOUDINARY_API_SECRET'),
-        secure = True
+        cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
+        api_key=os.environ.get("CLOUDINARY_API_KEY"),
+        api_secret=os.environ.get("CLOUDINARY_API_SECRET"),
+        secure=True,
     )
 
     # 各種マネージャーの初期化
