@@ -68,11 +68,13 @@ def line_callback():
     """LINEから戻ってきた後の処理"""
     try:
         token = line.authorize_access_token()
-        userinfo = token.get('userinfo') if token else None
-    except Exception:
+        userinfo = token.get('userinfo')
+    except Exception as e:
+        current_app.logger.error(f"LINE Login Error: {str(e)}")
         userinfo = None
+
     if not userinfo:
-        flash('LINEからのユーザー情報取得に失敗しました。', 'danger')
+        flash(f'LINEからのユーザー情報取得に失敗しました。詳細: {e}', 'danger')
         return redirect(url_for('auth.login'))
 
     line_id = userinfo.get('sub') # LINEのユーザー一意識別子
