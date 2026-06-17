@@ -3,6 +3,7 @@ import os
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import Interval, cast, func
+from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from app import db
 from app.models import User, Student, Staff, Meeting, LearningRecord
@@ -18,13 +19,30 @@ line = oauth.register(
     client_id=os.environ.get('LINE_CLIENT_ID'),
     client_secret=os.environ.get('LINE_CLIENT_SECRET'),
     server_metadata_url='https://access.line.me/.well-known/openid-configuration',
-    client_kwargs={'scope': 'openid profile email'},
+    client_kwargs={
+        'scope': 'openid profile email',
+        'id_token_signed_response_alg': 'HS256',
+    },
 )
+
+def get_weekly_stats(start_date):
+    """Helper to fetch weekly unique counts for students and staff."""
+    # Note: date_trunc is PostgreSQL specific.
+    student_query = db.session.query(
+        func.date_trunc('week', LearningRecord.lesson_date).label('week'),
+        func.count(LearningRecord.student_id.distinct()).label('count')
+    ).filter(LearningRecord.lesson_date >= start_date).group_by('week')
+
+    staff_query = db.session.query(
+        func.date_trunc('week', LearningRecord.lesson_date).label('week'),
+        func.count(LearningRecord.staff_id.distinct()).label('count')
+    ).filter(LearningRecord.lesson_date >= start_date).group_by('week')
+
+    return student_query.all(), staff_query.all()
 
 @auth_bp.record_once
 def on_load(state):
     oauth.init_app(state.app)
-
 
 @auth_bp.route("/", methods=["GET", "POST"])
 def auth_route():
@@ -48,11 +66,12 @@ def login():
         if user and user.check_password(password):
             login_user(user, remember=True)  # セッション開始
 
-            # 次にアクセスしようとしていたURL（あれば）を取得、なければ生徒一覧へ
+            # 安全なリダイレクト先の確認
             next_page = request.args.get("next")
-            return redirect(next_page) if next_page else redirect(url_for("auth.dashboard"))
+            if not next_page or urlparse(next_page).netloc != '':
+                next_page = url_for("auth.dashboard")
+            return redirect(next_page)
         else:
-            # エラーメッセージをフロントに通知
             flash("ユーザー名またはパスワードが正しくありません。", "danger")
 
     return render_template("auth/login.html")
@@ -66,17 +85,20 @@ def login_line():
 @auth_bp.route("/login/line/callback")
 def line_callback():
     """LINEから戻ってきた後の処理"""
-    error_msg = "ユーザー情報を取得できませんでした。"
+    error_msg = None
     try:
         token = line.authorize_access_token()
         userinfo = token.get('userinfo')
+        # デバッグしたい場合は、トークン取得後にここにチェックを入れる
+        # import pdb; pdb.set_trace()
+        
     except Exception as e:
-        error_msg = str(e)
+        error_msg = f"認証エラー: {str(e)}"
         current_app.logger.error(f"LINE Login Error: {error_msg}")
         userinfo = None
 
-    if not userinfo:
-        flash(f'LINEからのユーザー情報取得に失敗しました。詳細: {error_msg}', 'danger')
+    if not userinfo or error_msg:
+        flash(f'LINEログインに失敗しました。 {error_msg or ""}', 'danger')
         return redirect(url_for('auth.login'))
 
     line_id = userinfo.get('sub') # LINEのユーザー一意識別子
@@ -106,16 +128,8 @@ def dashboard():
     latest_meetings = Meeting.query.order_by(Meeting.date.desc()).limit(3).all()
     start_date = datetime.now() - timedelta(weeks=8)
 
-    # Helper to fetch weekly unique counts for a specific column
-    def get_weekly_counts(column):
-        return db.session.query(
-            func.date_trunc('week', LearningRecord.lesson_date).label('week'),
-            func.count(column.distinct()).label('count')
-        ).filter(LearningRecord.lesson_date >= start_date)\
-         .group_by('week').order_by('week').all()
-
-    student_data = get_weekly_counts(LearningRecord.student_id)
-    staff_data = get_weekly_counts(LearningRecord.staff_id)
+    # Fetch statistics using the helper
+    student_data, staff_data = get_weekly_stats(start_date)
 
     # Consolidate weeks and map data
     all_weeks = sorted({r.week for r in student_data} | {r.week for r in staff_data})
@@ -125,14 +139,14 @@ def dashboard():
     
     students = Student.query.all()
     
-    # 1. 知ったきっかけの集計
+    # 属性データの集計
     how_knew_counts = Counter([s.how_knew_class for s in students if s.how_knew_class])
-    
-    # 2. JLPTレベルの集計
     jlpt_counts = Counter([s.jlpt_level for s in students if s.jlpt_level])
-    
-    # 3. 居住地域の集計
-    area_counts = Counter([s.residential_area for s in students if s.residential_area])
+    # Use .get() or handle None for residential area
+    area_counts = Counter([
+        s.residential_area if s.residential_area else "不明" 
+        for s in students
+    ])
     
     # 4. 出身国の集計
     country_counts = Counter([s.country_of_origin for s in students if s.country_of_origin])

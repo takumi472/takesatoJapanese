@@ -1,5 +1,4 @@
 import os
-from app import create_app
 from app import create_app, db
 from app.models import User
 
@@ -10,6 +9,10 @@ app = create_app(env)
 if __name__ == "__main__":
     # 開発環境の場合はデバッグモードを有効にし、ホットリロード（自動再起動）を有効化
     is_debug = env == "development"
+    
+    if is_debug:
+        # ローカル環境（HTTP）でのOAuth認証を許可する設定
+        os.environ['OAUTHLIB_INSECURE_TRANSPORT'] = '1'
 
     with app.app_context():
         db.create_all()  # テーブルがなければ作成
