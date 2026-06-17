@@ -1,13 +1,29 @@
 # app/auth/routes.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash
+import os
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import Interval, cast, func
 from datetime import datetime, timedelta
 from app import db
 from app.models import User, Student, Staff, Meeting, LearningRecord
 from collections import Counter
+from authlib.integrations.flask_client import OAuth
 
 auth_bp = Blueprint("auth", __name__)
+oauth = OAuth()
+
+# LINEの設定
+line = oauth.register(
+    name='line',
+    client_id=os.environ.get('LINE_CLIENT_ID'),
+    client_secret=os.environ.get('LINE_CLIENT_SECRET'),
+    server_metadata_url='https://access.line.me/.well-known/openid-configuration',
+    client_kwargs={'scope': 'openid profile email'},
+)
+
+@auth_bp.record_once
+def on_load(state):
+    oauth.init_app(state.app)
 
 
 @auth_bp.route("/", methods=["GET", "POST"])
@@ -40,6 +56,34 @@ def login():
             flash("ユーザー名またはパスワードが正しくありません。", "danger")
 
     return render_template("auth/login.html")
+
+@auth_bp.route("/login/line")
+def login_line():
+    """LINEの認証画面へリダイレクト"""
+    redirect_uri = url_for('auth.line_callback', _external=True)
+    return line.authorize_redirect(redirect_uri)
+
+@auth_bp.route("/login/line/callback")
+def line_callback():
+    """LINEから戻ってきた後の処理"""
+    token = line.authorize_access_token()
+    userinfo = token.get('userinfo')
+    if not userinfo:
+        flash("LINEからのユーザー情報取得に失敗しました。", "danger")
+        return redirect(url_for('auth.login'))
+
+    line_id = userinfo.get('sub') # LINEのユーザー一意識別子
+    
+    # line_user_idが一致するユーザーを検索
+    user = User.query.filter_by(line_user_id=line_id).first()
+    
+    if user:
+        login_user(user, remember=True)
+        flash(f"{user.name} としてログインしました（LINE連携）", "success")
+        return redirect(url_for("auth.dashboard"))
+    else:
+        flash("このLINEアカウントは登録されていません。管理者にお問い合わせください。", "warning")
+        return redirect(url_for('auth.login'))
 
 
 @auth_bp.route("/dashboard")
