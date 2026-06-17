@@ -66,10 +66,13 @@ def login_line():
 @auth_bp.route("/login/line/callback")
 def line_callback():
     """LINEから戻ってきた後の処理"""
-    token = line.authorize_access_token()
-    userinfo = token.get('userinfo')
+    try:
+        token = line.authorize_access_token()
+        userinfo = token.get('userinfo') if token else None
+    except Exception:
+        userinfo = None
     if not userinfo:
-        flash("LINEからのユーザー情報取得に失敗しました。", "danger")
+        flash('LINEからのユーザー情報取得に失敗しました。', 'danger')
         return redirect(url_for('auth.login'))
 
     line_id = userinfo.get('sub') # LINEのユーザー一意識別子
