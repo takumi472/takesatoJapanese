@@ -66,15 +66,17 @@ def login_line():
 @auth_bp.route("/login/line/callback")
 def line_callback():
     """LINEから戻ってきた後の処理"""
+    error_msg = "ユーザー情報を取得できませんでした。"
     try:
         token = line.authorize_access_token()
         userinfo = token.get('userinfo')
     except Exception as e:
-        current_app.logger.error(f"LINE Login Error: {str(e)}")
+        error_msg = str(e)
+        current_app.logger.error(f"LINE Login Error: {error_msg}")
         userinfo = None
 
     if not userinfo:
-        flash(f'LINEからのユーザー情報取得に失敗しました。詳細: {e}', 'danger')
+        flash(f'LINEからのユーザー情報取得に失敗しました。詳細: {error_msg}', 'danger')
         return redirect(url_for('auth.login'))
 
     line_id = userinfo.get('sub') # LINEのユーザー一意識別子
