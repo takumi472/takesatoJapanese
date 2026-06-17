@@ -34,13 +34,13 @@ CLOUDINARY_EAGER_TRANSFORMATION = [
 ]
 
 REGION_DATA = {}
-# JSONファイルを開いて読み込む
-with open("app/common/region_data.json", "r", encoding="utf-8") as f:
+current_dir = os.path.dirname(os.path.abspath(__file__))
+region_data_path = os.path.join(current_dir, "..", "common", "region_data.json")
+with open(region_data_path, "r", encoding="utf-8") as f:
     REGION_DATA = json.load(f)
-
 MOTHER_LANGUAGE = {}
-# JSONファイルを開いて読み込む
-with open("app/common/mother_language.json", "r", encoding="utf-8") as f:
+mother_language_path = os.path.join(current_dir, "..", "common", "mother_language.json")
+with open(mother_language_path, "r", encoding="utf-8") as f:
     MOTHER_LANGUAGE = json.load(f)
 
 
@@ -320,7 +320,6 @@ def staff_list():
                         temp_city = city
                         staff.address = f"{temp_prefecture}{temp_city}"
                         break
-
 
     # テンプレート（list.html）にスタッフ一覧データを渡してレンダリング
     return render_template(

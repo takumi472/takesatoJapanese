@@ -33,13 +33,13 @@ student_bp = Blueprint("student", __name__)
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
 REGION_DATA = {}
-# JSONファイルを開いて読み込む
-with open("app/common/region_data.json", "r", encoding="utf-8") as f:
+current_dir = os.path.dirname(os.path.abspath(__file__))
+region_data_path = os.path.join(current_dir, "..", "common", "region_data.json")
+with open(region_data_path, "r", encoding="utf-8") as f:
     REGION_DATA = json.load(f)
-
 MOTHER_LANGUAGE = {}
-# JSONファイルを開いて読み込む
-with open("app/common/mother_language.json", "r", encoding="utf-8") as f:
+mother_language_path = os.path.join(current_dir, "..", "common", "mother_language.json")
+with open(mother_language_path, "r", encoding="utf-8") as f:
     MOTHER_LANGUAGE = json.load(f)
 
 
