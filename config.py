@@ -6,13 +6,14 @@ from dotenv import load_dotenv
 # Vercel環境ではファイルが存在しなくてもエラーにならず、無視されます
 load_dotenv()
 
+
 class Config:
     SECRET_KEY = os.getenv("SECRET_KEY", "default-fallback-key")
-    
+
     # IPアドレスでのテスト時にセッションが消えるのを防ぐ設定
-    SESSION_COOKIE_NAME = 'takesato_jp_session'
-    SESSION_COOKIE_SAMESITE = 'Lax'
-    
+    SESSION_COOKIE_NAME = "takesato_jp_session"
+    SESSION_COOKIE_SAMESITE = "Lax"
+
     # データベースURLの取得
     # SQLAlchemy 1.4+ では 'postgres://' を受け付けないため、置換処理を入れるのが安全です
     DATABASE_URL = os.getenv("DATABASE_URL")

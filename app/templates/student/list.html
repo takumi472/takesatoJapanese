@@ -188,7 +188,6 @@
                             <div class="student-meta text-truncate">
                                 <i class="bi bi-globe2 text-secondary me-1"></i>{{ s.country_of_origin }}
                             </div>
-                            <div class="student-meta text-truncate" style="font-size: 12px变量;">
                             <div class="student-meta text-truncate" style="font-size: 12px;">
                                 <i class="bi bi-geo-alt text-secondary me-1"></i>{{ s.residential_area }}
                             </div>
@@ -206,9 +205,11 @@
                             <a href="{{ url_for('record.record_list', student_id=s.id) }}" class="btn btn-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1 mb-2" style="font-size: 12px;">
                                 <i class="bi bi-pencil-square"></i> 学習記録リスト
                             </a>
+                            {% if current_user.role == 'admin' %}
                             <a href="{{ url_for('student.update_student', id=s.id) }}" class="btn btn-outline-secondary btn-sm w-100 d-flex align-items-center justify-content-center gap-1" style="font-size: 12px;">
                                 <i class="bi bi-journal-text"></i> カルテ編集
                             </a>
+                            {% endif %}
                         </div>
                     </div>
                 </div>
