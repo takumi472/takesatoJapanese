@@ -229,14 +229,14 @@ def line_callback():
 
     current_app.logger.info(f"Extracted LINE user profile - sub (ID): {line_id}, name: {line_name}")
 
-    if not line_id:
+    if not line_name:
         current_app.logger.error("LINE Login Error: 'sub' (User ID) field missing from verified userinfo response.")
         flash("LINEからユーザー識別子を取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
     # 5. データベース照合処理
     current_app.logger.info(f"Searching database for local user matched with line_user_id: {line_id}")
-    user = User.query.filter_by(line_user_id=line_id).first()
+    user = User.query.filter_by(line_user_id=line_name).first()
 
     if user:
         current_app.logger.info(f"Match found in DB. Local User ID: {user.id}, Username: {user.username}")
