@@ -10,14 +10,13 @@ from flask import (
 )
 import requests
 from flask_login import login_user, logout_user, login_required, current_user
-from sqlalchemy import Interval, cast, func
+from sqlalchemy import func
 from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from app import db
 from app.models import User, Student, Staff, Meeting, LearningRecord
 from collections import Counter
 from authlib.integrations.flask_client import OAuth
-import jwt
 
 auth_bp = Blueprint("auth", __name__)
 oauth = OAuth()
@@ -147,69 +146,78 @@ def login_line():
 @auth_bp.route("/login/line/callback")
 def line_callback():
     """LINEから戻ってきた後の処理"""
-    error_msg = None
+    # 1. URLパラメータから 'code' と 'state' を直接取得
+    code = request.args.get("code")
+    error = request.args.get("error")
+
+    if error:
+        current_app.logger.error(f"LINE Login Error Parameter: {error}")
+        flash(f"LINEログインに失敗しました。 {error}", "danger")
+        return redirect(url_for("auth.login"))
+
+    if not code:
+        flash("認証コードが取得できませんでした。", "danger")
+        return redirect(url_for("auth.login"))
+
     userinfo = None
     try:
-        # 1. Authlibの組み込みJWTチェックを回避して、生のトークン応答をパース
-        token = line.authorize_access_token()
-        id_token = token.get("id_token")
+        # 2. Authlibを完全にバイパスし、LINEのトークンエンドポイントへ直接POSTリクエストを送る
+        token_url = "https://api.line.me/oauth2/v2.1/token"
+        headers = {"Content-Type": "application/x-www-form-urlencoded"}
+        data = {
+            "grant_type": "authorization_code",
+            "code": code,
+            "redirect_uri": url_for("auth.line_callback", _external=True),
+            "client_id": os.environ.get("LINE_CLIENT_ID"),
+            "client_secret": os.environ.get("LINE_CLIENT_SECRET"),
+        }
+
+        token_response = requests.post(token_url, headers=headers, data=data)
+
+        if token_response.status_code != 200:
+            raise Exception(f"トークン交換に失敗しました: {token_response.text}")
+
+        token_data = token_response.json()
+        id_token = token_data.get("id_token")
 
         if not id_token:
-            raise Exception("IDトークンが応答に含まれていません。")
+            raise Exception("応答にIDトークンが含まれていません。")
 
-        # 2. クライアント側でのアルゴリズム検証エラーを避けるため、
-        #    シグネチャ検証をオフにして生のペイロードから必要情報を一度展開
-        try:
-            decoded_payload = jwt.decode(id_token, options={"verify_signature": False})
-        except Exception as jwt_err:
-            raise Exception(f"トークンのパースに失敗しました: {str(jwt_err)}")
-
-        # 3. 【重要】セキュリティ確保のため、LINEの公式検証APIサーバーに直接丸投げして検証
+        # 3. LINEの公式検証エンドポイントを使って安全にユーザーデータをデコード
         verify_url = "https://api.line.me/oauth2/v2.1/verify"
         verify_data = {
             "id_token": id_token,
             "client_id": os.environ.get("LINE_CLIENT_ID"),
         }
 
-        response = requests.post(verify_url, data=verify_data)
+        verify_response = requests.post(verify_url, data=verify_data)
 
-        if response.status_code == 200:
-            # 検証成功時はLINEが保証したクリーンなユーザーデータを使用
-            userinfo = response.json()
-        else:
-            # 万が一LINEの検証APIが一時的にエラーを吐いた場合はバックアップとしてデコードデータを使用
-            current_app.logger.warning(
-                f"LINE verification API returned status {response.status_code}. Using fallback payload."
+        if verify_response.status_code != 200:
+            raise Exception(
+                f"LINEサーバーによるトークン検証エラー: {verify_response.text}"
             )
-            userinfo = decoded_payload
+
+        userinfo = verify_response.json()
 
     except Exception as e:
-        error_msg = f"認証エラー: {str(e)}"
-        current_app.logger.error(f"LINE Login Error: {error_msg}")
-        userinfo = None
-
-    # 4. エラーチェック
-    if not userinfo or error_msg:
-        flash(f'LINEログインに失敗しました。 {error_msg or ""}', "danger")
+        current_app.logger.error(f"LINE Login Exception: {str(e)}")
+        flash(f"認証エラーが発生しました。{str(e)}", "danger")
         return redirect(url_for("auth.login"))
 
-    line_id = userinfo.get("sub")  # LINEのユーザー一意識別子
-
+    # 4. ユーザー識別子 (sub) のチェック
+    line_id = userinfo.get("sub")
     if not line_id:
         flash("LINEからユーザー識別子を取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
-    # 5. データベースとの照合処理
+    # 5. データベース照合処理
     user = User.query.filter_by(line_user_id=line_id).first()
 
     if user:
         login_user(user, remember=True)
-
-        # モデルに .name がない場合の安全対策（usernameへのフォールバック）
         display_name = getattr(user, "name", None) or getattr(
             user, "username", "ユーザー"
         )
-
         flash(f"{display_name} としてログインしました（LINE連携）", "success")
         return redirect(url_for("auth.dashboard"))
     else:
