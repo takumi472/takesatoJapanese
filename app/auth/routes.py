@@ -1,4 +1,3 @@
-# app/auth/routes.py
 import os
 from flask import (
     Blueprint,
@@ -21,15 +20,19 @@ from authlib.integrations.flask_client import OAuth
 auth_bp = Blueprint("auth", __name__)
 oauth = OAuth()
 
-# LINEの設定
+# LINEの設定（エラーを回避するため、エンドポイントを明示的に指定）
 line = oauth.register(
     name="line",
     client_id=os.environ.get("LINE_CLIENT_ID"),
     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
-    server_metadata_url="https://access.line.me/.well-known/openid-configuration",
+    api_base_url="https://api.line.me/v2/",
+    authorize_url="https://access.line.me/oauth2/v2.1/authorize",
+    access_token_url="https://api.line.me/oauth2/v2.1/token",
+    jwks_uri="https://api.line.me/oauth2/v2.1/certs",
     client_kwargs={
         "scope": "openid profile email",
-        "id_token_signed_response_alg": "HS256",
+        # LINEのIDトークンは通常RS256ですが、環境に応じて自動検証させるため
+        # 必要に応じて 'HS256' に戻せるよう、指定を柔軟にするかデフォルトに委ねます
     },
 )
 
@@ -70,7 +73,7 @@ def auth_route():
 
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
-    # 既にログイン済みの場合は、生徒一覧へリダイレクト
+    # 既にログイン済みの場合は、ダッシュボードへリダイレクト
     if current_user.is_authenticated:
         return redirect(url_for("auth.dashboard"))
 
@@ -109,9 +112,10 @@ def line_callback():
     error_msg = None
     try:
         token = line.authorize_access_token()
+        # Authlibのデフォルト検証でエラーが出る場合（主にnonceやアルゴリズム問題）は、
+        # token.get('id_token') を手動デコードするか、LINEのプロファイルエンドポイントを叩く方法もありますが、
+        # 通常は下記の userinfo または token から直接取得可能です。
         userinfo = token.get("userinfo")
-        # デバッグしたい場合は、トークン取得後にここにチェックを入れる
-        # import pdb; pdb.set_trace()
 
     except Exception as e:
         error_msg = f"認証エラー: {str(e)}"
@@ -124,6 +128,10 @@ def line_callback():
 
     line_id = userinfo.get("sub")  # LINEのユーザー一意識別子
 
+    if not line_id:
+        flash("LINEからユーザー識別子を取得できませんでした。", "danger")
+        return redirect(url_for("auth.login"))
+
     # line_user_idが一致するユーザーを検索
     user = User.query.filter_by(line_user_id=line_id).first()
 
@@ -133,7 +141,7 @@ def line_callback():
         return redirect(url_for("auth.dashboard"))
     else:
         flash(
-            "このLINEアカウントは登録されていません。管理者にお問い合わせください。",
+            "このLINEアカウントはシステムに登録されていません。管理者にお問い合わせください。",
             "warning",
         )
         return redirect(url_for("auth.login"))
@@ -166,12 +174,9 @@ def dashboard():
     # 属性データの集計
     how_knew_counts = Counter([s.how_knew_class for s in students if s.how_knew_class])
     jlpt_counts = Counter([s.jlpt_level for s in students if s.jlpt_level])
-    # Use .get() or handle None for residential area
     area_counts = Counter(
         [s.residential_area if s.residential_area else "不明" for s in students]
     )
-
-    # 4. 出身国の集計
     country_counts = Counter(
         [s.country_of_origin for s in students if s.country_of_origin]
     )
