@@ -22,22 +22,34 @@ auth_bp = Blueprint("auth", __name__)
 oauth = OAuth()
 
 # LINEの設定（エラーを回避するため、エンドポイントを明示的に指定）
+
+# LINEの設定
 line = oauth.register(
     name="line",
     client_id=os.environ.get("LINE_CLIENT_ID"),
     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
-    api_base_url="https://api.line.me/v2/",
-    authorize_url="https://access.line.me/oauth2/v2.1/authorize",
-    access_token_url="https://api.line.me/oauth2/v2.1/token",
-    # jwks_uri="https://api.line.me/oauth2/v2.1/certs",
+    server_metadata_url="https://access.line.me/.well-known/openid-configuration",
     client_kwargs={
         "scope": "openid profile email",
-        # 内部でのJWT検証（JWS）の手続きを強制的にオフにする
         "token_endpoint_auth_method": "client_secret_post",
-        # LINEのIDトークンは通常RS256ですが、環境に応じて自動検証させるため
-        # 必要に応じて 'HS256' に戻せるよう、指定を柔軟にするかデフォルトに委ねます
     },
 )
+# line = oauth.register(
+#     name="line",
+#     client_id=os.environ.get("LINE_CLIENT_ID"),
+#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
+#     api_base_url="https://api.line.me/v2/",
+#     authorize_url="https://access.line.me/oauth2/v2.1/authorize",
+#     access_token_url="https://api.line.me/oauth2/v2.1/token",
+#     # jwks_uri="https://api.line.me/oauth2/v2.1/certs",
+#     client_kwargs={
+#         "scope": "openid profile email",
+#         # 内部でのJWT検証（JWS）の手続きを強制的にオフにする
+#         "token_endpoint_auth_method": "client_secret_post",
+#         # LINEのIDトークンは通常RS256ですが、環境に応じて自動検証させるため
+#         # 必要に応じて 'HS256' に戻せるよう、指定を柔軟にするかデフォルトに委ねます
+#     },
+# )
 
 
 def get_weekly_stats(start_date):
@@ -115,14 +127,15 @@ def line_callback():
     error_msg = None
     userinfo = None
     try:
-        # 1. 認可コードを使ってトークン一式を取得（Authlibの自動JWT検証が走らないようにする）
+        # Authlibのコンプライアンスチェックをバイパスして、生のトークン応答をパース
+        # これにより "Invalid JSON Web Key Set" や "Missing jwks_uri" を回避します
         token = line.authorize_access_token()
         id_token = token.get("id_token")
 
         if not id_token:
-            raise Exception("IDトークンが取得できませんでした。")
+            raise Exception("IDトークンが応答に含まれていません。")
 
-        # 2. LINE公式の検証エンドポイントへ直接リクエストを送る
+        # LINEの公式エンドポイントを使って直接安全に検証
         verify_url = "https://api.line.me/oauth2/v2.1/verify"
         verify_data = {
             "id_token": id_token,
@@ -132,9 +145,9 @@ def line_callback():
         response = requests.post(verify_url, data=verify_data)
 
         if response.status_code != 200:
-            raise Exception(f"LINE側でのトークン検証に失敗しました: {response.text}")
+            raise Exception(f"LINE検証サーバーエラー: {response.text}")
 
-        # 検証が成功すると、LINE側からユーザー情報（JSON）が返ってくる
+        # 検証に成功したユーザープロフィールデータ
         userinfo = response.json()
 
     except Exception as e:
@@ -146,22 +159,22 @@ def line_callback():
         flash(f'LINEログインに失敗しました。 {error_msg or ""}', "danger")
         return redirect(url_for("auth.login"))
 
-    line_id = userinfo.get("sub")  # LINEのユーザー一意識別子
+    line_id = userinfo.get("sub")  # LINEの一意識別子
 
     if not line_id:
         flash("LINEからユーザー識別子を取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
-    # line_user_idが一致するユーザーを検索
+    # 一致するユーザーを検索
     user = User.query.filter_by(line_user_id=line_id).first()
 
     if user:
         login_user(user, remember=True)
-        # 💡 user.name だとエラーになる可能性があるため、DB定義に合わせて user.username にするか調整してください
-        flash(
-            f"{getattr(user, 'name', user.name)} としてログインしました（LINE連携）",
-            "success",
+        # user.name 属性がない場合のフォールバック対応
+        display_name = getattr(user, "name", None) or getattr(
+            user, "username", "User"
         )
+        flash(f"{display_name} としてログインしました（LINE連携）", "success")
         return redirect(url_for("auth.dashboard"))
     else:
         flash(
