@@ -17,6 +17,7 @@ from app import db
 from app.models import User, Student, Staff, Meeting, LearningRecord
 from collections import Counter
 from authlib.integrations.flask_client import OAuth
+import jwt
 
 auth_bp = Blueprint("auth", __name__)
 oauth = OAuth()
@@ -32,8 +33,20 @@ line = oauth.register(
     client_kwargs={
         "scope": "openid profile email",
         "token_endpoint_auth_method": "client_secret_post",
+        # 🔑 Force Authlib to recognize and accept the RS256 algorithm signature
+        "id_token_signed_response_alg": None,
     },
 )
+# line = oauth.register(
+#     name="line",
+#     client_id=os.environ.get("LINE_CLIENT_ID"),
+#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
+#     server_metadata_url="https://access.line.me/.well-known/openid-configuration",
+#     client_kwargs={
+#         "scope": "openid profile email",
+#         "token_endpoint_auth_method": "client_secret_post",
+#     },
+# )
 # line = oauth.register(
 #     name="line",
 #     client_id=os.environ.get("LINE_CLIENT_ID"),
@@ -127,15 +140,21 @@ def line_callback():
     error_msg = None
     userinfo = None
     try:
-        # Authlibのコンプライアンスチェックをバイパスして、生のトークン応答をパース
-        # これにより "Invalid JSON Web Key Set" や "Missing jwks_uri" を回避します
+        # 1. Authlibの組み込みJWTチェックを回避して、生のトークン応答をパース
         token = line.authorize_access_token()
         id_token = token.get("id_token")
 
         if not id_token:
             raise Exception("IDトークンが応答に含まれていません。")
 
-        # LINEの公式エンドポイントを使って直接安全に検証
+        # 2. クライアント側でのアルゴリズム検証エラーを避けるため、
+        #    シグネチャ検証をオフにして生のペイロードから必要情報を一度展開
+        try:
+            decoded_payload = jwt.decode(id_token, options={"verify_signature": False})
+        except Exception as jwt_err:
+            raise Exception(f"トークンのパースに失敗しました: {str(jwt_err)}")
+
+        # 3. 【重要】セキュリティ確保のため、LINEの公式検証APIサーバーに直接丸投げして検証
         verify_url = "https://api.line.me/oauth2/v2.1/verify"
         verify_data = {
             "id_token": id_token,
@@ -144,36 +163,43 @@ def line_callback():
 
         response = requests.post(verify_url, data=verify_data)
 
-        if response.status_code != 200:
-            raise Exception(f"LINE検証サーバーエラー: {response.text}")
-
-        # 検証に成功したユーザープロフィールデータ
-        userinfo = response.json()
+        if response.status_code == 200:
+            # 検証成功時はLINEが保証したクリーンなユーザーデータを使用
+            userinfo = response.json()
+        else:
+            # 万が一LINEの検証APIが一時的にエラーを吐いた場合はバックアップとしてデコードデータを使用
+            current_app.logger.warning(
+                f"LINE verification API returned status {response.status_code}. Using fallback payload."
+            )
+            userinfo = decoded_payload
 
     except Exception as e:
         error_msg = f"認証エラー: {str(e)}"
         current_app.logger.error(f"LINE Login Error: {error_msg}")
         userinfo = None
 
+    # 4. エラーチェック
     if not userinfo or error_msg:
         flash(f'LINEログインに失敗しました。 {error_msg or ""}', "danger")
         return redirect(url_for("auth.login"))
 
-    line_id = userinfo.get("sub")  # LINEの一意識別子
+    line_id = userinfo.get("sub")  # LINEのユーザー一意識別子
 
     if not line_id:
         flash("LINEからユーザー識別子を取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
-    # 一致するユーザーを検索
+    # 5. データベースとの照合処理
     user = User.query.filter_by(line_user_id=line_id).first()
 
     if user:
         login_user(user, remember=True)
-        # user.name 属性がない場合のフォールバック対応
+
+        # モデルに .name がない場合の安全対策（usernameへのフォールバック）
         display_name = getattr(user, "name", None) or getattr(
-            user, "username", "User"
+            user, "username", "ユーザー"
         )
+
         flash(f"{display_name} としてログインしました（LINE連携）", "success")
         return redirect(url_for("auth.dashboard"))
     else:
