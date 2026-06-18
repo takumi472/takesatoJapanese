@@ -146,16 +146,24 @@ def login_line():
 @auth_bp.route("/login/line/callback")
 def line_callback():
     """LINEから戻ってきた後の処理"""
+    current_app.logger.info("=== LINE Login Callback Started ===")
+
     # 1. URLパラメータから 'code' と 'state' を直接取得
     code = request.args.get("code")
+    state = request.args.get("state")
     error = request.args.get("error")
 
+    current_app.logger.info(
+        f"Received query parameters - code: {'Present' if code else 'Missing'}, state: {state}, error: {error}"
+    )
+
     if error:
-        current_app.logger.error(f"LINE Login Error Parameter: {error}")
+        current_app.logger.error(f"LINE Login Error Parameter from URL: {error}")
         flash(f"LINEログインに失敗しました。 {error}", "danger")
         return redirect(url_for("auth.login"))
 
     if not code:
+        current_app.logger.error("LINE Login Error: Missing 'code' parameter in redirect URI.")
         flash("認証コードが取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
@@ -163,16 +171,21 @@ def line_callback():
     try:
         # 2. Authlibを完全にバイパスし、LINEのトークンエンドポイントへ直接POSTリクエストを送る
         token_url = "https://api.line.me/oauth2/v2.1/token"
+        redirect_uri = url_for("auth.line_callback", _external=True)
+
+        current_app.logger.info(f"Exchanging code for token. Redirect URI used: {redirect_uri}")
+
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
             "grant_type": "authorization_code",
             "code": code,
-            "redirect_uri": url_for("auth.line_callback", _external=True),
+            "redirect_uri": redirect_uri,
             "client_id": os.environ.get("LINE_CLIENT_ID"),
             "client_secret": os.environ.get("LINE_CLIENT_SECRET"),
         }
 
         token_response = requests.post(token_url, headers=headers, data=data)
+        current_app.logger.info(f"Token API Response Status Code: {token_response.status_code}")
 
         if token_response.status_code != 200:
             raise Exception(f"トークン交換に失敗しました: {token_response.text}")
@@ -183,6 +196,8 @@ def line_callback():
         if not id_token:
             raise Exception("応答にIDトークンが含まれていません。")
 
+        current_app.logger.info("Successfully received id_token from LINE.")
+
         # 3. LINEの公式検証エンドポイントを使って安全にユーザーデータをデコード
         verify_url = "https://api.line.me/oauth2/v2.1/verify"
         verify_data = {
@@ -190,7 +205,9 @@ def line_callback():
             "client_id": os.environ.get("LINE_CLIENT_ID"),
         }
 
+        current_app.logger.info("Sending id_token to LINE verification endpoint...")
         verify_response = requests.post(verify_url, data=verify_data)
+        current_app.logger.info(f"Verification API Response Status Code: {verify_response.status_code}")
 
         if verify_response.status_code != 200:
             raise Exception(
@@ -198,29 +215,40 @@ def line_callback():
             )
 
         userinfo = verify_response.json()
+        current_app.logger.info("LINE id_token verification successful.")
 
     except Exception as e:
-        current_app.logger.error(f"LINE Login Exception: {str(e)}")
+        current_app.logger.error(f"LINE Login Exception during token flow: {str(e)}")
         flash(f"認証エラーが発生しました。{str(e)}", "danger")
         return redirect(url_for("auth.login"))
 
     # 4. ユーザー識別子 (sub) のチェック
     line_id = userinfo.get("sub")
+    line_name = userinfo.get("name")
+
+    current_app.logger.info(f"Extracted LINE user profile - sub (ID): {line_id}, name: {line_name}")
+
     if not line_id:
+        current_app.logger.error("LINE Login Error: 'sub' (User ID) field missing from verified userinfo response.")
         flash("LINEからユーザー識別子を取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
     # 5. データベース照合処理
+    current_app.logger.info(f"Searching database for local user matched with line_user_id: {line_id}")
     user = User.query.filter_by(line_user_id=line_id).first()
 
     if user:
+        current_app.logger.info(f"Match found in DB. Local User ID: {user.id}, Username: {user.username}")
         login_user(user, remember=True)
-        display_name = getattr(user, "name", None) or getattr(
-            user, "username", "ユーザー"
-        )
+
+        display_name = getattr(user, "name", None) or getattr(user, "username", "ユーザー")
         flash(f"{display_name} としてログインしました（LINE連携）", "success")
+
+        current_app.logger.info(f"User {user.username} successfully authenticated via LINE. Redirecting to dashboard.")
         return redirect(url_for("auth.dashboard"))
     else:
+        current_app.annotate_logging = True  # Optional indicator
+        current_app.logger.warning(f"LINE Login Warning: No DB record found mapping to line_user_id '{line_id}' (LINE Name: {line_name}).")
         flash(
             "このLINEアカウントはシステムに登録されていません。管理者にお問い合わせください。",
             "warning",
