@@ -8,6 +8,7 @@ from flask import (
     flash,
     current_app,
 )
+import requests
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import Interval, cast, func
 from urllib.parse import urlparse
@@ -28,9 +29,11 @@ line = oauth.register(
     api_base_url="https://api.line.me/v2/",
     authorize_url="https://access.line.me/oauth2/v2.1/authorize",
     access_token_url="https://api.line.me/oauth2/v2.1/token",
-    jwks_uri="https://api.line.me/oauth2/v2.1/certs",
+    # jwks_uri="https://api.line.me/oauth2/v2.1/certs",
     client_kwargs={
         "scope": "openid profile email",
+        # 内部でのJWT検証（JWS）の手続きを強制的にオフにする
+        "token_endpoint_auth_method": "client_secret_post",
         # LINEのIDトークンは通常RS256ですが、環境に応じて自動検証させるため
         # 必要に応じて 'HS256' に戻せるよう、指定を柔軟にするかデフォルトに委ねます
     },
@@ -110,12 +113,29 @@ def login_line():
 def line_callback():
     """LINEから戻ってきた後の処理"""
     error_msg = None
+    userinfo = None
     try:
+        # 1. 認可コードを使ってトークン一式を取得（Authlibの自動JWT検証が走らないようにする）
         token = line.authorize_access_token()
-        # Authlibのデフォルト検証でエラーが出る場合（主にnonceやアルゴリズム問題）は、
-        # token.get('id_token') を手動デコードするか、LINEのプロファイルエンドポイントを叩く方法もありますが、
-        # 通常は下記の userinfo または token から直接取得可能です。
-        userinfo = token.get("userinfo")
+        id_token = token.get("id_token")
+
+        if not id_token:
+            raise Exception("IDトークンが取得できませんでした。")
+
+        # 2. LINE公式の検証エンドポイントへ直接リクエストを送る
+        verify_url = "https://api.line.me/oauth2/v2.1/verify"
+        verify_data = {
+            "id_token": id_token,
+            "client_id": os.environ.get("LINE_CLIENT_ID"),
+        }
+
+        response = requests.post(verify_url, data=verify_data)
+
+        if response.status_code != 200:
+            raise Exception(f"LINE側でのトークン検証に失敗しました: {response.text}")
+
+        # 検証が成功すると、LINE側からユーザー情報（JSON）が返ってくる
+        userinfo = response.json()
 
     except Exception as e:
         error_msg = f"認証エラー: {str(e)}"
@@ -137,7 +157,11 @@ def line_callback():
 
     if user:
         login_user(user, remember=True)
-        flash(f"{user.name} としてログインしました（LINE連携）", "success")
+        # 💡 user.name だとエラーになる可能性があるため、DB定義に合わせて user.username にするか調整してください
+        flash(
+            f"{getattr(user, 'name', user.name)} としてログインしました（LINE連携）",
+            "success",
+        )
         return redirect(url_for("auth.dashboard"))
     else:
         flash(
