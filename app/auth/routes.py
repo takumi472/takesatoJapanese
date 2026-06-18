@@ -223,6 +223,7 @@ def line_callback():
         return redirect(url_for("auth.login"))
 
     # 4. ユーザー識別子 (sub) のチェック
+    current_app.logger.info(f"LINE USER PROFILE : {userinfo}")
     line_id = userinfo.get("sub")
     line_name = userinfo.get("name")
 
