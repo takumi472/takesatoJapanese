@@ -8,6 +8,7 @@ from flask import (
     flash,
     current_app,
 )
+import requests
 from flask_login import login_user, logout_user, login_required, current_user
 from sqlalchemy import Interval, cast, func
 from urllib.parse import urlparse
@@ -131,9 +132,7 @@ def line_callback():
         response = requests.post(verify_url, data=verify_data)
 
         if response.status_code != 200:
-            raise Exception(
-                f"LINE側でのトークン検証に失敗しました: {response.text}"
-            )
+            raise Exception(f"LINE側でのトークン検証に失敗しました: {response.text}")
 
         # 検証が成功すると、LINE側からユーザー情報（JSON）が返ってくる
         userinfo = response.json()
@@ -160,7 +159,7 @@ def line_callback():
         login_user(user, remember=True)
         # 💡 user.name だとエラーになる可能性があるため、DB定義に合わせて user.username にするか調整してください
         flash(
-            f"{getattr(user, 'name', user.username)} としてログインしました（LINE連携）",
+            f"{getattr(user, 'name', user.name)} としてログインしました（LINE連携）",
             "success",
         )
         return redirect(url_for("auth.dashboard"))
