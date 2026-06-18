@@ -7,6 +7,7 @@ import cloudinary
 from dotenv import load_dotenv  # .envファイルをロードするために追加
 import cloudinary.uploader
 from datetime import timedelta
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -19,6 +20,7 @@ def create_app(env_name="development"):
 
     # 共通のシークレットキー設定
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key-placeholder")
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
 
     # 1. Vercel(本番)でもローカル(開発)でも、環境変数からDATABASE_URLを取得する
     raw_db_url = os.environ.get("DATABASE_URL")

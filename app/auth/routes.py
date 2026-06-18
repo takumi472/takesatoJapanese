@@ -33,10 +33,20 @@ line = oauth.register(
     client_kwargs={
         "scope": "openid profile email",
         "token_endpoint_auth_method": "client_secret_post",
-        # 🔑 Force Authlib to recognize and accept the RS256 algorithm signature
-        "id_token_signed_response_alg": None,
     },
 )
+# line = oauth.register(
+#     name="line",
+#     client_id=os.environ.get("LINE_CLIENT_ID"),
+#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
+#     server_metadata_url="https://access.line.me/.well-known/openid-configuration",
+#     client_kwargs={
+#         "scope": "openid profile email",
+#         "token_endpoint_auth_method": "client_secret_post",
+#         # 🔑 Force Authlib to recognize and accept the RS256 algorithm signature
+#         "id_token_signed_response_alg": None,
+#     },
+# )
 # line = oauth.register(
 #     name="line",
 #     client_id=os.environ.get("LINE_CLIENT_ID"),

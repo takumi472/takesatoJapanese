@@ -12,6 +12,8 @@ class Config:
 
     # IPアドレスでのテスト時にセッションが消えるのを防ぐ設定
     SESSION_COOKIE_NAME = "takesato_jp_session"
+    SESSION_COOKIE_SECURE = True
+    SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = "Lax"
 
     # データベースURLの取得
