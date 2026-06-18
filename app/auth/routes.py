@@ -28,6 +28,7 @@ line = oauth.register(
     api_base_url="https://api.line.me/v2/",
     authorize_url="https://access.line.me/oauth2/v2.1/authorize",
     access_token_url="https://api.line.me/oauth2/v2.1/token",
+    jwks_uri="https://api.line.me/oauth2/v2.1/certs",
     client_kwargs={
         "scope": "openid profile email",
         # LINEのIDトークンは通常RS256ですが、環境に応じて自動検証させるため
@@ -136,7 +137,7 @@ def line_callback():
 
     if user:
         login_user(user, remember=True)
-        flash(f"{user.username} としてログインしました（LINE連携）", "success")
+        flash(f"{user.name} としてログインしました（LINE連携）", "success")
         return redirect(url_for("auth.dashboard"))
     else:
         flash(
