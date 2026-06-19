@@ -163,7 +163,9 @@ def line_callback():
         return redirect(url_for("auth.login"))
 
     if not code:
-        current_app.logger.error("LINE Login Error: Missing 'code' parameter in redirect URI.")
+        current_app.logger.error(
+            "LINE Login Error: Missing 'code' parameter in redirect URI."
+        )
         flash("認証コードが取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
@@ -173,7 +175,9 @@ def line_callback():
         token_url = "https://api.line.me/oauth2/v2.1/token"
         redirect_uri = url_for("auth.line_callback", _external=True)
 
-        current_app.logger.info(f"Exchanging code for token. Redirect URI used: {redirect_uri}")
+        current_app.logger.info(
+            f"Exchanging code for token. Redirect URI used: {redirect_uri}"
+        )
 
         headers = {"Content-Type": "application/x-www-form-urlencoded"}
         data = {
@@ -185,7 +189,9 @@ def line_callback():
         }
 
         token_response = requests.post(token_url, headers=headers, data=data)
-        current_app.logger.info(f"Token API Response Status Code: {token_response.status_code}")
+        current_app.logger.info(
+            f"Token API Response Status Code: {token_response.status_code}"
+        )
 
         if token_response.status_code != 200:
             raise Exception(f"トークン交換に失敗しました: {token_response.text}")
@@ -207,7 +213,9 @@ def line_callback():
 
         current_app.logger.info("Sending id_token to LINE verification endpoint...")
         verify_response = requests.post(verify_url, data=verify_data)
-        current_app.logger.info(f"Verification API Response Status Code: {verify_response.status_code}")
+        current_app.logger.info(
+            f"Verification API Response Status Code: {verify_response.status_code}"
+        )
 
         if verify_response.status_code != 200:
             raise Exception(
@@ -227,29 +235,43 @@ def line_callback():
     line_id = userinfo.get("sub")
     line_name = userinfo.get("name")
 
-    current_app.logger.info(f"Extracted LINE user profile - sub (ID): {line_id}, name: {line_name}")
+    current_app.logger.info(
+        f"Extracted LINE user profile - sub (ID): {line_id}, name: {line_name}"
+    )
 
     if not line_name:
-        current_app.logger.error("LINE Login Error: 'sub' (User ID) field missing from verified userinfo response.")
+        current_app.logger.error(
+            "LINE Login Error: 'sub' (User ID) field missing from verified userinfo response."
+        )
         flash("LINEからユーザー識別子を取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
     # 5. データベース照合処理
-    current_app.logger.info(f"Searching database for local user matched with line_user_id: {line_id}")
+    current_app.logger.info(
+        f"Searching database for local user matched with line_user_id: {line_id}"
+    )
     user = User.query.filter_by(line_user_id=line_name).first()
 
     if user:
-        current_app.logger.info(f"Match found in DB. Local User ID: {user.id}, Username: {user.username}")
+        current_app.logger.info(
+            f"Match found in DB. Local User ID: {user.id}, Username: {user.username}"
+        )
         login_user(user, remember=True)
 
-        display_name = getattr(user, "name", None) or getattr(user, "username", "ユーザー")
+        display_name = getattr(user, "name", None) or getattr(
+            user, "username", "ユーザー"
+        )
         flash(f"{display_name} としてログインしました（LINE連携）", "success")
 
-        current_app.logger.info(f"User {user.username} successfully authenticated via LINE. Redirecting to dashboard.")
+        current_app.logger.info(
+            f"User {user.username} successfully authenticated via LINE. Redirecting to dashboard."
+        )
         return redirect(url_for("auth.dashboard"))
     else:
         current_app.annotate_logging = True  # Optional indicator
-        current_app.logger.warning(f"LINE Login Warning: No DB record found mapping to line_user_id '{line_id}' (LINE Name: {line_name}).")
+        current_app.logger.warning(
+            f"LINE Login Warning: No DB record found mapping to line_user_id '{line_id}' (LINE Name: {line_name})."
+        )
         flash(
             "このLINEアカウントはシステムに登録されていません。管理者にお問い合わせください。",
             "warning",

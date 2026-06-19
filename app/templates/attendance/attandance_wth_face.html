@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>DeepFace Authentication</title>
+    <style>
+        body { font-family: -apple-system, sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; background-color: #fafafa; }
+        .card { text-align: center; background: white; padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.08); display: flex; flex-direction: column; align-items: center; width: 450px; }
+        video { transform: scaleX(-1); border-radius: 8px; width: 400px; height: 300px; object-fit: cover; background: #222; }
+        #status { margin-top: 15px; font-weight: 600; font-size: 1.1rem; color: #555; }
+        
+        /* Styled JSON Display Box */
+        .json-output {
+            margin-top: 15px;
+            padding: 15px;
+            background-color: #272822;
+            color: #f8f8f2;
+            border-radius: 6px;
+            text-align: left;
+            font-family: 'Courier New', Courier, monospace;
+            font-size: 0.9rem;
+            width: 100%;
+            box-sizing: border-box;
+            overflow-x: auto;
+            white-space: pre-wrap;
+            display: none; /* Hidden until data arrives */
+        }
+
+        .btn-capture {
+            margin-top: 15px;
+            padding: 12px 24px;
+            font-size: 1rem;
+            font-weight: bold;
+            color: white;
+            background-color: #007bff;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: background-color 0.2s ease;
+            width: 100%;
+        }
+        .btn-capture:hover { background-color: #0056b3; }
+        .btn-capture:disabled { background-color: #cccccc; cursor: not-allowed; }
+    </style>
+</head>
+<body>
+
+<div class="card">
+    <h2>System Authentication</h2>
+    <video id="webcam" autoplay muted playsinline></video>
+    
+    <button id="captureBtn" class="btn-capture" disabled>Take Snapshot & Verify</button>
+    
+    <div id="status">Starting camera...</div>
+    
+    <pre id="jsonResult" class="json-output"></pre>
+</div>
+
+<canvas id="captureCanvas" width="400" height="300" style="display:none;"></canvas>
+
+<script>
+    const video = document.getElementById('webcam');
+    const canvas = document.getElementById('captureCanvas');
+    const statusText = document.getElementById('status');
+    const captureBtn = document.getElementById('captureBtn');
+    const jsonResult = document.getElementById('jsonResult');
+    const ctx = canvas.getContext('2d');
+
+    // Start Webcam
+    navigator.mediaDevices.getUserMedia({ video: { width: 400, height: 300 } })
+        .then(stream => {
+            video.srcObject = stream;
+            statusText.innerText = "Ready to scan.";
+            captureBtn.disabled = false;
+        })
+        .catch(err => {
+            statusText.innerText = "Camera Access Blocked: " + err.message;
+        });
+
+    captureBtn.addEventListener('click', () => {
+        statusText.innerText = "Processing face recognition...";
+        jsonResult.style.display = "none"; // Hide previous output
+        captureBtn.disabled = true;
+        
+        sendFrameToBackend();
+    });
+
+    function sendFrameToBackend() {
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const base64Image = canvas.toDataURL('image/jpeg', 0.85);
+
+        // Pointing to your verified Blueprint prefix '/face/verify'
+        fetch('/face/verify', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ image: base64Image })
+        })
+        .then(res => res.json())
+        .then(data => {
+            captureBtn.disabled = false;
+            statusText.innerText = "Server Response Recieved:";
+            
+            // Render the raw JSON directly to the screen with a 4-space indentation layout
+            jsonResult.innerText = JSON.stringify(data, null, 4);
+            jsonResult.style.display = "block"; // Make the box visible
+        })
+        .catch(err => {
+            console.error("Error:", err);
+            statusText.innerText = "Server communication error.";
+            captureBtn.disabled = false;
+        });
+    }
+</script>
+</body>
+</html>

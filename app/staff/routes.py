@@ -260,7 +260,6 @@ def edit_staff(id):
     staff = Staff.query.get_or_404(id)
     user = User.query.get_or_404(staff.user_id)
 
-
     # 権限チェック: 管理者でない、かつ自身のスタッフ情報でない場合は編集不可
     if current_user.role != "admin" and current_user.id != staff.user_id:
         flash("他のユーザーの情報を編集する権限がありません。")
