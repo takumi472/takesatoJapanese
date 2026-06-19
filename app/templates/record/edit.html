@@ -21,9 +21,41 @@
         .form-card { background-color: #fff; border: 1px solid #dadce0; border-radius: 8px; padding: 25px; margin-top: 20px; }
         .btn-update { background-color: #673ab7; color: white; }
         .btn-update:hover { background-color: #512da8; color: white; }
+               /* ローディング画面のスタイル */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.85); /* 半透明の白背景 */
+            z-index: 9999; /* 最前面に表示 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            display: none; /* 初期状態は非表示 */
+        }
+        .loading-spinner {
+            width: 4rem;
+            height: 4rem;
+            color: #673ab7; /* テーマカラーに合わせる */
+        }
+        .loading-text {
+            margin-top: 15px;
+            color: #673ab7;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
+<div id="loading-overlay">
+    <div class="spinner-border loading-spinner" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="loading-text">送信中です...しばらくお待ちください</div>
+</div>
 
 <div class="container my-5" style="max-width: 700px;">
 
@@ -39,7 +71,7 @@
         </div>
     </div>
 
-    <form method="POST">
+    <form method="POST" id="record-modify-form">
         <div class="form-card shadow-sm">
             <div class="mb-4">
                 <label class="form-label">レッスン日</label>
@@ -82,5 +114,14 @@
         </div>
     </form>
 </div>
+<script>
+        document.getElementById('record-modify-form').addEventListener('submit', function(event) {
+        // 必須項目などが正しく入力されているかチェック (HTML5 Validation)
+        if (this.checkValidity()) {
+            // バリデーションOKならローディング画面を表示
+            document.getElementById('loading-overlay').style.display = 'flex';
+        }
+    });
+</script>
 </body>
 </html>

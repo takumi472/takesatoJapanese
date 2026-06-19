@@ -7,7 +7,6 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Vercel Speed Insights -->
     <script>
         if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
             window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
@@ -35,9 +34,40 @@
         .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; font-size: 100px; cursor: pointer; }
         .page-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 24px; }
         .sample-image-box { max-width: 180px; border: 1px dashed #ccc; padding: 10px; text-align: center; background-color: #f8f9fa; }
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.85); /* 半透明の白背景 */
+            z-index: 9999; /* 最前面に表示 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            display: none; /* 初期状態は非表示 */
+        }
+        .loading-spinner {
+            width: 4rem;
+            height: 4rem;
+            color: #673ab7; /* テーマカラーに合わせる */
+        }
+        .loading-text {
+            margin-top: 15px;
+            color: #673ab7;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
+<div id="loading-overlay">
+    <div class="spinner-border loading-spinner" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="loading-text">送信中です...しばらくお待ちください</div>
+</div>
 
 <div class="container my-4" style="max-width: 640px;">
 
@@ -69,12 +99,19 @@
     </div>
 </div>
 
-    <form method="POST" enctype="multipart/form-data">
+    <form id="staff-form" method="POST" enctype="multipart/form-data">
 
         <div class="form-card shadow-sm">
             <label class="form-label">Gmailの登録（Gmailのアドレスを入力してください）<span class="required-star">*</span></label>
             <input type="email" name="email" class="form-control-gf" 
                    value="{{ staff.email if staff else '' }}" 
+                   placeholder="回答を入力" required {% if staff %}readonly style="color: #70757a;"{% endif %}>
+        </div>
+
+        <div class="form-card shadow-sm">
+            <label class="form-label">Line ID<span class="required-star">*</span></label>
+            <input type="line_user_id" name="line_user_id" class="form-control-gf" 
+                   value="{{ user.line_user_id if staff else '' }}" 
                    placeholder="回答を入力" required {% if staff %}readonly style="color: #70757a;"{% endif %}>
         </div>
 
@@ -90,12 +127,12 @@
             <label class="form-label">(1) 顔写真のアップロード <span class="required-star">*</span></label>
             <p class="text-muted" style="font-size: 13px; margin-top: -8px;">※スタッフ一覧に表示される顔写真を撮影、または選択してください（画像ファイル Max 10MB）</p>
             
-            <div class="preview-zone">
-                {% if staff and staff.face_photo_path %}
-                    <img id="photo_preview" src="{{ staff.face_photo_path }}" alt="現在の顔写真">
-                {% else %}
-                    <div id="sample_box" class="sample-image-box mb-2 small text-muted"><span style="font-size: 2rem;">👤</span><br>顔写真の見本</div>
-                {% endif %}
+            <div class="preview-zone" id="preview_zone" style="display: {% if staff and staff.face_photo_path %}block{% else %}none{% endif %};">
+                <img id="photo_preview" src="{{ staff.face_photo_path if staff and staff.face_photo_path else '#' }}" alt="プレビュー画像">
+            </div>
+            
+            <div id="sample_box" class="sample-image-box mb-3 small text-muted" style="display: {% if staff and staff.face_photo_path %}none{% else %}block{% endif %};">
+                <span style="font-size: 2rem;">👤</span><br>顔写真の見本
             </div>
 
             <div class="file-input-wrapper">
@@ -205,19 +242,32 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="{{ url_for('static', filename='js/address_lookup.js') }}"></script>
 <script>
-    // ファイルが選択されたらプレビュー画像とファイル名をリアルタイムで切り替えるJS
+    document.getElementById('staff-form').addEventListener('submit', function(event) {
+        if (this.checkValidity()) {
+            document.getElementById('loading-overlay').style.display = 'flex';
+        }
+    });
+
+    // 修正箇所：ファイルが選択されたらプレビュー要素を表示し、見本を隠す
     document.getElementById('face_photo_input').addEventListener('change', function(e) {
         const file = e.target.files[0];
-        const preview = document.getElementById('photo_preview');
+        const previewZone = document.getElementById('preview_zone');
+        const previewImg = document.getElementById('photo_preview');
+        const sampleBox = document.getElementById('sample_box');
         const filenameDisplay = document.getElementById('file_name_display');
         
         if (file) {
             filenameDisplay.textContent = file.name;
             const reader = new FileReader();
             reader.onload = function(e) {
-                preview.src = e.target.result;
+                previewImg.src = e.target.result;
+                previewZone.style.display = 'block'; // プレビュー枠を表示
+                sampleBox.style.display = 'none';    // 見本ボックスを非表示
             }
             reader.readAsDataURL(file);
+        } else {
+            // ファイル選択がキャンセルされた場合はファイル名を空にする
+            filenameDisplay.textContent = '';
         }
     });
 </script>

@@ -102,6 +102,7 @@ def create_staff():
 
     if request.method == "POST":
         email = request.form.get("email")
+        line_user_id = request.form.get("line_user_id")
         plain_password = request.form.get("password")
 
         last_name = request.form.get("last_name_kanji", "").strip()
@@ -139,6 +140,7 @@ def create_staff():
             # 1. ユーザーアカウント作成
             new_user = User(
                 username=email,
+                line_user_id=line_user_id,
                 role="staff",
                 name=full_name,
                 password_hash=generate_password_hash(plain_password),
@@ -256,6 +258,8 @@ Lineグループ：https://line.me/ti/g/8YXH2Hqac2
 @login_required
 def edit_staff(id):
     staff = Staff.query.get_or_404(id)
+    user = User.query.get_or_404(staff.user_id)
+
 
     # 権限チェック: 管理者でない、かつ自身のスタッフ情報でない場合は編集不可
     if current_user.role != "admin" and current_user.id != staff.user_id:
@@ -300,7 +304,7 @@ def edit_staff(id):
             current_app.logger.error(f"Error updating staff {id}: {e}", exc_info=True)
             flash(f"更新中にエラーが発生しました: {str(e)}", "danger")
 
-    return render_template("staff/edit.html", staff=staff)
+    return render_template("staff/edit.html", staff=staff, user=user)
 
 
 @staff_bp.route("/")

@@ -7,7 +7,6 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Vercel Speed Insights -->
     <script>
         if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
             window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
@@ -33,7 +32,7 @@
             max-width: 1000px;
             margin-left: auto;
             margin-right: auto;
-            margin-top: 30px; /* 余白を少し調整 */
+            margin-top: 30px;
             padding-left: 15px;
             padding-right: 15px;
         }
@@ -69,7 +68,6 @@
             transform: translateY(-4px);
             box-shadow: 0 6px 12px rgba(0,0,0,0.1);
         }
-        /* 2ヶ月以上空いている生徒のカードに薄い警告色をつける */
         .card-inactive {
             border-color: #f5c6cb;
             background-color: #fffdfd;
@@ -82,9 +80,8 @@
             display: flex;
             align-items: center;
             justify-content: center;
-            padding: 10px; /* 丸写真が映えるように少し内側に余白 */
+            padding: 10px;
         }
-        /* Cloudinaryの顔認識ドアップを綺麗に丸く見せる設定 */
         .student-avatar {
             width: 90%;
             height: 90%;
@@ -111,7 +108,6 @@
             padding: 2px 8px;
             border-radius: 4px;
         }
-        /* 浮遊（Floating）戻るボタンのスタイル */
         .btn-floating-back {
             position: fixed;
             bottom: 30px;
@@ -129,14 +125,14 @@
             transform: scale(1.1);
             color: white;
         }
-        .btn-add-student {
-            background-color: #673ab7;
-            color: white;
-            font-weight: 500;
+        /* 検索バーのフォーカス時のスタイル調整 */
+        .search-input:focus {
+            box-shadow: none;
+            border-color: #ced4da;
         }
-        .btn-add-student:hover {
-            background-color: #512da8;
-            color: white;
+        .search-group:focus-within {
+            box-shadow: 0 0 0 0.25rem rgba(103, 58, 183, 0.25) !important;
+            border-radius: 0.375rem;
         }
     </style>
 </head>
@@ -166,11 +162,20 @@
       {% endif %}
     {% endwith %}
 
+    <div class="mb-4">
+        <div class="input-group shadow-sm search-group bg-white rounded">
+            <span class="input-group-text bg-transparent border-end-0 text-muted">
+                <i class="bi bi-search"></i>
+            </span>
+            <input type="text" id="searchInput" class="form-control border-start-0 search-input" placeholder="名前、国籍、居住地、JLPTレベルなどで検索...">
+        </div>
+    </div>
+
     <div class="mb-5">
         <h2 class="section-title title-active">継続中の受講生</h2>
-        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4">
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="activeStudentsContainer">
             {% for s in active_students %}
-            <div class="col">
+            <div class="col student-wrapper">
                 <div class="student-card h-100 d-flex flex-column shadow-sm">
                     <div class="avatar-container">
                         {% if s.face_photo_path %}
@@ -215,16 +220,16 @@
                 </div>
             </div>
             {% else %}
-            <div class="col-12 text-muted ps-3">該当する受講生はいません。</div>
+            <div class="col-12 text-muted ps-3 no-data-msg">該当する受講生はいません。</div>
             {% endfor %}
         </div>
     </div>
 
     <div class="mb-5">
         <h2 class="section-title title-inactive">⚠️ 直近２ヶ月出席されない生徒</h2>
-        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4">
+        <div class="row row-cols-2 row-cols-sm-3 row-cols-md-4 row-cols-lg-5 g-4" id="inactiveStudentsContainer">
             {% for s in inactive_students %}
-            <div class="col">
+            <div class="col student-wrapper">
                 <div class="student-card card-inactive h-100 d-flex flex-column shadow-sm">
                     <div class="avatar-container" style="background-color: #fff0f1;">
                         {% if s.face_photo_path %}
@@ -271,18 +276,82 @@
                 </div>
             </div>
             {% else %}
-            <div class="col-12 text-muted ps-3">該当する受講生はいません。</div>
+            <div class="col-12 text-muted ps-3 no-data-msg">該当する受講生はいません。</div>
             {% endfor %}
         </div>
     </div>
 
 </div>
 
-<!-- 浮遊戻るボタン -->
 <button type="button" class="btn btn-floating-back shadow d-flex align-items-center justify-content-center border-0" onclick="window.history.back()" title="戻る">
     戻る
 </button>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const searchInput = document.getElementById('searchInput');
+
+    // 「継続中」「直近2ヶ月」それぞれのカードの親コンテナを取得
+    const activeContainer = document.getElementById('activeStudentsContainer');
+    const inactiveContainer = document.getElementById('inactiveStudentsContainer');
+
+    // 検索結果がゼロの時に表示するメッセージ要素（HTML）を作る関数
+    const createNoResultMessage = () => {
+        const div = document.createElement('div');
+        // Bootstrapのクラスを使って少し目立たせる
+        div.className = 'col-12 text-muted ps-3 mt-4 mb-4'; 
+        div.style.display = 'none'; // 初期状態は非表示
+        div.innerHTML = '<i class="bi bi-info-circle me-1"></i>検索条件に一致する受講生はいません。';
+        return div;
+    };
+
+    // 各コンテナの末尾にメッセージ要素をセットしておく
+    const activeNoResultMsg = createNoResultMessage();
+    const inactiveNoResultMsg = createNoResultMessage();
+    
+    if (activeContainer) activeContainer.appendChild(activeNoResultMsg);
+    if (inactiveContainer) inactiveContainer.appendChild(inactiveNoResultMsg);
+
+    // 検索窓に入力されるたびに実行される処理
+    searchInput.addEventListener('input', function() {
+        const keyword = this.value.toLowerCase().trim();
+
+        // 各セクションごとに絞り込みとメッセージ表示を行う共通関数
+        const filterCards = (container, noResultMsg) => {
+            if (!container) return;
+            
+            const wrappers = container.querySelectorAll('.student-wrapper');
+            let visibleCount = 0; // 表示されているカードの数を数える
+
+            wrappers.forEach(wrapper => {
+                const card = wrapper.querySelector('.student-card');
+                if (!card) return;
+
+                const textContent = card.textContent.toLowerCase();
+                if (textContent.includes(keyword)) {
+                    wrapper.style.display = ''; // 一致すれば表示
+                    visibleCount++; // カウントを増やす
+                } else {
+                    wrapper.style.display = 'none'; // 一致しなければ非表示
+                }
+            });
+
+            // 「受講生が1人以上登録されている」かつ「検索に引っかかった人数が0人」の場合のみメッセージを表示
+            if (wrappers.length > 0 && visibleCount === 0) {
+                noResultMsg.style.display = 'block';
+            } else {
+                noResultMsg.style.display = 'none';
+            }
+        };
+
+        // 継続中の生徒と、出席していない生徒の両方に対して実行
+        filterCards(activeContainer, activeNoResultMsg);
+        filterCards(inactiveContainer, inactiveNoResultMsg);
+    });
+});
+</script>
+
 </body>
 </html>

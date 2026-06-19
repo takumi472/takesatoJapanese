@@ -76,9 +76,41 @@
         .page-header { background-color: #fff; border-top: 8px solid #673ab7; border-radius: 8px; padding: 24px; }
         .file-input-wrapper { position: relative; overflow: hidden; display: inline-block; }
         .file-input-wrapper input[type=file] { position: absolute; left: 0; top: 0; opacity: 0; font-size: 100px; cursor: pointer; }
+        /* ローディング画面のスタイル */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(255, 255, 255, 0.85); /* 半透明の白背景 */
+            z-index: 9999; /* 最前面に表示 */
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            display: none; /* 初期状態は非表示 */
+        }
+        .loading-spinner {
+            width: 4rem;
+            height: 4rem;
+            color: #673ab7; /* テーマカラーに合わせる */
+        }
+        .loading-text {
+            margin-top: 15px;
+            color: #673ab7;
+            font-weight: bold;
+            font-size: 1.1rem;
+        }
     </style>
 </head>
 <body>
+<div id="loading-overlay">
+    <div class="spinner-border loading-spinner" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="loading-text">送信中です...しばらくお待ちください</div>
+</div>
 
 <div class="container my-4" style="max-width: 740px;">
 
@@ -104,7 +136,7 @@
         </div>
     </div>
 
-    <form method="POST" enctype="multipart/form-data">
+    <form id="modify-form" method="POST" enctype="multipart/form-data">
 
         <div class="card-question shadow-sm">
             <label class="form-label fw-bold">(1) 顔写真のアップロード <span class="text-muted fw-normal small">※スマホで受講生の顔写真を撮影し、アップロードしてください (最大10MB)</span></label>
@@ -250,6 +282,13 @@
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
+    document.getElementById('modify-form').addEventListener('submit', function(event) {
+        // 必須項目などが正しく入力されているかチェック (HTML5 Validation)
+        if (this.checkValidity()) {
+            // バリデーションOKならローディング画面を表示
+            document.getElementById('loading-overlay').style.display = 'flex';
+        }
+    });
     document.getElementById('face_photo_input').onchange = function (evt) {
         const [file] = this.files;
         const preview = document.getElementById('image_preview');
