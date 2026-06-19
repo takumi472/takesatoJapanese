@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>マニュアル - 武里日本語教室</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    
+    <script>
+        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
+    </script>
+    {% if not config.DEBUG %}
+        <script src="/_vercel/speed-insights/script.js" defer></script>
+    {% endif %}
+    
+    <style>
+        body { 
+            background-color: #f0ebf8; 
+            color: #202124; 
+            font-family: 'Helvetica Neue', Arial, sans-serif;
+        }
+        .dashboard-container { 
+            max-width: 1000px; 
+            margin: 30px auto; 
+            padding: 0 15px;
+        }
+        .welcome-header { 
+            background-color: #fff; 
+            border-top: 10px solid #673ab7; 
+            border-radius: 8px; 
+            padding: 30px; 
+        }
+        .accordion-item {
+            background-color: #fff;
+            border: 1px solid #dadce0;
+            border-radius: 8px !important;
+            margin-bottom: 15px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+            overflow: hidden;
+        }
+        .accordion-button {
+            font-weight: 600;
+            color: #202124;
+            padding: 20px;
+        }
+        .accordion-button:not(.collapsed) {
+            color: #673ab7;
+            background-color: #f8f5fd;
+            box-shadow: inset 0 calc(-1 * var(--bs-accordion-border-width)) 0 #e0e0e0;
+        }
+        .accordion-button:focus {
+            border-color: #673ab7;
+            box-shadow: 0 0 0 0.25rem rgba(103, 58, 183, 0.25);
+        }
+        .accordion-body {
+            padding: 24px;
+            line-height: 1.6;
+        }
+        .btn-back {
+            color: #673ab7;
+            border: 1px solid #673ab7;
+            background-color: transparent;
+            padding: 6px 16px;
+            border-radius: 50px;
+            text-decoration: none;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.2s;
+        }
+        .btn-back:hover {
+            background-color: #673ab7;
+            color: #fff;
+        }
+    </style>
+</head>
+<body>
+
+<div class="dashboard-container mb-5">
+
+    <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
+        <div>
+            <h1 class="h3 mb-2" style="font-weight: 700;">アプリケーションマニュアル</h1>
+            <p class="text-muted mb-0">このページでは、管理システムの基本的な使い方を説明します。</p>
+        </div>
+        <a href="{{ url_for('auth.dashboard') }}" class="btn-back d-flex align-items-center gap-1">
+            <i class="bi bi-house-door"></i> トップへ戻る
+        </a>
+    </div>
+
+    <div class="accordion" id="manualAccordion">
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingOne">
+                <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
+                    <i class="bi bi-mortarboard-fill me-2"></i> 生徒管理
+                </button>
+            </h2>
+            <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#manualAccordion">
+                <div class="accordion-body">
+                    <strong>生徒の新規登録:</strong><br>
+                    ナビゲーションバーの「生徒管理」から「生徒新規登録」を選択し、必要情報を入力して登録します。顔写真のアップロードも可能です。<br><br>
+                    <strong>生徒一覧:</strong><br>
+                    「生徒一覧」ページでは、登録されている生徒を一覧で確認できます。活動中の生徒と、長期間活動のない生徒（非アクティブ）に分かれて表示されます。名前をクリックすると詳細情報や学習記録を確認できます。
+                    
+                    <hr class="my-4 text-muted">
+                    <p class="fw-bold mb-2 text-dark">▼ 生徒管理の操作動画</p>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <video controls class="w-100 h-100">
+                            <source src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E7%94%9F%E5%BE%92%E3%81%AE%E6%96%B0%E8%A6%8F%E7%99%BB%E9%8C%B2.mp4?_s=vp-3.7.2" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingTwo">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
+                    <i class="bi bi-pencil-square me-2"></i> 学習記録
+                </button>
+            </h2>
+            <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#manualAccordion">
+                <div class="accordion-body">
+                    <strong>記録の作成:</strong><br>
+                    「学習記録」メニューの「記録作成」から、日付、担当スタッフ、学習内容などを記録できます。生徒一覧の詳細ページからも直接記録を追加することが可能です。<br><br>
+                    <strong>記録の確認と編集:</strong><br>
+                    生徒一覧から特定の生徒を選び、「学習記録一覧」ボタンを押すと、過去の記録をすべて閲覧できます。各記録の横にある「編集」ボタンから内容を修正できます。
+
+                    <hr class="my-4 text-muted">
+                    <p class="fw-bold mb-2 text-dark">▼ 学習記録の操作動画</p>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <video controls class="w-100 h-100">
+                            <source src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E5%AD%A6%E7%BF%92%E8%A8%98%E9%8C%B2%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95_rwkcam.mp4?_s=vp-3.7.2" src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E3%82%B9%E3%82%BF%E3%83%83%E3%83%95%E6%96%B0%E8%A6%8F%E4%BD%9C%E6%88%90.mp4?_s=vp-3.7.2" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    <i class="bi bi-people-fill me-2"></i> スタッフ管理
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#manualAccordion">
+                <div class="accordion-body">
+                    <strong>スタッフの新規登録・編集:</strong><br>
+                    「スタッフ一覧」から新しいスタッフのアカウント作成や、プロフィール情報の編集が行えます。登録には顔写真、連絡先、ボランティア活動歴などの詳細情報が必要です。<br><br>
+                    <strong>アカウントと権限:</strong><br>
+                    登録されたメールアドレスとパスワードはログイン時に使用します。スタッフごとに適切な権限を設定し、円滑な教室運営をサポートします。
+
+                    <hr class="my-4 text-muted">
+                    <p class="fw-bold mb-2 text-dark">▼ スタッフ管理の操作動画</p>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <video controls class="w-100 h-100">
+                            <source src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E3%82%B9%E3%82%BF%E3%83%83%E3%83%95%E6%96%B0%E8%A6%8F%E4%BD%9C%E6%88%90.mp4?_s=vp-3.7.2" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingThree">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
+                    <i class="bi bi-calendar-check-fill me-2"></i> 出席簿
+                </button>
+            </h2>
+            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#manualAccordion">
+                <div class="accordion-body">
+                    <strong>日別の出席確認:</strong><br>
+                    「出席簿」ページでは、指定した日付に出席した生徒を国籍ごとに一覧表示します。日付を変更して過去の出席状況も確認できます。<br><br>
+                    <strong>PDFダウンロード:</strong><br>
+                    表示されている出席リストをPDF形式でダウンロードする機能があります。印刷や保管に便利です。
+
+                    <hr class="my-4 text-muted">
+                    <p class="fw-bold mb-2 text-dark">▼ 出席簿の操作動画</p>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <video controls class="w-100 h-100">
+                            <source src="https://res.cloudinary.com/dga0a3qkd/video/upload/YOUR_FOLDER/YOUR_VIDEO_3.mp4" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

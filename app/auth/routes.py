@@ -310,6 +310,13 @@ def dashboard():
     )
 
 
+@auth_bp.route("/manual")
+@login_required
+def manual():
+    """Display the application manual page."""
+    return render_template("manual.html")
+
+
 @auth_bp.route("/logout")
 @login_required
 def logout():
