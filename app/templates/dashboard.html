@@ -70,22 +70,20 @@
 </style>
 </head>
 <body>
-
 <div class="dashboard-container mb-5">
-    <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between ">
+    <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
     
-        <div class="d-flex flex-column" style="max-width:200px !important;">
-            <h1 class="h3 mb-2" style="font-weight: 700;">武里日本語教室<br> 管理システム</h1>
-            <p class="text-muted mb-2">こんにちは、<br><strong>{{ current_user.name }}</strong> さん<br>（権限: {{ current_user.role }}）</p>
-            <div style="max-width:200px !important;">
+        <div>
+            <h1 class="h3 mb-2" style="font-weight: 700;">武里日本語教室 管理システム</h1>
+            <p class="text-muted mb-2">
+                こんにちは、<strong>{{ current_user.name }}</strong> さん<br>
+                （権限: {{ current_user.role }}）
+            </p>
+            <div style="max-width:220px;">
                 <a href="{{ url_for('auth.manual') }}" class="manual-btn-card shadow-sm">
-                <div class="manual-icon">
-                    <i class="bi bi-question-circle-fill"></i>
-                </div>
-                <div class="text-start">
-                    <div style="font-weight: 600; font-size: 0.9rem;">使い方マニュアル</div>
-                </div>
-            </a>
+                    <div class="manual-icon"><i class="bi bi-question-circle-fill"></i></div>
+                    <div class="text-start"><div style="font-weight: 600; font-size: 0.9rem;">使い方マニュアル</div></div>
+                </a>
             </div>
         </div>
     
@@ -98,8 +96,8 @@
     
     </div>
 
-    <div class="row g-4 mb-5">
-        <div class="col-md-4">
+    <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4 mb-5">
+        <div class="col">
             <a href="{{ url_for('student.student_list') }}" class="menu-card p-4 shadow-sm h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="icon-circle"><i class="bi bi-mortarboard-fill"></i></div>
@@ -109,7 +107,7 @@
                 <p class="text-muted small mb-0">生徒の個人カルテの確認、新規登録、学習記録（カルテ）の編集を行います。</p>
             </a>
         </div>
-        <div class="col-md-4">
+        <div class="col">
             <a href="{{ url_for('staff.staff_list') }}" class="menu-card p-4 shadow-sm h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="icon-circle"><i class="bi bi-people-fill"></i></div>
@@ -119,7 +117,7 @@
                 <p class="text-muted small mb-0">プロフィール一覧の確認、アカウント作成・編集を行います。</p>
             </a>
         </div>
-        <div class="col-md-4">
+        <div class="col">
             <a href="{{ url_for('meeting.meeting_list') }}" class="menu-card p-4 shadow-sm h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="icon-circle"><i class="bi bi-journal-text"></i></div>
@@ -129,15 +127,13 @@
                 <p class="text-muted small mb-0">運営ミーティングや議事録の閲覧、作成、管理を行います。</p>
             </a>
         </div>
-        <div class="col-12">
-            <a href="{{ url_for('student.attendance_list') }}" class="text-decoration-none text-dark">
-                <div class="card h-100 border-0 shadow-sm text-center py-4 transition-card" style="border-top: 4px solid #673ab7 !important;">
-                    <div class="card-body">
-                        <div class="mb-3 text-primary"><i class="bi bi-calendar-check-fill" style="font-size: 2.5rem; color: #673ab7;"></i></div>
-                        <h5 class="card-title fw-bold" style="font-size: 16px;">出席リスト</h5>
-                        <p class="card-text text-muted d-none d-sm-block" style="font-size: 12px;">日別の受講生出席状況を確認</p>
-                    </div>
+        <div class="col">
+            <a href="{{ url_for('student.attendance_list') }}" class="menu-card p-4 shadow-sm h-100">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div class="icon-circle"><i class="bi bi-calendar-check-fill"></i></div>
                 </div>
+                <h3 class="h5 mb-2" style="font-weight: 600;">出席リスト</h3>
+                <p class="text-muted small mb-0">日別の受講生出席状況を確認し、PDFで出力します。</p>
             </a>
         </div>
     </div>
@@ -172,36 +168,56 @@
 
     <h4 class="h5 mb-3 mt-3 fw-bold">受講生データ分析</h4>
     <div class="row g-4 mb-5">
+        
         <div class="col-md-6">
             <div class="card p-4 shadow-sm border-0 h-100">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">教室を知ったきっかけ</h5>
+                {% if how_knew_data %}
                 <div class="chart-container-pie">
                     <canvas id="howKnewChart"></canvas>
                 </div>
+                {% else %}
+                分析情報はありません。
+                {% endif %}
             </div>
         </div>
+        
         <div class="col-md-6">
             <div class="card p-4 shadow-sm border-0 h-100">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">JLPT（日本語能力試験）レベル</h5>
+                {% if jlpt_data %}
                 <div class="chart-container-pie">
                     <canvas id="jlptChart"></canvas>
                 </div>
+                {% else %}
+                分析情報はありません。
+                {% endif %}
             </div>
         </div>
+        
         <div class="col-md-6">
             <div class="card p-4 shadow-sm border-0 h-100">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">居住地域</h5>
+                {% if area_data %}
                 <div class="chart-container-pie">
                     <canvas id="areaChart"></canvas>
                 </div>
+                {% else %}
+                分析情報はありません。
+                {% endif %}
             </div>
         </div>
+        
         <div class="col-md-6">
             <div class="card p-4 shadow-sm border-0 h-100">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">出身国</h5>
+                {% if country_data %}
                 <div class="chart-container-pie">
                     <canvas id="countryChart"></canvas>
                 </div>
+                {% else %}
+                分析情報はありません。
+                {% endif %}
             </div>
         </div>
     </div>
@@ -262,64 +278,72 @@
     };
 
     // 1. 教室を知ったきっかけ
-    const howKnewLabels = {{ how_knew_labels | default([]) | tojson }};
-    new Chart(document.getElementById('howKnewChart').getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: howKnewLabels,
-            datasets: [{
-                data: {{ how_knew_data | default([]) | tojson }},
-                backgroundColor: generateDynamicColors(howKnewLabels.length, 0),
-                borderWidth: 1
-            }]
-        },
-        options: pieOptions
-    });
+    {% if how_knew_data %}
+        const howKnewLabels = {{ how_knew_labels | tojson }};
+        new Chart(document.getElementById('howKnewChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: howKnewLabels,
+                datasets: [{
+                    data: {{ how_knew_data | tojson }},
+                    backgroundColor: generateDynamicColors(howKnewLabels.length, 0),
+                    borderWidth: 1
+                }]
+            },
+            options: pieOptions
+        });
+    {% endif %}
 
     // 2. JLPTレベル
-    const jlptLabels = {{ jlpt_labels | default([]) | tojson }};
-    new Chart(document.getElementById('jlptChart').getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: jlptLabels,
-            datasets: [{
-                data: {{ jlpt_data | default([]) | tojson }},
-                backgroundColor: generateDynamicColors(jlptLabels.length, 60),
-                borderWidth: 1
-            }]
-        },
-        options: pieOptions
-    });
+    {% if jlpt_data %}
+        const jlptLabels = {{ jlpt_labels | tojson }};
+        new Chart(document.getElementById('jlptChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: jlptLabels,
+                datasets: [{
+                    data: {{ jlpt_data | tojson }},
+                    backgroundColor: generateDynamicColors(jlptLabels.length, 60),
+                    borderWidth: 1
+                }]
+            },
+            options: pieOptions
+        });
+    {% endif %}
 
     // 3. 居住地域
-    const areaLabels = {{ area_labels | default([]) | tojson }};
-    new Chart(document.getElementById('areaChart').getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: areaLabels,
-            datasets: [{
-                data: {{ area_data | default([]) | tojson }},
-                backgroundColor: generateDynamicColors(areaLabels.length, 120),
-                borderWidth: 1
-            }]
-        },
-        options: pieOptions
-    });
+    {% if area_data %}
+        const areaLabels = {{ area_labels | tojson }};
+        new Chart(document.getElementById('areaChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: areaLabels,
+                datasets: [{
+                    data: {{ area_data | tojson }},
+                    backgroundColor: generateDynamicColors(areaLabels.length, 120),
+                    borderWidth: 1
+                }]
+            },
+            options: pieOptions
+        });
+    {% endif %}
 
     // 4. 出身国
-    const countryLabels = {{ country_labels | default([]) | tojson }};
-    new Chart(document.getElementById('countryChart').getContext('2d'), {
-        type: 'doughnut',
-        data: {
-            labels: countryLabels,
-            datasets: [{
-                data: {{ country_data | default([]) | tojson }},
-                backgroundColor: generateDynamicColors(countryLabels.length, 180),
-                borderWidth: 1
-            }]
-        },
-        options: pieOptions
-    });
+    {% if country_data %}
+        const countryLabels = {{ country_labels | tojson }};
+        new Chart(document.getElementById('countryChart').getContext('2d'), {
+            type: 'doughnut',
+            data: {
+                labels: countryLabels,
+                datasets: [{
+                    data: {{ country_data | tojson }},
+                    backgroundColor: generateDynamicColors(countryLabels.length, 180),
+                    borderWidth: 1
+                }]
+            },
+            options: pieOptions
+        });
+    {% endif %}
 </script>
 </body>
 </html>
