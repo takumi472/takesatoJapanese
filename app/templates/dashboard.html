@@ -39,33 +39,64 @@
     .transition-card { transition: transform 0.2s, box-shadow 0.2s; }
     .transition-card:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
     .chart-container-pie { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
-    .manual-card { background-color: #fff; border: 1px solid #dadce0; border-radius: 8px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; text-decoration: none; color: inherit; display: block; }
-    .manual-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); border-color: #673ab7; }
-    .manual-icon-circle { width: 20px; height: 20px; background-color: #f0ebf8; color: #673ab7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 15px; }
+    .manual-btn-card { 
+        background-color: #fff; 
+        border: 1px solid #dadce0; 
+        border-radius: 8px; 
+        padding: 10px 20px;
+        text-decoration: none; 
+        color: #202124; 
+        display: flex;
+        align-items: center;
+        gap: 12px;
+        transition: all 0.2s;
+    }
+    .manual-btn-card:hover { 
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+        border-color: #0d6efd;
+        color: #0d6efd;
+    }
+    .manual-icon { 
+        width: 36px; 
+        height: 36px; 
+        background-color: #e7f3ff; 
+        color: #0d6efd;
+        border-radius: 50%; 
+        display: flex; 
+        align-items: center; 
+        justify-content: center; 
+        font-size: 18px; 
+    }
 </style>
 </head>
 <body>
 
 <div class="dashboard-container mb-5">
-
-    <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-center">
-        <div>
-            <h1 class="h3 mb-2" style="font-weight: 700;">武里日本語教室 </h1><h1 class="h3 mb-2" style="font-weight: 700;" >管理システム</h1>
-            <p class="text-muted mb-0">こんにちは、<strong>{{ current_user.name }}</strong> さん<br>（権限: {{ current_user.role }}）</p>
-        </div>
-        <div class="d-flex flex-column align-items-end gap-2">
-            <a href="{{ url_for('auth.logout') }}" class="btn-logout d-flex align-items-center gap-1">
-                <i class="bi bi-box-arrow-right"></i> ログアウト
-            </a>
-            <a href="{{ url_for('auth.manual') }}" class="manual-card p-2 shadow-sm d-flex align-items-center gap-2">
-                <div class="manual-icon-circle mb-0" style="background-color: #e7f3ff; color: #0d6efd; flex-shrink: 0;">
+    <div class="welcome-header shadow-sm mb-4 d-flex align-items-center justify-content-between">
+    
+        <div class="d-flex flex-column">
+            <h1 class="h3 mb-2" style="font-weight: 700;">武里日本語教室 管理システム</h1>
+            <p class="text-muted mb-2">こんにちは、<strong>{{ current_user.name }}</strong> さん（権限: {{ current_user.role }}）</p>
+            <div style="max-width:250px !important;">
+                <a href="{{ url_for('auth.manual') }}" class="manual-btn-card shadow-sm">
+                <div class="manual-icon">
                     <i class="bi bi-question-circle-fill"></i>
                 </div>
-                <div>
-                    <h6 class="mb-1" style="font-weight: 600;">使い方マニュアル</h6>
+                <div class="text-start">
+                    <div style="font-weight: 600; font-size: 0.9rem;">使い方マニュアル</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">操作方法・動画解説</div>
                 </div>
             </a>
+            </div>
         </div>
+    
+        <div>
+            <a href="{{ url_for('auth.logout') }}" class="btn-logout d-inline-flex align-items-center gap-1">
+                    <i class="bi bi-box-arrow-right"></i> ログアウト
+                </a>
+            
+        </div>
+    
     </div>
 
     <div class="row g-4 mb-5">
