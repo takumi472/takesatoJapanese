@@ -22,57 +22,57 @@
     .menu-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); border-color: #673ab7; }
     .icon-circle { width: 60px; height: 60px; background-color: #f0ebf8; color: #673ab7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 15px; }
     .count-badge { font-size: 14px; background-color: #e8f0fe; color: #1a73e8; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-    .btn-logout { 
-        color: #d93025; 
-        text-decoration: none; 
-        font-size: 14px; 
-        border: 1px solid #d93025; 
-        padding: 6px 16px; 
+    .btn-logout {
+        color: #d93025;
+        text-decoration: none;
+        font-size: 14px;
+        border: 1px solid #d93025;
+        padding: 6px 16px;
         /* border-radius: 50px;  */
-        transition: all 0.2s; 
+        transition: all 0.2s;
         font-weight: 500;
     }
-    .btn-logout:hover { 
-        background-color: #d93025; 
-        color: #fff !important; 
+    .btn-logout:hover {
+        background-color: #d93025;
+        color: #fff !important;
     }
     .transition-card { transition: transform 0.2s, box-shadow 0.2s; }
     .transition-card:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
     .chart-container-pie { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
-    .manual-btn-card { 
-        background-color: #fff; 
-        border: 1px solid #dadce0; 
-        border-radius: 8px; 
+    .manual-btn-card {
+        background-color: #fff;
+        border: 1px solid #dadce0;
+        border-radius: 8px;
         padding: 5px;
-        text-decoration: none; 
-        color: #202124; 
+        text-decoration: none;
+        color: #202124;
         display: flex;
         align-items: center;
         gap: 12px;
         transition: all 0.2s;
     }
-    .manual-btn-card:hover { 
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1); 
+    .manual-btn-card:hover {
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
         border-color: #0d6efd;
         color: #0d6efd;
     }
-    .manual-icon { 
-        width: 36px; 
-        height: 36px; 
-        background-color: #e7f3ff; 
+    .manual-icon {
+        width: 36px;
+        height: 36px;
+        background-color: #e7f3ff;
         color: #0d6efd;
-        border-radius: 50%; 
-        display: flex; 
-        align-items: center; 
-        justify-content: center; 
-        font-size: 18px; 
+        border-radius: 50%;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 18px;
     }
 </style>
 </head>
 <body>
 <div class="dashboard-container mb-5">
     <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-start flex-wrap gap-3">
-    
+
         <div>
             <h1 class="h3 mb-2" style="font-weight: 700;">武里日本語教室 管理システム</h1>
             <p class="text-muted mb-2">
@@ -86,14 +86,14 @@
                 </a>
             </div>
         </div>
-    
+
         <div >
-            <a href="{{ url_for('auth.logout') }}" class="btn-logout d-inline-flex align-items-center gap-1">
+            <a href="#" onClick="showDialog()" class="btn-logout d-inline-flex align-items-center gap-1">
                     <i class="bi bi-box-arrow-right"></i> ログアウト
                 </a>
-            
+
         </div>
-    
+
     </div>
 
     <div class="row row-cols-1 row-cols-sm-2 row-cols-lg-4 g-4 mb-5">
@@ -168,7 +168,7 @@
 
     <h4 class="h5 mb-3 mt-3 fw-bold">受講生データ分析</h4>
     <div class="row g-4 mb-5">
-        
+
         <div class="col-md-6">
             <div class="card p-4 shadow-sm border-0 h-100">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">教室を知ったきっかけ</h5>
@@ -181,7 +181,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <div class="col-md-6">
             <div class="card p-4 shadow-sm border-0 h-100">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">JLPT（日本語能力試験）レベル</h5>
@@ -194,7 +194,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <div class="col-md-6">
             <div class="card p-4 shadow-sm border-0 h-100">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">居住地域</h5>
@@ -207,7 +207,7 @@
                 {% endif %}
             </div>
         </div>
-        
+
         <div class="col-md-6">
             <div class="card p-4 shadow-sm border-0 h-100">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">出身国</h5>
@@ -344,6 +344,12 @@
             options: pieOptions
         });
     {% endif %}
+
+    function showDialog(){
+        if (window.confirm("ログアウトしますか？")) {
+            window.open("{{ url_for('auth.logout') }}");
+        }
+    }
 </script>
 </body>
 </html>
