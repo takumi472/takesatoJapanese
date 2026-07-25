@@ -1,10 +1,13 @@
 # app/student/routes.py
 import io
 import os
-from datetime import datetime, timedelta, date, timezone
 from collections import defaultdict
 import json
-
+import base64
+from functools import lru_cache
+from urllib3.exceptions import InsecureRequestWarning
+from datetime import datetime, timedelta, date, timezone
+from xhtml2pdf import pisa
 import cloudinary
 import cloudinary.uploader
 import requests
@@ -16,11 +19,10 @@ from flask import (
     url_for,
     flash,
     current_app,
+    jsonify,
     make_response,
 )
 from flask_login import login_required, current_user
-from fpdf import FPDF
-from PIL import Image
 from sqlalchemy.orm import joinedload
 from werkzeug.utils import secure_filename
 
@@ -32,15 +34,24 @@ student_bp = Blueprint("student", __name__)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
-REGION_DATA = {}
-current_dir = os.path.dirname(os.path.abspath(__file__))
-region_data_path = os.path.join(current_dir, "..", "common", "region_data.json")
-with open(region_data_path, "r", encoding="utf-8") as f:
-    REGION_DATA = json.load(f)
-MOTHER_LANGUAGE = {}
-mother_language_path = os.path.join(current_dir, "..", "common", "mother_language.json")
-with open(mother_language_path, "r", encoding="utf-8") as f:
-    MOTHER_LANGUAGE = json.load(f)
+
+@lru_cache(maxsize=None)
+def get_region_data():
+    """地域データをJSONファイルから読み込み、キャッシュする"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(current_dir, "..", "common", "region_data.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+
+@lru_cache(maxsize=None)
+def get_mother_language_data():
+    """母語データをJSONファイルから読み込み、キャッシュする"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(current_dir, "..", "common", "mother_language.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def allowed_file(filename):
@@ -121,8 +132,8 @@ def create_student():
             return render_template(
                 "student/create.html",
                 staff_list=Staff.query.all(),
-                region_data=REGION_DATA,
-                mother_language_data=MOTHER_LANGUAGE,
+                region_data=get_region_data(),
+                mother_language_data=get_mother_language_data(),
                 google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"),
             )
 
@@ -158,8 +169,8 @@ def create_student():
     return render_template(
         "student/create.html",
         staff_list=staff_list,
-        region_data=REGION_DATA,
-        mother_language_data=MOTHER_LANGUAGE,
+        region_data=get_region_data(),
+        mother_language_data=get_mother_language_data(),
         google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"),
     )
 
@@ -194,11 +205,14 @@ def student_list():
         student.display_image = student.face_photo_path
         student.latest_log_date = latest_date
 
-        if latest_date:
-            if latest_date < threshold_date:
-                inactive_students.append(student)
-            else:
-                active_students.append(student)
+        # 優先フラグが立っている生徒は、最終学習日に関わらず常に「継続中」として扱う
+        if student.is_priority:
+            active_students.append(student)
+            continue
+
+        # 優先でない生徒は、従来通り最終学習日で判定
+        if latest_date and latest_date >= threshold_date:
+            active_students.append(student)
         else:
             inactive_students.append(student)
 
@@ -207,6 +221,24 @@ def student_list():
         active_students=active_students,
         inactive_students=inactive_students,
     )
+
+
+@student_bp.route("/<int:id>/toggle-priority", methods=["POST"])
+@login_required
+@roles_required("admin", "staff")
+def toggle_student_priority(id):
+    """生徒の優先フラグを切り替えるAPI"""
+    student = Student.query.get_or_404(id)
+    data = request.get_json()
+    is_priority = data.get("is_priority")
+
+    if is_priority is None:
+        return jsonify({"status": "error", "message": "is_priority is required"}), 400
+
+    student.is_priority = bool(is_priority)
+    db.session.commit()
+
+    return jsonify({"status": "success", "student_id": id, "is_priority": student.is_priority})
 
 
 # app/student/routes.py 内
@@ -227,8 +259,8 @@ def update_student(id):
                     "student/edit.html",
                     student=student,
                     staff_list=Staff.query.all(),
-                    region_data=REGION_DATA,
-                    mother_language_data=MOTHER_LANGUAGE,
+                    region_data=get_region_data(),
+                    mother_language_data=get_mother_language_data(),
                     google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"),
                 )
             if face_photo_path:
@@ -245,8 +277,8 @@ def update_student(id):
         "student/edit.html",
         student=student,
         staff_list=Staff.query.all(),
-        region_data=REGION_DATA,
-        mother_language_data=MOTHER_LANGUAGE,
+        region_data=get_region_data(),
+        mother_language_data=get_mother_language_data(),
         google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"),
     )
 
@@ -261,172 +293,211 @@ def attendance_list():
     else:
         target_date = datetime.now().date()
 
-    # 2. その日の学習録（出席データ）をすべて取得
-    # student や staff のリレーションをまとめて読み込む(joinedload)と処理が高速になります
-    logs = LearningRecord.query.filter_by(lesson_date=target_date).all()
+    # 2. その日の学習記録がある生徒と、優先設定されている生徒の両方を取得
+    logs = (
+        LearningRecord.query.options(
+            joinedload(LearningRecord.student), joinedload(LearningRecord.writer_staff)
+        )
+        .filter_by(lesson_date=target_date)
+        .all()
+    )
+    # 学習記録から生徒IDと担当者名のマップを作成
+    attended_students_map = {
+        log.student.id: log.writer_staff.name if log.writer_staff else "自習"
+        for log in logs
+        if log.student
+    }
 
-    # 3. 国籍ごとに生徒をグループ化する辞書を作成
-    # 構造: { "ベトナム": [生徒1, 生徒2], "ミャンマー": [生徒3] }
+    # 優先設定されている生徒を取得
+    priority_students = Student.query.filter_by(is_priority=True).all()
+    priority_student_ids = {s.id for s in priority_students}
+
+    # 表示対象となる全生徒IDを結合（重複排除）
+    all_student_ids = set(attended_students_map.keys()) | priority_student_ids
+    all_students = Student.query.filter(Student.id.in_(all_student_ids)).all()
+
+    # 3. 国籍ごとに生徒をグループ化
     grouped_students = defaultdict(list)
-
-    for log in logs:
-        student = log.student
-        if student:
-            # テンプレート側で表示しやすいように、担当スタッフの名前を一時的に生徒オブジェクトに持たせる
-            # print(dir(log.staff_id))
-            staff_info = User.query.filter_by(id=log.staff_id).first().name
-            student.assigned_staff_name = staff_info if staff_info else "自習"
-            # 国籍をキーにしてグループに追加
-            country = student.country_of_origin or "不明"
-            grouped_students[country].append(student)
+    for student in all_students:
+        # その日の担当者名を設定（出席していなければ '─'）
+        student.assigned_staff_name = attended_students_map.get(student.id, "─")
+        country = student.country_of_origin or "不明"
+        grouped_students[country].append(student)
 
     return render_template(
         "student/attendence.html",
         target_date=target_date,
         grouped_students=dict(grouped_students),  # 扱いやすいように通常の辞書型に変換
-        total_count=len(logs),
+        total_count=len(all_students),
     )
-
-
-# PDF生成用の定数
-PDF_HEADER_ROW_HEIGHT = 10
-PDF_DATA_ROW_HEIGHT = 20
-PDF_COL_WIDTH_NO = 15
-PDF_COL_WIDTH_NAME = 60
-PDF_COL_WIDTH_PHOTO = 20
-PDF_COL_WIDTH_COUNTRY = 30
-PDF_COL_WIDTH_STAFF = 30
-PDF_COL_WIDTH_NEXT_DATE = 30
-PDF_ROWS_PER_PAGE = 12  # 1ページあたりのデータ行数
-PDF_NEXT_DATE_OFFSET_DAYS = 8  # 次回日付の計算オフセット
-
-
-# FPDFに日本語フォントを読み込ませるための準備
-# 1. プロジェクト内に .ttf フォントファイルを用意してください（例: fonts/ipaexg.ttf）
-# 2. Vercelの制限を回避するため、外部コンパイルが不要なこの構成で動かします
-
-
-class PDF(FPDF):
-    def header(self):
-        self.set_font("Arial", "B", 12)
-        self.cell(0, 10, "Attendance List", 0, 1, "C")
-
-
-def get_pdf_image(image_path_or_url):
-    if not image_path_or_url:
-        return ""
-    if image_path_or_url.startswith(("http://", "https://")):
-        try:
-            response = requests.get(image_path_or_url, timeout=5)
-            if response.status_code == 200:
-                base64_data = base64.b64encode(response.content).decode("utf-8")
-                mime_type = (
-                    "image/png" if "png" in image_path_or_url.lower() else "image/jpeg"
-                )
-                return f"data:{mime_type};base64,{base64_data}"
-        except Exception:
-            pass
-    return ""
 
 
 @student_bp.route("/attendance/download-pdf")
 @login_required
 def download_attendance_pdf():
+    # 1. フロントエンドから日付と並び順IDを取得
     date_str = request.args.get("date")
+    order_str = request.args.get("order", "")
+    priority_ids_str = request.args.get("priority_ids", "")
+
     target_date = (
         datetime.strptime(date_str, "%Y-%m-%d").date()
         if date_str
         else datetime.now().date()
     )
 
-    logs = LearningRecord.query.filter_by(lesson_date=target_date).all()
+    # 日付カラム用の日付を計算
+    two_weeks_ago = target_date - timedelta(days=14)
+    one_week_ago = target_date - timedelta(days=7)
+    next_week = target_date + timedelta(days=7)
 
-    # PDF生成
-    pdf = PDF()
-    pdf.add_page()
+    # 2. 画面で並び替えたIDリストと、DBから取得した優先生徒IDリストを準備
+    ordered_ids = [int(id) for id in order_str.split(",") if id.isdigit()]
+    priority_ids = {int(id) for id in priority_ids_str.split(",") if id.isdigit()}
 
-    # 簡易テーブル作成（FPDFのCellを使用）
-    font_path = os.path.join(current_app.root_path, "fonts", "ipaexg.ttf")
-    pdf.add_font("IPAexGothic", "", font_path, uni=True)
-    pdf.set_font("IPAexGothic", size=10)
+    # 3. 優先チェックが入っている生徒をDBから取得
+    priority_students_from_db = Student.query.filter_by(is_priority=True).all()
+    priority_student_ids_from_db = {s.id for s in priority_students_from_db}
 
-    next_date = (
-        datetime.strptime(date_str, "%Y-%m-%d").date() + timedelta(days=8)
-        if date_str
-        else datetime.now().date() + timedelta(days=8)
+    # 4. 最終的にPDFに表示する生徒のIDリストを作成
+    # (優先DB > 画面の並び順)
+    final_student_ids = sorted(list(priority_student_ids_from_db), reverse=True)
+    for sid in ordered_ids:
+        if sid not in priority_student_ids_from_db:
+            final_student_ids.append(sid)
+
+    # 5. 該当日の学習記録と生徒情報を取得
+    logs = (
+        LearningRecord.query.options(joinedload(LearningRecord.student))
+        .filter(LearningRecord.lesson_date == target_date)
+        .all()
     )
-    # headers = ["No", "Name", "", "Country", "Staff", str(next_date)]
-    pdf.cell(15, 10, "No", border=1)
-    pdf.cell(60, 10, "Name", border=1)
-    pdf.cell(20, 10, "Photo", border=1)
-    pdf.cell(30, 10, "Country", border=1)
-    pdf.cell(30, 10, "Staff", border=1)
-    pdf.cell(30, 10, str(next_date), border=1)
-    pdf.ln()
+    students_map = {log.student.id: log for log in logs if log.student}
 
-    count = 0
-    for log in logs:
-        if count % 12 == 0 and count != 0:
-            pdf.cell(15, 10, "No", border=1)
-            pdf.cell(60, 10, "Name", border=1)
-            pdf.cell(20, 10, "Photo", border=1)
-            pdf.cell(30, 10, "Country", border=1)
-            pdf.cell(30, 10, "Staff", border=1)
-            pdf.cell(30, 10, str(next_date), border=1)
-            pdf.ln()
-        student = log.student
-        if student:
-            count += 1
-            staff_name = User.query.get(log.staff_id).name if log.staff_id else "未定"
+    # --- 過去の出席記録を取得 ---
+    student_ids_on_list = final_student_ids
+    past_dates = [one_week_ago, two_weeks_ago]
+    past_records = (
+        LearningRecord.query.options(joinedload(LearningRecord.writer_staff))
+        .filter(
+            LearningRecord.student_id.in_(student_ids_on_list),
+            LearningRecord.lesson_date.in_(past_dates),
+        )
+        .all()
+    )
 
-            # 画像データはVercelのメモリ制限を避けるため、今回は一旦テキスト情報のみで出力
-            # FPDFに画像を追加する場合は pdf.image() を使いますが、URLからは直接読み込めないため
-            # 必要であれば事前にキャッシュフォルダへ保存する等のロジックが必要です
-            row_height = 20
+    # 生徒IDと日付をキーにした担当者マップを作成
+    attendance_history = defaultdict(dict)
+    for rec in past_records:
+        if rec.writer_staff:
+            attendance_history[rec.student_id][rec.lesson_date] = rec.writer_staff.name
 
-            pdf.cell(15, row_height, str(count), border=1)
-            pdf.cell(60, row_height, student.name_kana, border=1)  # 文字数制限
-            try:
-                response = requests.get(student.face_photo_path, timeout=5)
-                if response.status_code == 200:
-                    # 2. メモリ上に画像を読み込む
-                    image_data = io.BytesIO(response.content)
-                    x_pos = pdf.get_x()
-                    y_pos = pdf.get_y()
-                    cell_width = 20
-                    pdf.cell(cell_width, row_height, "", border=1)
+    # 6. 優先生徒と通常生徒に振り分ける
+    priority_students = []
+    other_students = []
 
-                    # 3. PDFに画像を配置
-                    # x, y は枠内の位置、wは画像幅
-                    pdf.image(
-                        image_data,
-                        x=x_pos + 1,
-                        y=y_pos + 1,
-                        w=cell_width - 2,
-                        h=row_height - 2,
+    # SSL証明書の警告を非表示にする
+    requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
+
+    # 優先生徒と出席生徒の情報を取得
+    all_target_students = Student.query.filter(Student.id.in_(final_student_ids)).all()
+    all_students_map = {s.id: s for s in all_target_students}
+
+    for student_id in final_student_ids:
+        student = all_students_map.get(student_id)
+        if not student:
+            continue
+
+        # その日の出席情報があれば担当者名を取得、なければ「自習」
+        if student_id in students_map:
+            log = students_map[student_id]
+            staff_user = Staff.query.get(log.staff_id)
+            student.assigned_staff_name = (
+                staff_user.first_name_kanji if staff_user else "─"
+            )
+
+            # 過去の担当者情報を生徒オブジェクトにセット
+            student.staff_one_week_ago = attendance_history.get(student.id, {}).get(
+                one_week_ago, ""
+            )
+            student.staff_two_weeks_ago = attendance_history.get(student.id, {}).get(
+                two_weeks_ago, ""
+            )
+        else:
+            student.assigned_staff_name = "─"
+
+            # --- 画像をBase64に変換する処理を追加 ---
+            student.face_photo_base64 = None  # 属性を初期化しておく
+            if student.face_photo_path:
+                try:
+                    # SSL検証を無効にして画像データを取得
+                    response = requests.get(
+                        student.face_photo_path, verify=False, timeout=10
                     )
-                    # pdf.set_x(x_pos + cell_width)
-                else:
-                    print(f"画像取得失敗: ステータスコード {response.status_code}")
-            except Exception as e:
-                print(f"画像ダウンロードエラー: {e}")
-            # pdf.image(student.face_photo_path, x=40 + 1, y=40 + 1, w=40 - 2, h=40 - 2)
-            # pdf.cell(40, 40, get_pdf_image(student.face_photo_path), border=1)
-            pdf.cell(30, row_height, student.country_of_origin or "N/A", border=1)
-            pdf.cell(30, row_height, staff_name, border=1)
-            pdf.cell(30, row_height, "", border=1)
-            pdf.ln()
+                    if response.status_code == 200:
+                        # Base64エンコードして、テンプレートで使えるようにData URI形式にする
+                        # ★注意: student.face_photo_path を上書きしない！
+                        # データベースのフィールドを汚してしまい、autoflush時にエラーを引き起こす原因になる。
+                        # テンプレート専用の新しい属性に格納する。
+                        b64_data = base64.b64encode(response.content).decode("utf-8")
+                        student.face_photo_base64 = f"data:image/jpeg;base64,{b64_data}"
+                except Exception as e:
+                    current_app.logger.error(
+                        f"Failed to fetch or encode image for student {student.id}: {e}"
+                    )
 
-    # ストリームに出力
+        # 優先生徒は必ず出席者リストへ。それ以外の生徒は出席記録がある場合のみリストに追加。
+        if student.is_priority or student_id in students_map:
+            priority_students.append(student)
+        else:
+            other_students.append(student)
+    all_students = priority_students + other_students
+
+    # 7. HTMLテンプレートをレンダリング
+    rendered_html = render_template(
+        "student/attendance_pdf_template.html",
+        date_two_weeks_ago=two_weeks_ago.strftime("%m/%d"),
+        date_one_week_ago=one_week_ago.strftime("%m/%d"),
+        date_target=target_date.strftime("%m/%d"),
+        date_next_week=next_week.strftime("%m/%d"),
+        all_students=all_students,
+        num_priority=len(priority_students),
+    )
+
+    # 8. xhtml2pdf を使ってPDFを生成
     pdf_buffer = io.BytesIO()
-    pdf.output(pdf_buffer)
-    pdf_data = pdf_buffer.getvalue()
+    font_path = os.path.join(current_app.root_path, "static", "fonts", "ipaexg.ttf")
 
-    # 応答を作成
-    response = make_response(pdf_data)
+    # --- 修正: SSL検証を無効化し、日本語フォントを正しく参照させるためのコールバック ---
+    import ssl
+
+    # SSL証明書の検証を無効にするグローバルコンテキストを作成
+    # これにより、xhtml2pdfが外部URL（例: Cloudinary）から画像を取得する際のSSLエラーを回避します。
+    ssl._create_default_https_context = ssl._create_unverified_context
+
+    def link_callback(uri, rel):
+        # 日本語フォントファイルへのパスを解決
+        if "HeiseiKakuGo-W5" in uri or "HeiseiMin-W3" in uri:
+            return font_path
+        # それ以外のローカルファイル（CSSなど）へのパスを解決
+        # URIが外部リソース（http/https/data）でない場合にのみ、ローカルパスを解決
+        return uri
+
+    pisa_status = pisa.CreatePDF(
+        io.StringIO(rendered_html),
+        dest=pdf_buffer,
+        encoding="utf-8",
+        link_callback=link_callback,
+    )
+
+    if pisa_status.err:
+        return "PDF生成中にエラーが発生しました。", 500
+
+    # 9. PDFをレスポンスとして返す
+    pdf_buffer.seek(0)
+    response = make_response(pdf_buffer.read())
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = (
         f"attachment; filename=attendance_{target_date}.pdf"
     )
-
     return response

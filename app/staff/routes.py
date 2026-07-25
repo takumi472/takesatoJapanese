@@ -14,6 +14,7 @@ import cloudinary.uploader
 from flask import current_app  # current_appはログなどで使用するため残す
 import os
 import json
+from functools import lru_cache
 from email.message import EmailMessage
 
 staff_bp = Blueprint("staff", __name__)
@@ -33,15 +34,17 @@ CLOUDINARY_EAGER_TRANSFORMATION = [
     }
 ]
 
-REGION_DATA = {}
-current_dir = os.path.dirname(os.path.abspath(__file__))
-region_data_path = os.path.join(current_dir, "..", "common", "region_data.json")
-with open(region_data_path, "r", encoding="utf-8") as f:
-    REGION_DATA = json.load(f)
-MOTHER_LANGUAGE = {}
-mother_language_path = os.path.join(current_dir, "..", "common", "mother_language.json")
-with open(mother_language_path, "r", encoding="utf-8") as f:
-    MOTHER_LANGUAGE = json.load(f)
+
+@lru_cache(maxsize=None)
+def get_region_data():
+    """地域データをJSONファイルから読み込み、キャッシュする"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(current_dir, "..", "common", "region_data.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# MOTHER_LANGUAGEはstaff/routes.pyでは使われていないため、キャッシュ関数は不要
 
 
 # --- ヘルパー関数 ---
@@ -105,13 +108,17 @@ def create_staff():
         line_user_id = request.form.get("line_user_id")
         plain_password = request.form.get("password")
 
-        last_name = request.form.get("last_name_kanji", "").strip()
-        first_name = request.form.get("first_name_kanji", "").strip()
+        is_admin = current_user.role == "admin"
 
-        # 必須フィールドのバリデーション
+        # --- バリデーション ---
+        # 管理者の場合はメールとパスワードのみ必須。それ以外は従来通り。
+        required_fields_missing = False
         if not email or not plain_password:
-            flash("メールアドレスとパスワードは必須です。", "danger")
-            return render_template("staff/edit.html", staff=None)
+            required_fields_missing = True
+
+        if required_fields_missing:
+            flash("メールアドレスとパスワードは必須入力です。", "danger")
+            return render_template("staff/edit.html", staff=None, is_admin=is_admin)
 
         # ユーザー名（メールアドレス）の重複チェック
         if User.query.filter_by(username=email).first():
@@ -119,11 +126,14 @@ def create_staff():
                 "このGmailアドレスは既にシステムアカウントとして登録されています。",
                 "danger",
             )
-            return render_template("staff/edit.html", staff=None)
+            return render_template("staff/edit.html", staff=None, is_admin=is_admin)
+
+        last_name = request.form.get("last_name_kanji", "").strip()
+        first_name = request.form.get("first_name_kanji", "").strip()
 
         # フルネームの生成
         full_name = f"{last_name} {first_name}".strip()
-        if not full_name:
+        if not full_name and email:
             full_name = email.split("@")[0]
 
         # 顔写真のアップロード
@@ -134,7 +144,7 @@ def create_staff():
             and request.files["face_photo"].filename != ""
         ):
             # アップロードに失敗したが、ファイルが選択されていた場合
-            return render_template("staff/edit.html", staff=None)
+            return render_template("staff/edit.html", staff=None, is_admin=is_admin)
 
         try:
             # 1. ユーザーアカウント作成
@@ -153,17 +163,17 @@ def create_staff():
                 user_id=new_user.id,
                 email=email,
                 face_photo_path=face_photo_path,  # ★ データベースにファイル名を保存
-                last_name_kanji=last_name,
-                first_name_kanji=first_name,
-                last_name_kana=request.form.get("last_name_kana"),
-                first_name_kana=request.form.get("first_name_kana"),
-                post_code=request.form.get("post_code"),
-                address=request.form.get("address"),
-                tel_main=request.form.get("tel_main"),
+                last_name_kanji=last_name or "",
+                first_name_kanji=first_name or "",
+                last_name_kana=request.form.get("last_name_kana") or "",
+                first_name_kana=request.form.get("first_name_kana") or "",
+                post_code=request.form.get("post_code") or "",
+                address=request.form.get("address") or "",
+                tel_main=request.form.get("tel_main") or "",
                 tel_sub=request.form.get("tel_sub"),
                 exp_jp=request.form.get("exp_jp"),
                 exp_other=request.form.get("exp_other"),
-                hobbies=request.form.get("hobbies"),
+                hobbies=request.form.get("hobbies") or "",
                 skills=request.form.get("skills"),
                 qualifications=request.form.get("qualifications"),
             )
@@ -250,7 +260,9 @@ Lineグループ：https://line.me/ti/g/8YXH2Hqac2
             current_app.logger.error(f"Error creating staff: {e}", exc_info=True)
             flash(f"登録中にエラーが発生しました: {str(e)}", "danger")
 
-    return render_template("staff/edit.html", staff=None)
+    return render_template(
+        "staff/edit.html", staff=None, is_admin=current_user.role == "admin"
+    )
 
 
 # スタッフ情報の編集（写真の差し替え変更に対応）
@@ -309,15 +321,21 @@ def edit_staff(id):
 @staff_bp.route("/")
 @login_required
 def staff_list():
-    # staffsテーブルから、IDの昇順で全スタッフのレコードを取得
-    all_staff = Staff.query.order_by(Staff.id.asc()).all()
+    # N+1問題対策: joinedload を使って、関連するUserオブジェクトも一度に取得する
+    from sqlalchemy.orm import joinedload
+
+    all_staff = (
+        Staff.query.options(joinedload(Staff.user)).order_by(Staff.id.asc()).all()
+    )
 
     for staff in all_staff:
         temp_prefecture = ""
         temp_city = ""
-        for region in REGION_DATA.keys():
-            for pref in REGION_DATA[region].keys():
-                for city in REGION_DATA[region][pref]:
+        # staff.address が None または空文字の場合のチェックを追加
+        region_data = get_region_data()
+        for region in region_data.keys():
+            for pref in region_data[region].keys():
+                for city in region_data[region][pref]:
                     if city in staff.address:
                         temp_prefecture = pref
                         temp_city = city

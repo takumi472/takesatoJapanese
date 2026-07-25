@@ -301,17 +301,33 @@ def dashboard():
     student_map = {r.week: r.count for r in student_data}
     staff_map = {r.week: r.count for r in staff_data}
 
-    students = Student.query.all()
+    # --- パフォーマンス改善: DB側で集計 ---
+    # 以前の実装: students = Student.query.all() で全件取得してからPythonでループ処理
+    # 改善後: DBのgroup_byとcountを使い、必要な集計結果のみを取得
+    def get_counts(column):
+        """指定されたカラムの非NULL値の数をグループ化して取得するヘルパー関数"""
+        return (
+            db.session.query(column, func.count(column))
+            .filter(column.isnot(None))
+            .group_by(column)
+            .all()
+        )
 
     # 属性データの集計
-    how_knew_counts = Counter([s.how_knew_class for s in students if s.how_knew_class])
-    jlpt_counts = Counter([s.jlpt_level for s in students if s.jlpt_level])
-    area_counts = Counter(
-        [s.residential_area if s.residential_area else "不明" for s in students]
+    how_knew_counts = dict(get_counts(Student.how_knew_class))
+    jlpt_counts = dict(get_counts(Student.jlpt_level))
+    country_counts = dict(get_counts(Student.country_of_origin))
+
+    # 居住地はNULLの場合 '不明' として扱いたいので、個別に処理
+    area_results = (
+        db.session.query(
+            func.coalesce(Student.residential_area, "不明"),
+            func.count(Student.id),
+        )
+        .group_by(func.coalesce(Student.residential_area, "不明"))
+        .all()
     )
-    country_counts = Counter(
-        [s.country_of_origin for s in students if s.country_of_origin]
-    )
+    area_counts = dict(area_results)
 
     return render_template(
         "dashboard.html",

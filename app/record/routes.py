@@ -77,7 +77,10 @@ def create_record():
     else:
         staff_list = Staff.query.filter(Staff.user_id == current_user.id).all()
 
-    students = Student.query.all()
+    # パフォーマンス改善提案:
+    # 生徒数が非常に多い場合、全件取得は非効率になる可能性があります。
+    # 将来的には、Ajaxによる検索機能やID直接入力など、UIの変更を検討すると良いでしょう。
+    students = Student.query.order_by(Student.name_kana).all()
 
     return render_template(
         "record/create.html",
@@ -93,9 +96,12 @@ def create_record():
 @login_required
 def record_list(student_id):
     # 生徒情報と、その生徒に紐づく全学習記録を取得
+    from sqlalchemy.orm import joinedload
+
     student = Student.query.get_or_404(student_id)
     records = (
-        LearningRecord.query.filter_by(student_id=student_id)
+        LearningRecord.query.options(joinedload(LearningRecord.writer_staff))
+        .filter_by(student_id=student_id)
         .order_by(LearningRecord.lesson_date.desc())
         .all()
     )
