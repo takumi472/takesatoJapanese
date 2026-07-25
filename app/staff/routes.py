@@ -14,6 +14,7 @@ import cloudinary.uploader
 from flask import current_app  # current_appはログなどで使用するため残す
 import os
 import json
+from functools import lru_cache
 from email.message import EmailMessage
 
 staff_bp = Blueprint("staff", __name__)
@@ -33,15 +34,17 @@ CLOUDINARY_EAGER_TRANSFORMATION = [
     }
 ]
 
-REGION_DATA = {}
-current_dir = os.path.dirname(os.path.abspath(__file__))
-region_data_path = os.path.join(current_dir, "..", "common", "region_data.json")
-with open(region_data_path, "r", encoding="utf-8") as f:
-    REGION_DATA = json.load(f)
-MOTHER_LANGUAGE = {}
-mother_language_path = os.path.join(current_dir, "..", "common", "mother_language.json")
-with open(mother_language_path, "r", encoding="utf-8") as f:
-    MOTHER_LANGUAGE = json.load(f)
+
+@lru_cache(maxsize=None)
+def get_region_data():
+    """地域データをJSONファイルから読み込み、キャッシュする"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(current_dir, "..", "common", "region_data.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+# MOTHER_LANGUAGEはstaff/routes.pyでは使われていないため、キャッシュ関数は不要
 
 
 # --- ヘルパー関数 ---
@@ -318,15 +321,21 @@ def edit_staff(id):
 @staff_bp.route("/")
 @login_required
 def staff_list():
-    # staffsテーブルから、IDの昇順で全スタッフのレコードを取得
-    all_staff = Staff.query.order_by(Staff.id.asc()).all()
+    # N+1問題対策: joinedload を使って、関連するUserオブジェクトも一度に取得する
+    from sqlalchemy.orm import joinedload
+
+    all_staff = (
+        Staff.query.options(joinedload(Staff.user)).order_by(Staff.id.asc()).all()
+    )
 
     for staff in all_staff:
         temp_prefecture = ""
         temp_city = ""
-        for region in REGION_DATA.keys():
-            for pref in REGION_DATA[region].keys():
-                for city in REGION_DATA[region][pref]:
+        # staff.address が None または空文字の場合のチェックを追加
+        region_data = get_region_data()
+        for region in region_data.keys():
+            for pref in region_data[region].keys():
+                for city in region_data[region][pref]:
                     if city in staff.address:
                         temp_prefecture = pref
                         temp_city = city

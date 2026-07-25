@@ -4,6 +4,7 @@ import os
 from collections import defaultdict
 import json
 import base64
+from functools import lru_cache
 from urllib3.exceptions import InsecureRequestWarning
 from datetime import datetime, timedelta, date, timezone
 from xhtml2pdf import pisa
@@ -32,15 +33,24 @@ student_bp = Blueprint("student", __name__)
 
 ALLOWED_EXTENSIONS = {"png", "jpg", "jpeg", "gif"}
 
-REGION_DATA = {}
-current_dir = os.path.dirname(os.path.abspath(__file__))
-region_data_path = os.path.join(current_dir, "..", "common", "region_data.json")
-with open(region_data_path, "r", encoding="utf-8") as f:
-    REGION_DATA = json.load(f)
-MOTHER_LANGUAGE = {}
-mother_language_path = os.path.join(current_dir, "..", "common", "mother_language.json")
-with open(mother_language_path, "r", encoding="utf-8") as f:
-    MOTHER_LANGUAGE = json.load(f)
+
+@lru_cache(maxsize=None)
+def get_region_data():
+    """地域データをJSONファイルから読み込み、キャッシュする"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(current_dir, "..", "common", "region_data.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+
+@lru_cache(maxsize=None)
+def get_mother_language_data():
+    """母語データをJSONファイルから読み込み、キャッシュする"""
+    current_dir = os.path.dirname(os.path.abspath(__file__))
+    path = os.path.join(current_dir, "..", "common", "mother_language.json")
+    with open(path, "r", encoding="utf-8") as f:
+        return json.load(f)
 
 
 def allowed_file(filename):
@@ -121,8 +131,8 @@ def create_student():
             return render_template(
                 "student/create.html",
                 staff_list=Staff.query.all(),
-                region_data=REGION_DATA,
-                mother_language_data=MOTHER_LANGUAGE,
+                region_data=get_region_data(),
+                mother_language_data=get_mother_language_data(),
                 google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"),
             )
 
@@ -158,8 +168,8 @@ def create_student():
     return render_template(
         "student/create.html",
         staff_list=staff_list,
-        region_data=REGION_DATA,
-        mother_language_data=MOTHER_LANGUAGE,
+        region_data=get_region_data(),
+        mother_language_data=get_mother_language_data(),
         google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"),
     )
 
@@ -227,8 +237,8 @@ def update_student(id):
                     "student/edit.html",
                     student=student,
                     staff_list=Staff.query.all(),
-                    region_data=REGION_DATA,
-                    mother_language_data=MOTHER_LANGUAGE,
+                    region_data=get_region_data(),
+                    mother_language_data=get_mother_language_data(),
                     google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"),
                 )
             if face_photo_path:
@@ -245,8 +255,8 @@ def update_student(id):
         "student/edit.html",
         student=student,
         staff_list=Staff.query.all(),
-        region_data=REGION_DATA,
-        mother_language_data=MOTHER_LANGUAGE,
+        region_data=get_region_data(),
+        mother_language_data=get_mother_language_data(),
         google_maps_api_key=current_app.config.get("GOOGLE_MAPS_API_KEY"),
     )
 
@@ -263,22 +273,27 @@ def attendance_list():
 
     # 2. その日の学習録（出席データ）をすべて取得
     # student や staff のリレーションをまとめて読み込む(joinedload)と処理が高速になります
-    logs = LearningRecord.query.filter_by(lesson_date=target_date).all()
+    logs = (
+        LearningRecord.query.options(
+            joinedload(LearningRecord.student), joinedload(LearningRecord.writer_staff)
+        )
+        .filter_by(lesson_date=target_date)
+        .all()
+    )
 
     # 3. 国籍ごとに生徒をグループ化する辞書を作成
     # 構造: { "ベトナム": [生徒1, 生徒2], "ミャンマー": [生徒3] }
     grouped_students = defaultdict(list)
 
     for log in logs:
-        student = log.student
-        if student:
-            # テンプレート側で表示しやすいように、担当スタッフの名前を一時的に生徒オブジェクトに持たせる
-            # print(dir(log.staff_id))
-            staff_info = User.query.filter_by(id=log.staff_id).first().name
-            student.assigned_staff_name = staff_info if staff_info else "自習"
+        if log.student:
+            # joinedloadにより、log.writer_staffは追加のクエリなしでアクセス可能
+            log.student.assigned_staff_name = (
+                log.writer_staff.name if log.writer_staff else "自習"
+            )
             # 国籍をキーにしてグループに追加
-            country = student.country_of_origin or "不明"
-            grouped_students[country].append(student)
+            country = log.student.country_of_origin or "不明"
+            grouped_students[country].append(log.student)
 
     return render_template(
         "student/attendence.html",
