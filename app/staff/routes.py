@@ -105,13 +105,17 @@ def create_staff():
         line_user_id = request.form.get("line_user_id")
         plain_password = request.form.get("password")
 
-        last_name = request.form.get("last_name_kanji", "").strip()
-        first_name = request.form.get("first_name_kanji", "").strip()
+        is_admin = current_user.role == "admin"
 
-        # 必須フィールドのバリデーション
+        # --- バリデーション ---
+        # 管理者の場合はメールとパスワードのみ必須。それ以外は従来通り。
+        required_fields_missing = False
         if not email or not plain_password:
-            flash("メールアドレスとパスワードは必須です。", "danger")
-            return render_template("staff/edit.html", staff=None)
+            required_fields_missing = True
+
+        if required_fields_missing:
+            flash("メールアドレスとパスワードは必須入力です。", "danger")
+            return render_template("staff/edit.html", staff=None, is_admin=is_admin)
 
         # ユーザー名（メールアドレス）の重複チェック
         if User.query.filter_by(username=email).first():
@@ -119,11 +123,14 @@ def create_staff():
                 "このGmailアドレスは既にシステムアカウントとして登録されています。",
                 "danger",
             )
-            return render_template("staff/edit.html", staff=None)
+            return render_template("staff/edit.html", staff=None, is_admin=is_admin)
+
+        last_name = request.form.get("last_name_kanji", "").strip()
+        first_name = request.form.get("first_name_kanji", "").strip()
 
         # フルネームの生成
         full_name = f"{last_name} {first_name}".strip()
-        if not full_name:
+        if not full_name and email:
             full_name = email.split("@")[0]
 
         # 顔写真のアップロード
@@ -134,7 +141,7 @@ def create_staff():
             and request.files["face_photo"].filename != ""
         ):
             # アップロードに失敗したが、ファイルが選択されていた場合
-            return render_template("staff/edit.html", staff=None)
+            return render_template("staff/edit.html", staff=None, is_admin=is_admin)
 
         try:
             # 1. ユーザーアカウント作成
@@ -153,17 +160,17 @@ def create_staff():
                 user_id=new_user.id,
                 email=email,
                 face_photo_path=face_photo_path,  # ★ データベースにファイル名を保存
-                last_name_kanji=last_name,
-                first_name_kanji=first_name,
-                last_name_kana=request.form.get("last_name_kana"),
-                first_name_kana=request.form.get("first_name_kana"),
-                post_code=request.form.get("post_code"),
-                address=request.form.get("address"),
-                tel_main=request.form.get("tel_main"),
+                last_name_kanji=last_name or "",
+                first_name_kanji=first_name or "",
+                last_name_kana=request.form.get("last_name_kana") or "",
+                first_name_kana=request.form.get("first_name_kana") or "",
+                post_code=request.form.get("post_code") or "",
+                address=request.form.get("address") or "",
+                tel_main=request.form.get("tel_main") or "",
                 tel_sub=request.form.get("tel_sub"),
                 exp_jp=request.form.get("exp_jp"),
                 exp_other=request.form.get("exp_other"),
-                hobbies=request.form.get("hobbies"),
+                hobbies=request.form.get("hobbies") or "",
                 skills=request.form.get("skills"),
                 qualifications=request.form.get("qualifications"),
             )
@@ -250,7 +257,9 @@ Lineグループ：https://line.me/ti/g/8YXH2Hqac2
             current_app.logger.error(f"Error creating staff: {e}", exc_info=True)
             flash(f"登録中にエラーが発生しました: {str(e)}", "danger")
 
-    return render_template("staff/edit.html", staff=None)
+    return render_template(
+        "staff/edit.html", staff=None, is_admin=current_user.role == "admin"
+    )
 
 
 # スタッフ情報の編集（写真の差し替え変更に対応）

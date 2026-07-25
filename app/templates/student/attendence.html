@@ -22,6 +22,17 @@
         .header-box { background: white; border-top: 8px solid #673ab7; border-radius: 8px; padding: 20px; }
         .country-section { background: white; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 25px; overflow: hidden; }
         .country-header { background-color: #f1f3f4; padding: 12px 20px; font-weight: bold; font-size: 16px; color: #202124; border-bottom: 1px solid #e0e0e0; }
+        .drag-handle {
+            cursor: move;
+            color: #adb5bd;
+        }
+        .sortable-ghost {
+            background: #e9ecef;
+            opacity: 0.7;
+        }
+        .sortable-drag {
+            background-color: #ffffff;
+        }
         .student-avatar { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 1px solid #ddd; }
         .avatar-placeholder { width: 45px; height: 45px; border-radius: 50%; background-color: #e8eaed; display: flex; align-items: center; justify-content: center; color: #5f6368; margin: 0 auto; }
 
@@ -90,7 +101,7 @@
             </div>
             <small class="text-muted">総出席数: <strong>{{ total_count }}</strong> 名（国籍順ソート）</small>
         </div>
-        
+
         <div class="no-print">
             <form method="GET" action="{{ url_for('student.attendance_list') }}" class="d-flex gap-2">
                 <input type="date" id="datePicker" name="date" class="form-control form-control-sm" value="{{ target_date }}">
@@ -108,23 +119,29 @@
             <span><i class="bi bi-flag-fill text-secondary me-2"></i>国籍: {{ country }}</span>
             <span class="badge bg-secondary">{{ students|length }}名</span>
         </div>
-        
+
         <div class="table-responsive">
             <table class="table table-hover align-middle mb-0">
                 <thead class="table-light" style="font-size: 13px;">
                     <tr>
-                        <th scope="col" class="text-center" style="width: 10%;">番号</th>
+                        <th scope="col" class="text-center no-print" style="width: 5%;">優先</th>
+                        <th scope="col" class="text-center" style="width: 10%;"><i class="bi bi-grip-vertical"></i> 番号</th>
                         <th scope="col" class="text-center" style="width: 15%;">顔写真</th>
                         <th scope="col" style="width: 35%;">生徒の名前</th>
                         <th scope="col" style="width: 20%;">国籍</th>
                         <th scope="col" style="width: 20%;">担当スタッフ</th>
                     </tr>
                 </thead>
-                <tbody>
+                <tbody class="sortable-list" data-country="{{ country }}">
                     {% for s in students %}
-                    <tr>
-                        <td class="text-center text-muted fw-bold">{{ loop.index }}</td>
-                        
+                    <tr data-student-id="{{ s.id }}">
+                        <td class="text-center no-print">
+                            <div class="form-check d-flex justify-content-center">
+                                <input class="form-check-input priority-check" type="checkbox" value="" title="PDF出力時に優先して上部に表示します">
+                            </div>
+                        </td>
+                        <td class="text-center text-muted fw-bold"><span class="drag-handle me-1"><i class="bi bi-grip-vertical"></i></span><span class="row-number">{{ loop.index }}</span></td>
+
                         <td class="text-center">
                             {% if s.face_photo_path %}
                                 <img src="{{ s.face_photo_path }}" class="student-avatar" alt="{{ s.name_kana }}">
@@ -132,11 +149,11 @@
                                 <div class="avatar-placeholder"><i class="bi bi-person-fill"></i></div>
                             {% endif %}
                         </td>
-                        
+
                         <td><div class="fw-bold text-dark">{{ s.name_kana }}</div></td>
-                        
+
                         <td><span class="text-secondary">{{ country }}</span></td>
-                        
+
                         <td>
                             <span class="badge bg-light text-dark border"><i class="bi bi-person-badge text-muted me-1"></i>{{ s.assigned_staff_name }}</span>
                         </td>
@@ -159,27 +176,63 @@
     戻る
 </button>
 
-
+<script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
 function downloadPDF() {
-    // 1. カレンダーで今選択されている日付（YYYY-MM-DD）を取得
     const selectedDate = document.getElementById('datePicker').value;
-    
     if (!selectedDate) {
         alert("日付が正しく選択されていません。");
         return;
     }
-    
-    // 2. Python側のPDFダウンロードURLを生成（日付パラメータを後ろにくっつける）
-    // 例: /attendance/download-pdf?date=2026-06-08
+
+    const studentOrder = [];
+    const priorityIds = [];
+
+    document.querySelectorAll('.sortable-list').forEach(tbody => {
+        const rows = Array.from(tbody.querySelectorAll('tr'));
+        rows.forEach(tr => {
+            const studentId = tr.dataset.studentId;
+            studentOrder.push(studentId);
+
+            const isPriority = tr.querySelector('.priority-check').checked;
+            if (isPriority) {
+                priorityIds.push(studentId);
+            }
+        });
+    });
+
     const baseUrl = "{{ url_for('student.download_attendance_pdf') }}";
-    const downloadUrl = `${baseUrl}?date=${selectedDate}`;
-    
-    // 3. 新しいタブで開く
+    const downloadUrl = `${baseUrl}?date=${selectedDate}&order=${studentOrder.join(',')}&priority_ids=${priorityIds.join(',')}`;
+
     window.open(downloadUrl, '_blank');
 }
+
+document.addEventListener('DOMContentLoaded', function () {
+    const sortableLists = document.querySelectorAll('.sortable-list');
+
+    sortableLists.forEach(list => {
+        new Sortable(list, {
+            handle: '.drag-handle',
+            animation: 150,
+            ghostClass: 'sortable-ghost',
+            dragClass: 'sortable-drag',
+            onEnd: function (evt) {
+                // 同じテーブル内での並び替えの場合のみ番号を更新
+                if (evt.from === evt.to) {
+                    const rows = evt.from.querySelectorAll('tr');
+                    rows.forEach((row, index) => {
+                        const numberCell = row.querySelector('.row-number');
+                        if (numberCell) {
+                            numberCell.textContent = index + 1;
+                        }
+                    });
+                }
+            }
+        });
+    });
+});
 
 </script>
 </body>

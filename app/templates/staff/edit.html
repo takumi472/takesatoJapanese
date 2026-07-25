@@ -26,7 +26,7 @@
         .form-control-gf:focus { border-color: #673ab7; border-bottom: 2px solid #673ab7; }
         .btn-submit { background-color: #673ab7; color: white; font-weight: 500; padding: 8px 24px; border-radius: 4px; border: none; }
         .btn-submit:hover { background-color: #512da8; color: white; }
-        
+
         /* 写真アップロード用スタイル */
         .preview-zone { max-width: 180px; margin-bottom: 15px; border: 1px solid #dadce0; padding: 4px; background: #fff; border-radius: 4px; }
         .preview-zone img { width: 100%; height: auto; display: block; object-fit: cover; }
@@ -103,15 +103,15 @@
 
         <div class="form-card shadow-sm">
             <label class="form-label">Gmailの登録（Gmailのアドレスを入力してください）<span class="required-star">*</span></label>
-            <input type="email" name="email" class="form-control-gf" 
-                   value="{{ staff.email if staff else '' }}" 
+            <input type="email" name="email" class="form-control-gf"
+                   value="{{ staff.email if staff else '' }}"
                    placeholder="回答を入力" required {% if staff %}readonly style="color: #70757a;"{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">Line ID<span class="required-star">*</span></label>
-            <input type="line_user_id" name="line_user_id" class="form-control-gf" 
-                   value="{{ user.line_user_id if staff else '' }}" 
+            <input type="line_user_id" name="line_user_id" class="form-control-gf"
+                   value="{{ user.line_user_id if staff else '' }}"
                    placeholder="回答を入力" required {% if staff %}readonly style="color: #70757a;"{% endif %}>
         </div>
 
@@ -124,13 +124,13 @@
         {% endif %}
 
         <div class="form-card shadow-sm">
-            <label class="form-label">(1) 顔写真のアップロード <span class="required-star">*</span></label>
+            <label class="form-label">(1) 顔写真のアップロード {% if not staff and not is_admin %}<span class="required-star">*</span>{% endif %}</label>
             <p class="text-muted" style="font-size: 13px; margin-top: -8px;">※スタッフ一覧に表示される顔写真を撮影、または選択してください（画像ファイル Max 10MB）</p>
-            
+
             <div class="preview-zone" id="preview_zone" style="display: {% if staff and staff.face_photo_path %}block{% else %}none{% endif %};">
                 <img id="photo_preview" src="{{ staff.face_photo_path if staff and staff.face_photo_path else '#' }}" alt="プレビュー画像">
             </div>
-            
+
             <div id="sample_box" class="sample-image-box mb-3 small text-muted" style="display: {% if staff and staff.face_photo_path %}none{% else %}block{% endif %};">
                 <span style="font-size: 2rem;">👤</span><br>顔写真の見本
             </div>
@@ -139,62 +139,62 @@
                 <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
                     <i class="bi bi-file-earmark-arrow-up"></i> 画像を選択
                 </button>
-                <input type="file" name="face_photo" id="face_photo_input" accept="image/*" {% if not staff %}required{% endif %}>
+                <input type="file" name="face_photo" id="face_photo_input" accept="image/*" required>
             </div>
             <span id="file_name_display" class="text-muted ms-2" style="font-size: 13px;"></span>
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">提出日（今日の日付を入力してください）<span class="required-star">*</span></label>
-            <input type="date" name="submission_date" class="form-control-gf" 
-                   value="{{ staff.submission_date.strftime('%Y-%m-%d') if staff and staff.submission_date else '' }}" required>
+            <label class="form-label">提出日（今日の日付を入力してください）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
+            <input type="date" name="submission_date" class="form-control-gf"
+                   value="{{ staff.submission_date.strftime('%Y-%m-%d') if staff and staff.submission_date else '' }}" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">苗字（漢字でご記入ください）<span class="required-star">*</span></label>
-            <input type="text" name="last_name_kanji" class="form-control-gf" 
-                   value="{{ staff.last_name_kanji if staff else '' }}" placeholder="回答を入力" required>
+            <label class="form-label">苗字（漢字でご記入ください）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
+            <input type="text" name="last_name_kanji" class="form-control-gf"
+                   value="{{ staff.last_name_kanji if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">名前（漢字でご記入ください）<span class="required-star">*</span></label>
-            <input type="text" name="first_name_kanji" class="form-control-gf" 
-                   value="{{ staff.first_name_kanji if staff else '' }}" placeholder="回答を入力" required>
+            <label class="form-label">名前（漢字でご記入ください）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
+            <input type="text" name="first_name_kanji" class="form-control-gf"
+                   value="{{ staff.first_name_kanji if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">苗字（ふりがな）<span class="required-star">*</span></label>
-            <input type="text" name="last_name_kana" class="form-control-gf" 
-                   value="{{ staff.last_name_kana if staff else '' }}" placeholder="回答を入力" required>
+            <label class="form-label">苗字（ふりがな）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
+            <input type="text" name="last_name_kana" class="form-control-gf"
+                   value="{{ staff.last_name_kana if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">名前（ふりがな）<span class="required-star">*</span></label>
-            <input type="text" name="first_name_kana" class="form-control-gf" 
-                   value="{{ staff.first_name_kana if staff else '' }}" placeholder="回答を入力" required>
+            <label class="form-label">名前（ふりがな）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
+            <input type="text" name="first_name_kana" class="form-control-gf"
+                   value="{{ staff.first_name_kana if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">郵便番号（記入例：3440102 ハイフンなし）<span class="required-star">*</span> <span id="address-loading-status" style="font-size: 12px; font-weight: normal;"></span></label>
-            <input type="text" id="zipcode" name="post_code" class="form-control-gf" 
-                   value="{{ staff.post_code if staff else '' }}" placeholder="回答を入力" required>
+            <label class="form-label">郵便番号（記入例：3440102 ハイフンなし）{% if not is_admin %}<span class="required-star">*</span>{% endif %} <span id="address-loading-status" style="font-size: 12px; font-weight: normal;"></span></label>
+            <input type="text" id="zipcode" name="post_code" class="form-control-gf"
+                   value="{{ staff.post_code if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">住所（記入例：春日部市大場1丁目1番1号 春日部アパート101号室）<span class="required-star">*</span></label>
-            <input type="text" id="address" name="address" class="form-control-gf" 
-                   value="{{ staff.address if staff else '' }}" placeholder="回答を入力" required>
+            <label class="form-label">住所（記入例：春日部市大場1丁目1番1号 春日部アパート101号室）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
+            <input type="text" id="address" name="address" class="form-control-gf"
+                   value="{{ staff.address if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
-            <label class="form-label">電話番号（本人 必須）<span class="required-star">*</span></label>
-            <input type="tel" name="tel_main" class="form-control-gf" 
-                   value="{{ staff.tel_main if staff else '' }}" placeholder="回答を入力" required>
+            <label class="form-label">電話番号（本人 必須）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
+            <input type="tel" name="tel_main" class="form-control-gf"
+                   value="{{ staff.tel_main if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">電話番号（本人以外）</label>
-            <input type="tel" name="tel_sub" class="form-control-gf" 
+            <input type="tel" name="tel_sub" class="form-control-gf"
                    value="{{ staff.tel_sub if staff else '' }}" placeholder="回答を入力">
         </div>
 
@@ -210,19 +210,19 @@
 
         <div class="form-card shadow-sm">
             <label class="form-label">趣味</label>
-            <input type="text" name="hobbies" class="form-control-gf" 
+            <input type="text" name="hobbies" class="form-control-gf"
                    value="{{ staff.hobbies if staff else '' }}" placeholder="回答を入力">
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">特技</label>
-            <input type="text" name="skills" class="form-control-gf" 
+            <input type="text" name="skills" class="form-control-gf"
                    value="{{ staff.skills if staff else '' }}" placeholder="回答を入力">
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">資格</label>
-            <input type="text" name="qualifications" class="form-control-gf" 
+            <input type="text" name="qualifications" class="form-control-gf"
                    value="{{ staff.qualifications if staff else '' }}" placeholder="回答を入力">
         </div>
 
@@ -255,7 +255,7 @@
         const previewImg = document.getElementById('photo_preview');
         const sampleBox = document.getElementById('sample_box');
         const filenameDisplay = document.getElementById('file_name_display');
-        
+
         if (file) {
             filenameDisplay.textContent = file.name;
             const reader = new FileReader();
