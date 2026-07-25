@@ -44,7 +44,7 @@
             border-bottom: 2px solid #673ab7;
             padding-bottom: 5px;
         }
-        
+
         /* ローディング画面のスタイル */
         #loading-overlay {
             position: fixed;
@@ -266,7 +266,7 @@
     const regionSelect = document.getElementById('region-select');
     const prefSelect = document.getElementById('pref-select');
     const citySelect = document.getElementById('city-select');
-    
+
     // 既存の階層プルダウンのロジック
     regionSelect.addEventListener('change', function() {
         const region = this.value;
@@ -330,7 +330,7 @@
     // --- 居住地域のキーワード検索機能 ---
     const areaSearchInput = document.getElementById('area-search');
     const searchFeedback = document.getElementById('search-feedback');
-    
+
     areaSearchInput.addEventListener('keydown', function(event) {
         // IME変換中（未確定）のEnterキー入力は無視する
         if (event.isComposing || event.keyCode === 229) {
@@ -339,17 +339,17 @@
         if (event.key === 'Enter') {
             event.preventDefault(); // Enterキーによるフォーム送信などを防止
             const query = this.value.trim();
-            
+
             // 以前のフィードバックをクリアし、スタイルをリセット
-            searchFeedback.textContent = ''; 
-            searchFeedback.style.color = '#6c757d'; 
+            searchFeedback.textContent = '';
+            searchFeedback.style.color = '#6c757d';
             // 2文字以上で検索開始
             if (query.length < 2) {
                 searchFeedback.textContent = '入力してEnterを押すと該当する地域を自動で選択します';
                 searchFeedback.style.color = '#6c757d';
                 return;
             }
-    
+
             let found = false;
             let foundPref = '';
             let foundCity = '';
@@ -390,5 +390,11 @@
     });
 </script>
 
+<footer class="text-center text-muted py-4 mt-5">
+    <small>
+        © 2026 Phyo. All Rights Reserved.<br>
+        Designed & Built with ☕ by Phyo
+    </small>
+</footer>
 </body>
 </html>

@@ -442,7 +442,9 @@ def download_attendance_pdf():
     student_ids_on_list = final_student_ids
     past_dates = [one_week_ago, two_weeks_ago, three_weeks_ago]
     past_records = (
-        LearningRecord.query.options(joinedload(LearningRecord.writer_staff))
+        LearningRecord.query.options(
+            joinedload(LearningRecord.writer_staff).joinedload(User.staff_profile)
+        )
         .filter(
             LearningRecord.student_id.in_(student_ids_on_list),
             LearningRecord.lesson_date.in_(past_dates),
