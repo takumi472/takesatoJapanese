@@ -406,19 +406,61 @@ document.addEventListener('DOMContentLoaded', function () {
                     console.log(`生徒ID: ${data.student_id} の優先度を ${data.is_priority} に更新しました。`);
 
                     if (isPriority) {
-                        // 優先をONにした場合：カードを「継続中」セクションに即時移動させる
+                        // 優先をONにした場合：カードを「継続中」セクションに移動し、スタイルをアクティブ状態に変更
                         const cardWrapper = this.closest('.student-wrapper');
                         if (cardWrapper) {
                             const activeContainer = document.getElementById('activeStudentsContainer');
                             activeContainer.prepend(cardWrapper); // 先頭に追加
 
-                            // スタイルをアクティブ状態に戻す（任意）
-                            cardWrapper.querySelector('.student-card')?.classList.remove('card-inactive');
-                            cardWrapper.querySelector('.student-name')?.classList.remove('text-danger');
+                            // スタイルをアクティブ状態に変更
+                            const card = cardWrapper.querySelector('.student-card');
+                            const avatarContainer = cardWrapper.querySelector('.avatar-container');
+                            const avatarImg = cardWrapper.querySelector('.student-avatar');
+                            const avatarIcon = cardWrapper.querySelector('.bi-person-bounding-box');
+                            const recordButton = cardWrapper.querySelector('a[href*="/record/list/"]');
+                            const studentName = cardWrapper.querySelector('.student-name');
+
+                            card?.classList.remove('card-inactive');
+                            if(avatarContainer) avatarContainer.style.backgroundColor = ''; // CSSで定義された色に戻す
+                            if(avatarImg) avatarImg.style.borderColor = ''; // CSSで定義された色に戻す
+                            if(avatarIcon) {
+                                avatarIcon.classList.remove('text-danger');
+                                avatarIcon.classList.add('text-muted');
+                            }
+                            studentName?.classList.remove('text-danger');
+                            if(recordButton) {
+                                recordButton.classList.remove('btn-danger');
+                                recordButton.classList.add('btn-primary');
+                            }
                         }
                     } else {
-                        // 優先をOFFにした場合：サーバー側のロジックで再判定するためリロード
-                        location.reload();
+                        // 優先をOFFにした場合：カードを「直近２ヶ月出席されない生徒」セクションに移動し、スタイルを非アクティブ状態に変更
+                        const cardWrapper = this.closest('.student-wrapper');
+                        if (cardWrapper) {
+                            const inactiveContainer = document.getElementById('inactiveStudentsContainer');
+                            inactiveContainer.prepend(cardWrapper); // 先頭に追加
+
+                            // スタイルを非アクティブ状態に変更
+                            const card = cardWrapper.querySelector('.student-card');
+                            const avatarContainer = cardWrapper.querySelector('.avatar-container');
+                            const avatarImg = cardWrapper.querySelector('.student-avatar');
+                            const avatarIcon = cardWrapper.querySelector('.bi-person-bounding-box');
+                            const recordButton = cardWrapper.querySelector('a[href*="/record/list/"]');
+                            const studentName = cardWrapper.querySelector('.student-name');
+
+                            card?.classList.add('card-inactive');
+                            if(avatarContainer) avatarContainer.style.backgroundColor = '#fff0f1';
+                            if(avatarImg) avatarImg.style.borderColor = '#f5c6cb';
+                            if(avatarIcon) {
+                                avatarIcon.classList.remove('text-muted');
+                                avatarIcon.classList.add('text-danger');
+                            }
+                            studentName?.classList.add('text-danger');
+                            if(recordButton) {
+                                recordButton.classList.remove('btn-primary');
+                                recordButton.classList.add('btn-danger');
+                            }
+                        }
                     }
                 } else {
                     // 成功レスポンスだが、ステータスが 'error' の場合
@@ -435,6 +477,11 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 </script>
-
+<footer class="text-center text-muted py-4 mt-5">
+    <small>
+        © 2026 Phyo. All Rights Reserved.<br>
+        Designed & Built with ☕ by Phyo
+    </small>
+</footer>
 </body>
 </html>

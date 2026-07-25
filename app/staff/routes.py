@@ -329,18 +329,22 @@ def staff_list():
     )
 
     for staff in all_staff:
-        temp_prefecture = ""
-        temp_city = ""
-        # staff.address が None または空文字の場合のチェックを追加
+        if not staff.address:
+            continue
+
         region_data = get_region_data()
-        for region in region_data.keys():
-            for pref in region_data[region].keys():
-                for city in region_data[region][pref]:
+        found = False
+        for region, prefs in region_data.items():
+            for pref, cities in prefs.items():
+                for city in cities:
                     if city in staff.address:
-                        temp_prefecture = pref
-                        temp_city = city
-                        staff.address = f"{temp_prefecture}{temp_city}"
+                        staff.address = f"{pref}{city}"
+                        found = True
                         break
+                if found:
+                    break
+            if found:
+                break
 
     # テンプレート（list.html）にスタッフ一覧データを渡してレンダリング
     return render_template(

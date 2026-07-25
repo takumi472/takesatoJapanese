@@ -77,6 +77,17 @@
         .page-break {
             page-break-after: always;
         }
+
+        /* フッター用のスタイル */
+        .footer {
+            position: fixed;
+            bottom: -15mm; /* @pageのmargin-bottomより少し内側に配置 */
+            left: 0;
+            right: 0;
+            text-align: center;
+            font-size: 8pt;
+            color: #888;
+        }
     </style>
 </head>
 <body>
@@ -95,7 +106,7 @@
                 <th style="width: 13%;" class="text-center">{{ date_two_weeks_ago }}</th>
                 <th style="width: 13%;" class="text-center">{{ date_one_week_ago }}</th>
                 <th style="width: 13%;" class="text-center">{{ date_target }}</th>
-                <th style="width: 10%;" class="text-center">本日</th>
+                <th style="width: 10%;" class="text-center">{{ date_next_week }}</th>
             </tr>
         </thead>
         <tbody>
@@ -131,7 +142,7 @@
                             <th style="width: 13%;" class="text-center">{{ date_two_weeks_ago }}</th>
                             <th style="width: 13%;" class="text-center">{{ date_one_week_ago }}</th>
                             <th style="width: 13%;" class="text-center">{{ date_target }}</th>
-                            <th style="width: 10%;" class="text-center">本日</th>
+                            <th style="width: 10%;" class="text-center">{{ date_next_week }}</th>
                         </tr>
                     </thead>
                     <tbody>
