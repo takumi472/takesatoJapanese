@@ -57,11 +57,11 @@ class Staff(db.Model):
     submission_date = db.Column(db.Date)
     last_name_kanji = db.Column(db.String(50), nullable=False)
     first_name_kanji = db.Column(db.String(50), nullable=False)
-    last_name_kana = db.Column(db.String(50), nullable=False)
-    first_name_kana = db.Column(db.String(50), nullable=False)
-    post_code = db.Column(db.String(10), nullable=False)
-    address = db.Column(db.String(255), nullable=False)
-    tel_main = db.Column(db.String(20), nullable=False)
+    last_name_kana = db.Column(db.String(50))
+    first_name_kana = db.Column(db.String(50))
+    post_code = db.Column(db.String(10))
+    address = db.Column(db.String(255))
+    tel_main = db.Column(db.String(20))
     tel_sub = db.Column(db.String(20))
     exp_jp = db.Column(db.Text)
     exp_other = db.Column(db.Text)
@@ -91,6 +91,7 @@ class Student(db.Model):
     life_troubles = db.Column(db.Text)  # (10)
     how_knew_class = db.Column(db.String(50), nullable=False)  # (11)
     how_knew_class_other = db.Column(db.Text)  # (12)
+    is_priority = db.Column(db.Boolean, default=False, nullable=False)  # 優先フラグ
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 

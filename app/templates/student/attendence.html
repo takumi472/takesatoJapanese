@@ -137,7 +137,11 @@
                     <tr data-student-id="{{ s.id }}">
                         <td class="text-center no-print">
                             <div class="form-check d-flex justify-content-center">
-                                <input class="form-check-input priority-check" type="checkbox" value="" title="PDF出力時に優先して上部に表示します">
+                                <input class="form-check-input priority-check"
+                                       type="checkbox"
+                                       data-student-id="{{ s.id }}"
+                                       {% if s.is_priority %}checked{% endif %}
+                                       title="優先生徒として設定します。PDF出力や一覧表示で上位に表示されます。">
                             </div>
                         </td>
                         <td class="text-center text-muted fw-bold"><span class="drag-handle me-1"><i class="bi bi-grip-vertical"></i></span><span class="row-number">{{ loop.index }}</span></td>
@@ -234,6 +238,48 @@ document.addEventListener('DOMContentLoaded', function () {
     });
 });
 
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // すべての優先チェックボックスにイベントリスナーを設定
+    const checkboxes = document.querySelectorAll('.priority-check');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const studentId = this.dataset.studentId;
+            const isPriority = this.checked;
+
+            fetch(`/student/${studentId}/toggle-priority`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    is_priority: isPriority
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => { throw new Error(err.message || 'サーバーエラーが発生しました。'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log(`生徒ID: ${data.student_id} の優先度を ${data.is_priority} に更新しました。`);
+                    // ここでToast通知などを表示すると、より分かりやすくなります。
+                } else {
+                    throw new Error(data.message || '更新に失敗しました。');
+                }
+            })
+            .catch(error => {
+                console.error('優先度の更新中にエラーが発生しました:', error);
+                alert(`エラー: ${error.message}`);
+                // エラーが発生した場合、チェックボックスの状態を元に戻す
+                this.checked = !isPriority;
+            });
+        });
+    });
+});
 </script>
 </body>
 

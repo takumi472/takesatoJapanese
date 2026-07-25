@@ -19,6 +19,7 @@ from flask import (
     url_for,
     flash,
     current_app,
+    jsonify,
     make_response,
 )
 from flask_login import login_required, current_user
@@ -204,11 +205,14 @@ def student_list():
         student.display_image = student.face_photo_path
         student.latest_log_date = latest_date
 
-        if latest_date:
-            if latest_date < threshold_date:
-                inactive_students.append(student)
-            else:
-                active_students.append(student)
+        # 優先フラグが立っている生徒は、最終学習日に関わらず常に「継続中」として扱う
+        if student.is_priority:
+            active_students.append(student)
+            continue
+
+        # 優先でない生徒は、従来通り最終学習日で判定
+        if latest_date and latest_date >= threshold_date:
+            active_students.append(student)
         else:
             inactive_students.append(student)
 
@@ -217,6 +221,24 @@ def student_list():
         active_students=active_students,
         inactive_students=inactive_students,
     )
+
+
+@student_bp.route("/<int:id>/toggle-priority", methods=["POST"])
+@login_required
+@roles_required("admin", "staff")
+def toggle_student_priority(id):
+    """生徒の優先フラグを切り替えるAPI"""
+    student = Student.query.get_or_404(id)
+    data = request.get_json()
+    is_priority = data.get("is_priority")
+
+    if is_priority is None:
+        return jsonify({"status": "error", "message": "is_priority is required"}), 400
+
+    student.is_priority = bool(is_priority)
+    db.session.commit()
+
+    return jsonify({"status": "success", "student_id": id, "is_priority": student.is_priority})
 
 
 # app/student/routes.py 内
@@ -271,8 +293,7 @@ def attendance_list():
     else:
         target_date = datetime.now().date()
 
-    # 2. その日の学習録（出席データ）をすべて取得
-    # student や staff のリレーションをまとめて読み込む(joinedload)と処理が高速になります
+    # 2. その日の学習記録がある生徒と、優先設定されている生徒の両方を取得
     logs = (
         LearningRecord.query.options(
             joinedload(LearningRecord.student), joinedload(LearningRecord.writer_staff)
@@ -280,26 +301,34 @@ def attendance_list():
         .filter_by(lesson_date=target_date)
         .all()
     )
+    # 学習記録から生徒IDと担当者名のマップを作成
+    attended_students_map = {
+        log.student.id: log.writer_staff.name if log.writer_staff else "自習"
+        for log in logs
+        if log.student
+    }
 
-    # 3. 国籍ごとに生徒をグループ化する辞書を作成
-    # 構造: { "ベトナム": [生徒1, 生徒2], "ミャンマー": [生徒3] }
+    # 優先設定されている生徒を取得
+    priority_students = Student.query.filter_by(is_priority=True).all()
+    priority_student_ids = {s.id for s in priority_students}
+
+    # 表示対象となる全生徒IDを結合（重複排除）
+    all_student_ids = set(attended_students_map.keys()) | priority_student_ids
+    all_students = Student.query.filter(Student.id.in_(all_student_ids)).all()
+
+    # 3. 国籍ごとに生徒をグループ化
     grouped_students = defaultdict(list)
-
-    for log in logs:
-        if log.student:
-            # joinedloadにより、log.writer_staffは追加のクエリなしでアクセス可能
-            log.student.assigned_staff_name = (
-                log.writer_staff.name if log.writer_staff else "自習"
-            )
-            # 国籍をキーにしてグループに追加
-            country = log.student.country_of_origin or "不明"
-            grouped_students[country].append(log.student)
+    for student in all_students:
+        # その日の担当者名を設定（出席していなければ '─'）
+        student.assigned_staff_name = attended_students_map.get(student.id, "─")
+        country = student.country_of_origin or "不明"
+        grouped_students[country].append(student)
 
     return render_template(
         "student/attendence.html",
         target_date=target_date,
         grouped_students=dict(grouped_students),  # 扱いやすいように通常の辞書型に変換
-        total_count=len(logs),
+        total_count=len(all_students),
     )
 
 
@@ -322,11 +351,22 @@ def download_attendance_pdf():
     one_week_ago = target_date - timedelta(days=7)
     next_week = target_date + timedelta(days=7)
 
-    # 2. IDリストをPythonのリストに変換
+    # 2. 画面で並び替えたIDリストと、DBから取得した優先生徒IDリストを準備
     ordered_ids = [int(id) for id in order_str.split(",") if id.isdigit()]
     priority_ids = {int(id) for id in priority_ids_str.split(",") if id.isdigit()}
 
-    # 3. 該当日の学習記録と生徒情報を取得
+    # 3. 優先チェックが入っている生徒をDBから取得
+    priority_students_from_db = Student.query.filter_by(is_priority=True).all()
+    priority_student_ids_from_db = {s.id for s in priority_students_from_db}
+
+    # 4. 最終的にPDFに表示する生徒のIDリストを作成
+    # (優先DB > 画面の並び順)
+    final_student_ids = sorted(list(priority_student_ids_from_db), reverse=True)
+    for sid in ordered_ids:
+        if sid not in priority_student_ids_from_db:
+            final_student_ids.append(sid)
+
+    # 5. 該当日の学習記録と生徒情報を取得
     logs = (
         LearningRecord.query.options(joinedload(LearningRecord.student))
         .filter(LearningRecord.lesson_date == target_date)
@@ -335,7 +375,7 @@ def download_attendance_pdf():
     students_map = {log.student.id: log for log in logs if log.student}
 
     # --- 過去の出席記録を取得 ---
-    student_ids_on_list = list(students_map.keys())
+    student_ids_on_list = final_student_ids
     past_dates = [one_week_ago, two_weeks_ago]
     past_records = (
         LearningRecord.query.options(joinedload(LearningRecord.writer_staff))
@@ -352,20 +392,28 @@ def download_attendance_pdf():
         if rec.writer_staff:
             attendance_history[rec.student_id][rec.lesson_date] = rec.writer_staff.name
 
-    # 4. 優先生徒と通常生徒に振り分ける
+    # 6. 優先生徒と通常生徒に振り分ける
     priority_students = []
     other_students = []
 
     # SSL証明書の警告を非表示にする
     requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
-    for student_id in ordered_ids:
+    # 優先生徒と出席生徒の情報を取得
+    all_target_students = Student.query.filter(Student.id.in_(final_student_ids)).all()
+    all_students_map = {s.id: s for s in all_target_students}
+
+    for student_id in final_student_ids:
+        student = all_students_map.get(student_id)
+        if not student:
+            continue
+
+        # その日の出席情報があれば担当者名を取得、なければ「自習」
         if student_id in students_map:
             log = students_map[student_id]
-            student = log.student
             staff_user = Staff.query.get(log.staff_id)
             student.assigned_staff_name = (
-                staff_user.first_name_kanji if staff_user else "自習"
+                staff_user.first_name_kanji if staff_user else "─"
             )
 
             # 過去の担当者情報を生徒オブジェクトにセット
@@ -375,6 +423,8 @@ def download_attendance_pdf():
             student.staff_two_weeks_ago = attendance_history.get(student.id, {}).get(
                 two_weeks_ago, ""
             )
+        else:
+            student.assigned_staff_name = "─"
 
             # --- 画像をBase64に変換する処理を追加 ---
             student.face_photo_base64 = None  # 属性を初期化しておく
@@ -396,14 +446,14 @@ def download_attendance_pdf():
                         f"Failed to fetch or encode image for student {student.id}: {e}"
                     )
 
-            if student_id in priority_ids:
-                priority_students.append(student)
-            else:
-                other_students.append(student)
-
+        # 優先生徒は必ず出席者リストへ。それ以外の生徒は出席記録がある場合のみリストに追加。
+        if student.is_priority or student_id in students_map:
+            priority_students.append(student)
+        else:
+            other_students.append(student)
     all_students = priority_students + other_students
 
-    # 5. HTMLテンプレートをレンダリング
+    # 7. HTMLテンプレートをレンダリング
     rendered_html = render_template(
         "student/attendance_pdf_template.html",
         date_two_weeks_ago=two_weeks_ago.strftime("%m/%d"),
@@ -414,7 +464,7 @@ def download_attendance_pdf():
         num_priority=len(priority_students),
     )
 
-    # 6. xhtml2pdf を使ってPDFを生成
+    # 8. xhtml2pdf を使ってPDFを生成
     pdf_buffer = io.BytesIO()
     font_path = os.path.join(current_app.root_path, "static", "fonts", "ipaexg.ttf")
 
@@ -443,7 +493,7 @@ def download_attendance_pdf():
     if pisa_status.err:
         return "PDF生成中にエラーが発生しました。", 500
 
-    # 7. PDFをレスポンスとして返す
+    # 9. PDFをレスポンスとして返す
     pdf_buffer.seek(0)
     response = make_response(pdf_buffer.read())
     response.headers["Content-Type"] = "application/pdf"

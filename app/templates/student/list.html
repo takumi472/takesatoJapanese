@@ -184,7 +184,7 @@
                             <i class="bi bi-person-bounding-box text-muted" style="font-size: 3.5rem;"></i>
                         {% endif %}
                     </div>
-                    
+
                     <div class="p-3 text-center d-flex flex-column flex-grow-1 justify-content-between">
                         <div>
                             <div class="student-name text-truncate" title="{{ s.name_kana }}">
@@ -205,8 +205,19 @@
                             </div>
                             {% endif %}
                         </div>
-                        
-                        <div class="mt-3 pt-2 border-top">
+
+                        <div class="d-flex justify-content-center align-items-center my-2 pt-2 border-top">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input priority-checkbox"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="priority-check-{{ s.id }}"
+                                       data-student-id="{{ s.id }}"
+                                       {% if s.is_priority %}checked{% endif %}>
+                                <label class="form-check-label" for="priority-check-{{ s.id }}">優先</label>
+                            </div>
+                        </div>
+                        <div class="mt-1 pt-2 border-top">
                             <a href="{{ url_for('record.record_list', student_id=s.id) }}" class="btn btn-primary btn-sm w-100 d-flex align-items-center justify-content-center gap-1 mb-2" style="font-size: 12px;">
                                 <i class="bi bi-pencil-square"></i> 学習記録リスト
                             </a>
@@ -238,7 +249,7 @@
                             <i class="bi bi-person-bounding-box text-danger" style="font-size: 3.5rem;"></i>
                         {% endif %}
                     </div>
-                    
+
                     <div class="p-3 text-center d-flex flex-column flex-grow-1 justify-content-between">
                         <div>
                             <div class="student-name text-danger text-truncate" title="{{ s.name_kana }}">
@@ -261,8 +272,19 @@
                                 {% endif %}
                             </div>
                         </div>
-                        
-                        <div class="mt-3 pt-2 border-top">
+
+                        <div class="d-flex justify-content-center align-items-center my-2 pt-2 border-top">
+                            <div class="form-check form-switch">
+                                <input class="form-check-input priority-checkbox"
+                                       type="checkbox"
+                                       role="switch"
+                                       id="priority-check-{{ s.id }}"
+                                       data-student-id="{{ s.id }}"
+                                       {% if s.is_priority %}checked{% endif %}>
+                                <label class="form-check-label" for="priority-check-{{ s.id }}">優先</label>
+                            </div>
+                        </div>
+                        <div class="mt-1 pt-2 border-top">
                             <a href="{{ url_for('record.record_list', student_id=s.id) }}" class="btn btn-danger btn-sm w-100 d-flex align-items-center justify-content-center gap-1 mb-2" style="font-size: 12px;">
                                 <i class="bi bi-pencil-square"></i> 学習記録リスト
                             </a>
@@ -301,7 +323,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const createNoResultMessage = () => {
         const div = document.createElement('div');
         // Bootstrapのクラスを使って少し目立たせる
-        div.className = 'col-12 text-muted ps-3 mt-4 mb-4'; 
+        div.className = 'col-12 text-muted ps-3 mt-4 mb-4';
         div.style.display = 'none'; // 初期状態は非表示
         div.innerHTML = '<i class="bi bi-info-circle me-1"></i>検索条件に一致する受講生はいません。';
         return div;
@@ -310,7 +332,7 @@ document.addEventListener('DOMContentLoaded', function() {
     // 各コンテナの末尾にメッセージ要素をセットしておく
     const activeNoResultMsg = createNoResultMessage();
     const inactiveNoResultMsg = createNoResultMessage();
-    
+
     if (activeContainer) activeContainer.appendChild(activeNoResultMsg);
     if (inactiveContainer) inactiveContainer.appendChild(inactiveNoResultMsg);
 
@@ -321,7 +343,7 @@ document.addEventListener('DOMContentLoaded', function() {
         // 各セクションごとに絞り込みとメッセージ表示を行う共通関数
         const filterCards = (container, noResultMsg) => {
             if (!container) return;
-            
+
             const wrappers = container.querySelectorAll('.student-wrapper');
             let visibleCount = 0; // 表示されているカードの数を数える
 
@@ -349,6 +371,67 @@ document.addEventListener('DOMContentLoaded', function() {
         // 継続中の生徒と、出席していない生徒の両方に対して実行
         filterCards(activeContainer, activeNoResultMsg);
         filterCards(inactiveContainer, inactiveNoResultMsg);
+    });
+});
+</script>
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    // すべての優先チェックボックスにイベントリスナーを設定
+    const checkboxes = document.querySelectorAll('.priority-checkbox');
+    checkboxes.forEach(checkbox => {
+        checkbox.addEventListener('change', function () {
+            const studentId = this.dataset.studentId;
+            const isPriority = this.checked;
+
+            // ローディング表示などをここに追加することも可能
+
+            fetch(`/student/${studentId}/toggle-priority`, {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    is_priority: isPriority
+                })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    // エラーレスポンスの場合は例外を投げる
+                    return response.json().then(err => { throw new Error(err.message || 'サーバーエラーが発生しました。'); });
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.status === 'success') {
+                    console.log(`生徒ID: ${data.student_id} の優先度を ${data.is_priority} に更新しました。`);
+
+                    if (isPriority) {
+                        // 優先をONにした場合：カードを「継続中」セクションに即時移動させる
+                        const cardWrapper = this.closest('.student-wrapper');
+                        if (cardWrapper) {
+                            const activeContainer = document.getElementById('activeStudentsContainer');
+                            activeContainer.prepend(cardWrapper); // 先頭に追加
+
+                            // スタイルをアクティブ状態に戻す（任意）
+                            cardWrapper.querySelector('.student-card')?.classList.remove('card-inactive');
+                            cardWrapper.querySelector('.student-name')?.classList.remove('text-danger');
+                        }
+                    } else {
+                        // 優先をOFFにした場合：サーバー側のロジックで再判定するためリロード
+                        location.reload();
+                    }
+                } else {
+                    // 成功レスポンスだが、ステータスが 'error' の場合
+                    throw new Error(data.message || '更新に失敗しました。');
+                }
+            })
+            .catch(error => {
+                console.error('優先度の更新中にエラーが発生しました:', error);
+                alert(`エラー: ${error.message}`);
+                // エラーが発生した場合、チェックボックスの状態を元に戻す
+                this.checked = !isPriority;
+            });
+        });
     });
 });
 </script>
