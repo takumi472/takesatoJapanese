@@ -32,6 +32,8 @@
         .table th {
             background-color: #f8f9fa;
             border-bottom: 2px solid #e0e0e0;
+            border-left: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
             padding: 6px;
             font-size: 10pt;
             text-align: left;
@@ -40,6 +42,8 @@
         .table td {
             padding: 8px;
             border-bottom: 1px solid #e0e0e0;
+            border-left: 1px solid #e0e0e0;
+            border-right: 1px solid #e0e0e0;
             font-size: 11pt;
             vertical-align: middle; /* 写真と文字の上下中央揃え */
         }
@@ -85,32 +89,32 @@
         <thead>
             <tr>
                 <th style="width: 5%;" class="text-center">No.</th>
-                <th style="width: 25%;">生徒の名前</th>
-                <th style="width: 15%;" class="text-center">写真</th>
-                <th style="width: 13%;">国籍</th>
+                <th style="width: 23%;">生徒の名前</th>
+                <th style="width: 10%;" class="text-center">写真</th>
+                <th style="width: 13%;" class="text-center">{{ date_three_weeks_ago }}</th>
                 <th style="width: 13%;" class="text-center">{{ date_two_weeks_ago }}</th>
                 <th style="width: 13%;" class="text-center">{{ date_one_week_ago }}</th>
                 <th style="width: 13%;" class="text-center">{{ date_target }}</th>
-                <th style="width: 13%;" class="text-center">次回 {{ date_next_week }}</th>
+                <th style="width: 10%;" class="text-center">本日</th>
             </tr>
         </thead>
         <tbody>
             {% for student in all_students %}
             <tr>
-                <td class="text-center" style="color: #888;">{{ loop.index }}</td>
-                <td style="font-weight: bold;">{{ student.name_kana }}</td>
-                <td class="text-center">
+                <td class="text-center" style="width: 5%; color: #888;">{{ loop.index }}</td>
+                <td style="width: 23%; font-weight: bold;">{{ student.name_kana }}</td>
+                <td class="text-center" style="width: 10%;">
                     {% if student.face_photo_path %}
                         <img src="{{ student.face_photo_path }}" class="student-avatar">
                     {% else %}
                         <span class="no-avatar">👤</span>
                     {% endif %}
                 </td>
-                <td>{{ student.country_of_origin }}</td>
-                <td class="text-center">{{ student.staff_two_weeks_ago }}</td>
-                <td class="text-center">{{ student.staff_one_week_ago }}</td>
-                <td class="text-center">{{ student.assigned_staff_name }}</td>
-                <td class="text-center"></td>
+                <td class="text-center" style="width: 13%;">{{ student.staff_three_weeks_ago }}</td>
+                <td class="text-center" style="width: 13%;">{{ student.staff_two_weeks_ago }}</td>
+                <td class="text-center" style="width: 13%;">{{ student.staff_one_week_ago }}</td>
+                <td class="text-center" style="width: 13%;">{{ student.assigned_staff_name }}</td>
+                <td class="text-center" style="width: 10%;"></td>
             </tr>
 
             {# --- 12行ごとに改ページを挿入 --- #}
@@ -121,13 +125,13 @@
                     <thead>
                         <tr>
                             <th style="width: 5%;" class="text-center">No.</th>
-                            <th style="width: 25%;">生徒の名前</th>
-                            <th style="width: 15%;" class="text-center">写真</th>
-                            <th style="width: 13%;">国籍</th>
+                            <th style="width: 23%;">生徒の名前</th>
+                            <th style="width: 10%;" class="text-center">写真</th>
+                            <th style="width: 13%;" class="text-center">{{ date_three_weeks_ago }}</th>
                             <th style="width: 13%;" class="text-center">{{ date_two_weeks_ago }}</th>
                             <th style="width: 13%;" class="text-center">{{ date_one_week_ago }}</th>
                             <th style="width: 13%;" class="text-center">{{ date_target }}</th>
-                            <th style="width: 13%;" class="text-center">次回 {{ date_next_week }}</th>
+                            <th style="width: 10%;" class="text-center">本日</th>
                         </tr>
                     </thead>
                     <tbody>

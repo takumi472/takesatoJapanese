@@ -1,0 +1,221 @@
+<!doctype html>
+<html lang="ja">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>
+      PDF出力プレビュー - {{ target_date.strftime('%Y年%m月%d日') }}
+    </title>
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
+      rel="stylesheet"
+    />
+    <style>
+      body { background-color: #f8f9fa; }
+      .main-container { max-width: 900px; margin: 30px auto; }
+      .header-box { background: white; border-top: 8px solid #20c997; border-radius: 8px; padding: 20px; }
+      .drag-handle { cursor: move; color: #adb5bd; }
+      .sortable-ghost { background: #e9ecef; opacity: 0.7; }
+      .sortable-drag { background-color: #ffffff; }
+      .student-avatar { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 1px solid #ddd; }
+      .avatar-placeholder { width: 45px; height: 45px; border-radius: 50%; background-color: #e8eaed; display: flex; align-items-center; justify-content-center; color: #5f6368; }
+      .btn-floating-back {
+          position: fixed; bottom: 30px; right: 30px; width: 56px; height: 56px; border-radius: 50%;
+          background-color: #6c757d; color: white; z-index: 1050; transition: transform 0.2s, background-color 0.2s;
+      }
+      .btn-floating-back:hover { background-color: #5a6268; transform: scale(1.1); color: white; }
+    </style>
+  </head>
+  <body>
+    <div class="container main-container">
+      <div class="header-box shadow-sm mb-4">
+        <div
+          class="d-flex justify-content-between align-items-center flex-wrap gap-3"
+        >
+          <div>
+            <div class="d-flex align-items-center gap-2">
+              <h1 class="h4 mb-0 fw-bold">PDF出力 最終確認</h1>
+            </div>
+            <small class="text-muted"
+              >{{ target_date.strftime('%Y年%m月%d日') }} の出席リスト</small
+            >
+          </div>
+          <div>
+            <button
+              type="button"
+              class="btn btn-success btn-lg align-items-center gap-2"
+              onclick="downloadPDF()"
+            >
+              <i class="bi bi-file-earmark-pdf-fill"></i> この内容でPDFを生成
+            </button>
+          </div>
+        </div>
+        <hr />
+        <p class="text-muted mb-0">
+          <i class="bi bi-info-circle-fill me-1"></i> 各行の左側にある
+          <i class="bi bi-grip-vertical"></i>
+          ハンドルをドラッグ＆ドロップして、PDFに出力する順番を自由に変更できます。
+          「優先」にチェックを入れた生徒は、PDFの上部にまとめて表示されます。
+        </p>
+      </div>
+
+      <div class="table-responsive bg-white rounded shadow-sm border">
+        <table class="table table-hover align-middle mb-0">
+          <thead class="table-light" style="font-size: 13px">
+            <tr>
+              <th scope="col" class="text-center" style="width: 5%">優先</th>
+              <th scope="col" class="text-center" style="width: 10%">
+                <i class="bi bi-grip-vertical"></i> 番号
+              </th>
+              <th scope="col" class="text-center" style="width: 10%">顔写真</th>
+              <th scope="col" style="width: 25%">生徒の名前</th>
+              <th scope="col" class="text-center" style="width: 12%">
+                {{ date_three_weeks_ago.strftime('%m/%d') }}
+              </th>
+              <th scope="col" class="text-center" style="width: 12%">
+                {{ date_two_weeks_ago.strftime('%m/%d') }}
+              </th>
+              <th scope="col" class="text-center" style="width: 12%">
+                {{ date_one_week_ago.strftime('%m/%d') }}
+              </th>
+              <th scope="col" class="text-center" style="width: 12%">
+                {{ target_date.strftime('%m/%d') }}
+              </th>
+            </tr>
+          </thead>
+          <tbody class="sortable-list">
+            {% for s in students %}
+            <tr data-student-id="{{ s.id }}">
+              <td class="text-center">
+                <div class="form-check d-flex justify-content-center">
+                  <input
+                    class="form-check-input priority-check"
+                    type="checkbox"
+                    {%
+                    if
+                    s.is_priority
+                    %}checked{%
+                    endif
+                    %}
+                    title="PDF出力時に優先して上部に表示します"
+                  />
+                </div>
+              </td>
+              <td class="text-center text-muted fw-bold">
+                <span class="drag-handle me-1"
+                  ><i class="bi bi-grip-vertical"></i></span
+                ><span class="row-number">{{ loop.index }}</span>
+              </td>
+              <td class="text-center">
+                {% if s.face_photo_path %}
+                <img
+                  src="{{ s.face_photo_path }}"
+                  class="student-avatar"
+                  alt="{{ s.name_kana }}"
+                />
+                {% else %}
+                <div class="avatar-placeholder">
+                  <i class="bi bi-person-fill"></i>
+                </div>
+                {% endif %}
+              </td>
+              <td><div class="fw-bold text-dark">{{ s.name_kana }}</div></td>
+              <td class="text-center">{{ s.staff_three_weeks_ago }}</td>
+              <td class="text-center">{{ s.staff_two_weeks_ago }}</td>
+              <td class="text-center">{{ s.staff_one_week_ago }}</td>
+              <td class="text-center">{{ s.assigned_staff_name }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- 浮遊戻るボタン -->
+    <button
+      type="button"
+      class="btn btn-floating-back shadow d-flex align-items-center justify-content-center border-0"
+      onclick="window.history.back()"
+      title="戻る"
+    >
+      <i class="bi bi-chevron-left"></i>
+    </button>
+
+    <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script>
+      function downloadPDF() {
+        const selectedDate = "{{ target_date.strftime('%Y-%m-%d') }}";
+        const studentOrder = [];
+        const priorityIds = [];
+
+        document.querySelectorAll(".sortable-list tr").forEach((tr) => {
+          const studentId = tr.dataset.studentId;
+          studentOrder.push(studentId);
+
+          const isPriority = tr.querySelector(".priority-check").checked;
+          if (isPriority) {
+            priorityIds.push(studentId);
+          }
+        });
+
+        const baseUrl = "{{ url_for('student.download_attendance_pdf') }}";
+        const downloadUrl = `${baseUrl}?date=${selectedDate}&order=${studentOrder.join(",")}&priority_ids=${priorityIds.join(",")}`;
+
+        // 新しいタブでPDFを開く
+        window.open(downloadUrl, "_blank");
+      }
+
+      document.addEventListener("DOMContentLoaded", function () {
+        const sortableList = document.querySelector(".sortable-list");
+
+        new Sortable(sortableList, {
+          handle: ".drag-handle",
+          animation: 150,
+          ghostClass: "sortable-ghost",
+          dragClass: "sortable-drag",
+          onEnd: function (evt) {
+            // 番号を振り直す
+            const rows = evt.from.querySelectorAll("tr");
+            rows.forEach((row, index) => {
+              const numberCell = row.querySelector(".row-number");
+              if (numberCell) {
+                numberCell.textContent = index + 1;
+              }
+            });
+          },
+        });
+
+        // 優先チェックボックスの変更をDBに保存する機能
+        const checkboxes = document.querySelectorAll(".priority-check");
+        checkboxes.forEach((checkbox) => {
+          checkbox.addEventListener("change", function () {
+            const row = this.closest("tr");
+            const studentId = row.dataset.studentId;
+            const isPriority = this.checked;
+
+            fetch(`/student/${studentId}/toggle-priority`, {
+              method: "POST",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({ is_priority: isPriority }),
+            })
+              .then((response) => response.json())
+              .then((data) => {
+                if (data.status !== "success") {
+                  alert("優先設定の保存に失敗しました。");
+                  this.checked = !isPriority; // 失敗したらチェックを元に戻す
+                }
+              })
+              .catch(() => {
+                alert("通信エラーが発生しました。");
+                this.checked = !isPriority;
+              });
+          });
+        });
+      });
+    </script>
+  </body>
+</html>

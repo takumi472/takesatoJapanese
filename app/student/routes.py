@@ -44,7 +44,6 @@ def get_region_data():
         return json.load(f)
 
 
-
 @lru_cache(maxsize=None)
 def get_mother_language_data():
     """母語データをJSONファイルから読み込み、キャッシュする"""
@@ -332,6 +331,71 @@ def attendance_list():
     )
 
 
+@student_bp.route("/attendance/pdf-preview")
+@login_required
+def attendance_pdf_preview():
+    """PDF出力前の最終確認・並び替え画面を表示する"""
+    # 1. 出席リスト画面から日付と生徒の初期順序を取得
+    date_str = request.args.get("date")
+    order_str = request.args.get("order", "")
+
+    target_date = (
+        datetime.strptime(date_str, "%Y-%m-%d").date()
+        if date_str
+        else datetime.now().date()
+    )
+
+    ordered_ids = [int(id) for id in order_str.split(",") if id.isdigit()]
+
+    if not ordered_ids:
+        flash("PDFに出力する生徒がいません。", "warning")
+        return redirect(url_for("student.attendance_list", date=date_str))
+
+    # 2. 渡された順序を維持して生徒情報を取得
+    students_query = Student.query.filter(Student.id.in_(ordered_ids)).all()
+    students_map = {s.id: s for s in students_query}
+    students = [students_map[sid] for sid in ordered_ids if sid in students_map]
+
+    # 3. 過去3週間分の日付を計算
+    one_week_ago = target_date - timedelta(days=7)
+    two_weeks_ago = target_date - timedelta(days=14)
+    three_weeks_ago = target_date - timedelta(days=21)
+
+    # 4. 当日および過去の学習記録を一括で取得
+    all_dates_to_check = [target_date, one_week_ago, two_weeks_ago, three_weeks_ago]
+    records = (
+        LearningRecord.query.filter(
+            LearningRecord.lesson_date.in_(all_dates_to_check),
+            LearningRecord.student_id.in_(ordered_ids),
+        )
+        .options(joinedload(LearningRecord.writer_staff))
+        .all()
+    )
+
+    # 5. 生徒IDと日付をキーにした担当者マップを作成
+    attendance_history = defaultdict(dict)
+    for rec in records:
+        if rec.writer_staff:
+            attendance_history[rec.student_id][rec.lesson_date] = rec.writer_staff.name
+
+    # 6. 各生徒オブジェクトに担当者情報をセット
+    for student in students:
+        history = attendance_history.get(student.id, {})
+        student.assigned_staff_name = history.get(target_date, "─")
+        student.staff_one_week_ago = history.get(one_week_ago, "")
+        student.staff_two_weeks_ago = history.get(two_weeks_ago, "")
+        student.staff_three_weeks_ago = history.get(three_weeks_ago, "")
+
+    return render_template(
+        "student/attendance_pdf_preview.html",
+        target_date=target_date,
+        students=students,
+        date_one_week_ago=one_week_ago,
+        date_two_weeks_ago=two_weeks_ago,
+        date_three_weeks_ago=three_weeks_ago,
+    )
+
+
 @student_bp.route("/attendance/download-pdf")
 @login_required
 def download_attendance_pdf():
@@ -347,22 +411,22 @@ def download_attendance_pdf():
     )
 
     # 日付カラム用の日付を計算
+    three_weeks_ago = target_date - timedelta(days=21)
     two_weeks_ago = target_date - timedelta(days=14)
     one_week_ago = target_date - timedelta(days=7)
     next_week = target_date + timedelta(days=7)
-
-    # 2. 画面で並び替えたIDリストと、DBから取得した優先生徒IDリストを準備
+    # 2. プレビュー画面で最終決定された並び順と優先IDを取得
     ordered_ids = [int(id) for id in order_str.split(",") if id.isdigit()]
     priority_ids = {int(id) for id in priority_ids_str.split(",") if id.isdigit()}
 
-    # 3. 優先チェックが入っている生徒をDBから取得
+    # 3. DBで「優先」設定されている生徒もリストに含める
     priority_students_from_db = Student.query.filter_by(is_priority=True).all()
     priority_student_ids_from_db = {s.id for s in priority_students_from_db}
 
     # 4. 最終的にPDFに表示する生徒のIDリストを作成
-    # (優先DB > 画面の並び順)
-    final_student_ids = sorted(list(priority_student_ids_from_db), reverse=True)
-    for sid in ordered_ids:
+    # プレビュー画面の並び順を最優先し、DBの優先生徒を追加する
+    final_student_ids = ordered_ids[:]  # コピーを作成
+    for sid in priority_student_ids_from_db:
         if sid not in priority_student_ids_from_db:
             final_student_ids.append(sid)
 
@@ -376,7 +440,7 @@ def download_attendance_pdf():
 
     # --- 過去の出席記録を取得 ---
     student_ids_on_list = final_student_ids
-    past_dates = [one_week_ago, two_weeks_ago]
+    past_dates = [one_week_ago, two_weeks_ago, three_weeks_ago]
     past_records = (
         LearningRecord.query.options(joinedload(LearningRecord.writer_staff))
         .filter(
@@ -389,8 +453,10 @@ def download_attendance_pdf():
     # 生徒IDと日付をキーにした担当者マップを作成
     attendance_history = defaultdict(dict)
     for rec in past_records:
-        if rec.writer_staff:
-            attendance_history[rec.student_id][rec.lesson_date] = rec.writer_staff.name
+        # ★修正: フルネームから姓のみに変更
+        if rec.writer_staff and rec.writer_staff.staff_profile:
+            first_name = rec.writer_staff.staff_profile.first_name_kanji
+            attendance_history[rec.student_id][rec.lesson_date] = first_name
 
     # 6. 優先生徒と通常生徒に振り分ける
     priority_students = []
@@ -422,6 +488,9 @@ def download_attendance_pdf():
             )
             student.staff_two_weeks_ago = attendance_history.get(student.id, {}).get(
                 two_weeks_ago, ""
+            )
+            student.staff_three_weeks_ago = attendance_history.get(student.id, {}).get(
+                three_weeks_ago, ""
             )
         else:
             student.assigned_staff_name = "─"
@@ -456,6 +525,7 @@ def download_attendance_pdf():
     # 7. HTMLテンプレートをレンダリング
     rendered_html = render_template(
         "student/attendance_pdf_template.html",
+        date_three_weeks_ago=three_weeks_ago.strftime("%m/%d"),
         date_two_weeks_ago=two_weeks_ago.strftime("%m/%d"),
         date_one_week_ago=one_week_ago.strftime("%m/%d"),
         date_target=target_date.strftime("%m/%d"),

@@ -105,8 +105,8 @@
         <div class="no-print">
             <form method="GET" action="{{ url_for('student.attendance_list') }}" class="d-flex gap-2">
                 <input type="date" id="datePicker" name="date" class="form-control form-control-sm" value="{{ target_date }}">
-                <button type="submit" class="btn btn-sm btn-primary" style="min-width:70px;">変更</button>
-                <button type="button" class="btn btn-sm btn-success align-items-center gap-1" onclick="downloadPDF()" style="min-width: 150px;">
+                <button type="submit" class="btn btn-sm btn-primary" style="min-width:70px;">日付変更</button>
+                <button type="button" class="btn btn-sm btn-success align-items-center gap-1" onclick="goToPdfPreview()" style="min-width: 150px;">
                     <i class="bi bi-file-earmark-pdf-fill"></i> PDF出力
                 </button>
             </form>
@@ -184,33 +184,27 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-function downloadPDF() {
+function goToPdfPreview() {
     const selectedDate = document.getElementById('datePicker').value;
     if (!selectedDate) {
         alert("日付が正しく選択されていません。");
         return;
     }
 
+    // 表示されている生徒のIDを現在の順番で取得
     const studentOrder = [];
-    const priorityIds = [];
-
     document.querySelectorAll('.sortable-list').forEach(tbody => {
         const rows = Array.from(tbody.querySelectorAll('tr'));
         rows.forEach(tr => {
             const studentId = tr.dataset.studentId;
             studentOrder.push(studentId);
-
-            const isPriority = tr.querySelector('.priority-check').checked;
-            if (isPriority) {
-                priorityIds.push(studentId);
-            }
         });
     });
 
-    const baseUrl = "{{ url_for('student.download_attendance_pdf') }}";
-    const downloadUrl = `${baseUrl}?date=${selectedDate}&order=${studentOrder.join(',')}&priority_ids=${priorityIds.join(',')}`;
-
-    window.open(downloadUrl, '_blank');
+    // プレビュー画面へのURLを生成して移動
+    const baseUrl = "{{ url_for('student.attendance_pdf_preview') }}";
+    const previewUrl = `${baseUrl}?date=${selectedDate}&order=${studentOrder.join(',')}`;
+    window.location.href = previewUrl;
 }
 
 document.addEventListener('DOMContentLoaded', function () {
