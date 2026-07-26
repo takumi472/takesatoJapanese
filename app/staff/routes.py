@@ -187,70 +187,70 @@ def create_staff():
 
             flash(f"{full_name} さんのスタッフ登録が完了しました。", "success")
 
-            # ==========================================
-            # 3. メール送信処理
-            # ==========================================
-            try:
-                sender_email = os.getenv("MAIL_USERNAME")
-                sender_password = os.getenv("MAIL_PASSWORD")
-                smtp_server = os.getenv("MAIL_SERVER")
-                smtp_port = os.getenv("MAIL_PORT")
+            # # ==========================================
+            # # 3. メール送信処理
+            # # ==========================================
+            # try:
+            #     sender_email = os.getenv("MAIL_USERNAME")
+            #     sender_password = os.getenv("MAIL_PASSWORD")
+            #     smtp_server = os.getenv("MAIL_SERVER")
+            #     smtp_port = os.getenv("MAIL_PORT")
 
-                if not all([sender_email, sender_password, smtp_server, smtp_port]):
-                    current_app.logger.warning(
-                        "Email configuration is incomplete. Skipping email sending."
-                    )
-                    flash(
-                        "スタッフ登録は完了しましたが、メール設定が不完全なため通知メールは送信されませんでした。",
-                        "warning",
-                    )
-                else:
-                    # EmailMessageを使って件名と本文を設定
-                    msg = EmailMessage()
-                    msg["Subject"] = "武里日本語教室 スタッフ登録完了のお知らせ"
-                    msg["From"] = sender_email
-                    msg["To"] = email
-                    msg.set_content(f"""{full_name}様
+            #     if not all([sender_email, sender_password, smtp_server, smtp_port]):
+            #         current_app.logger.warning(
+            #             "Email configuration is incomplete. Skipping email sending."
+            #         )
+            #         flash(
+            #             "スタッフ登録は完了しましたが、メール設定が不完全なため通知メールは送信されませんでした。",
+            #             "warning",
+            #         )
+            #     else:
+            #         # EmailMessageを使って件名と本文を設定
+            #         msg = EmailMessage()
+            #         msg["Subject"] = "武里日本語教室 スタッフ登録完了のお知らせ"
+            #         msg["From"] = sender_email
+            #         msg["To"] = email
+            #         msg.set_content(f"""{full_name}様
 
-武里日本語教室のスタッフ登録が完了しました。
-以下の情報でログインできます。
+            # 武里日本語教室のスタッフ登録が完了しました。
+            # 以下の情報でログインできます。
 
-ログインID (メールアドレス): {email}
-初期パスワード: {plain_password}
-Lineグループ：https://line.me/ti/g/8YXH2Hqac2
+            # ログインID (メールアドレス): {email}
+            # 初期パスワード: {plain_password}
+            # Lineグループ：https://line.me/ti/g/8YXH2Hqac2
 
-ログイン後、パスワードの変更をお勧めします。
+            # ログイン後、パスワードの変更をお勧めします。
 
-よろしくお願いいたします。
-武里日本語教室 運営事務局
-""")
+            # よろしくお願いいたします。
+            # 武里日本語教室 運営事務局
+            # """)
 
-                    # Mac環境のSSL証明書エラーをスキップするための設定
-                    context = ssl._create_unverified_context()
+            #         # Mac環境のSSL証明書エラーをスキップするための設定
+            #         context = ssl._create_unverified_context()
 
-                    # ポート587 (TLS/STARTTLS) と ポート465 (SSL) で接続方式を切り替える
-                    if str(smtp_port) == "587":
-                        with smtplib.SMTP(smtp_server, smtp_port) as server:
-                            server.starttls(context=context)  # unverified_contextを適用
-                            server.login(sender_email, sender_password)
-                            server.send_message(msg)  # send_messageに変更
-                    else:
-                        with smtplib.SMTP_SSL(
-                            smtp_server, smtp_port, context=context
-                        ) as server:
-                            server.login(sender_email, sender_password)
-                            server.send_message(msg)
+            #         # ポート587 (TLS/STARTTLS) と ポート465 (SSL) で接続方式を切り替える
+            #         if str(smtp_port) == "587":
+            #             with smtplib.SMTP(smtp_server, smtp_port) as server:
+            #                 server.starttls(context=context)  # unverified_contextを適用
+            #                 server.login(sender_email, sender_password)
+            #                 server.send_message(msg)  # send_messageに変更
+            #         else:
+            #             with smtplib.SMTP_SSL(
+            #                 smtp_server, smtp_port, context=context
+            #             ) as server:
+            #                 server.login(sender_email, sender_password)
+            #                 server.send_message(msg)
 
-                    flash("スタッフ登録完了の通知メールを送信しました。", "info")
-            except Exception as mail_e:
-                current_app.logger.error(
-                    f"Failed to send registration email to {email}: {mail_e}",
-                    exc_info=True,
-                )
-                flash(
-                    "スタッフ登録は完了しましたが、通知メールの送信に失敗しました。",
-                    "warning",
-                )
+            #         flash("スタッフ登録完了の通知メールを送信しました。", "info")
+            # except Exception as mail_e:
+            #     current_app.logger.error(
+            #         f"Failed to send registration email to {email}: {mail_e}",
+            #         exc_info=True,
+            #     )
+            #     flash(
+            #         "スタッフ登録は完了しましたが、通知メールの送信に失敗しました。",
+            #         "warning",
+            #     )
 
             # 処理がすべて終わったら一覧画面へリダイレクト
             return redirect(url_for("staff.staff_list"))
