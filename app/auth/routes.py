@@ -1,6 +1,7 @@
 import os
 from flask import (
     Blueprint,
+    make_response,
     render_template,
     request,
     redirect,
@@ -16,6 +17,9 @@ from datetime import datetime, timedelta
 from app import db
 from app.models import User, Student, Staff, Meeting, LearningRecord
 from collections import Counter
+import secrets
+import smtplib
+import ssl
 from authlib.integrations.flask_client import OAuth
 
 auth_bp = Blueprint("auth", __name__)
@@ -361,3 +365,30 @@ def logout():
     logout_user()  # セッション破棄
     flash("ログアウトしました。", "info")
     return redirect(url_for("auth.login"))
+
+
+@auth_bp.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        # 管理者でなければ操作不可
+
+        username = request.form.get("username")
+        new_password = request.form.get("new_password")
+
+        user = User.query.filter_by(username=username).first()
+
+        if not user:
+            flash("入力されたユーザー名は登録されていません。", "warning")
+            return redirect(url_for("auth.forgot_password"))
+
+        try:
+            user.set_password(new_password)
+            db.session.commit()
+            flash(f"{user.name}さんのパスワードを正常にリセットしました。", "success")
+            return redirect(url_for("auth.login"))
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.error(f"Error resetting password for {username}: {e}")
+            flash("パスワードのリセット中にエラーが発生しました。", "danger")
+
+    return render_template("auth/forgot_password.html")
