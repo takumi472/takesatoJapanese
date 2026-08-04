@@ -102,8 +102,8 @@
     <form id="staff-form" method="POST" enctype="multipart/form-data">
 
         <div class="form-card shadow-sm">
-            <label class="form-label">Gmailの登録（Gmailのアドレスを入力してください）<span class="required-star">*</span></label>
-            <input type="email" name="email" class="form-control-gf"
+            <label class="form-label">ユーザ名<span class="required-star">*</span></label>
+            <input type="text" name="email" class="form-control-gf"
                    value="{{ staff.email if staff else '' }}"
                    placeholder="回答を入力" required {% if staff %}readonly style="color: #70757a;"{% endif %}>
         </div>
@@ -139,7 +139,7 @@
                 <button type="button" class="btn btn-outline-primary btn-sm d-flex align-items-center gap-1">
                     <i class="bi bi-file-earmark-arrow-up"></i> 画像を選択
                 </button>
-                <input type="file" name="face_photo" id="face_photo_input" accept="image/*" required>
+                <input type="file" name="face_photo" id="face_photo_input" accept="image/*">
             </div>
             <span id="file_name_display" class="text-muted ms-2" style="font-size: 13px;"></span>
         </div>
