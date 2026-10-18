@@ -2,7 +2,7 @@ from app import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-
+from sqlalchemy.sql import expression
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -35,7 +35,9 @@ class User(db.Model, UserMixin):
     staff_profile = db.relationship(
         "Staff", backref="user", uselist=False, cascade="all, delete-orphan"
     )
-    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    is_deleted = db.Column(
+        db.Boolean, server_default=expression.false(), nullable=False
+    )
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
