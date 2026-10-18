@@ -16,6 +16,7 @@ import os
 import json
 from functools import lru_cache
 from email.message import EmailMessage
+from sqlalchemy.orm import joinedload
 
 staff_bp = Blueprint("staff", __name__)
 
@@ -325,7 +326,11 @@ def staff_list():
     from sqlalchemy.orm import joinedload
 
     all_staff = (
-        Staff.query.options(joinedload(Staff.user)).order_by(Staff.id.asc()).all()
+        Staff.query.join(User)  # Userテーブルを結合
+        .filter(User.is_deleted == False)  # ★論理削除されていないユーザーのみ抽出
+        .options(joinedload(Staff.user))
+        .order_by(Staff.id.asc())
+        .all()
     )
 
     for staff in all_staff:
@@ -350,3 +355,28 @@ def staff_list():
     return render_template(
         "staff/list.html", staff_list=all_staff, current_user=current_user
     )
+
+
+@staff_bp.route("/<int:id>/delete", methods=["POST"])
+@login_required
+def delete_staff(id):
+    # 管理者権限チェック（管理者のみ削除可能にする場合）
+    if current_user.role != "admin":
+        flash("スタッフを削除する権限がありません。", "danger")
+        return redirect(url_for("staff.staff_list"))
+
+    staff = Staff.query.get_or_404(id)
+    user = User.query.get_or_404(staff.user_id)
+
+    try:
+        # 論理削除フラグを立てる（物理削除 db.session.delete() は使わない）
+        user.is_deleted = True
+        db.session.commit()
+        flash(f"{user.name} さんのアカウントを削除しました。", "success")
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error deleting staff {id}: {e}", exc_info=True)
+        flash(f"削除中にエラーが発生しました: {str(e)}", "danger")
+
+    return redirect(url_for("staff.staff_list"))

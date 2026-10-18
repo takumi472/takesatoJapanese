@@ -35,6 +35,7 @@ class User(db.Model, UserMixin):
     staff_profile = db.relationship(
         "Staff", backref="user", uselist=False, cascade="all, delete-orphan"
     )
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
 
     def set_password(self, password):
         self.password_hash = generate_password_hash(password)
