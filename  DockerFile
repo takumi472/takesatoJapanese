@@ -2,13 +2,17 @@ FROM python:3.11-slim
 
 WORKDIR /app
 
+# 依存関係のインストール
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install gunicorn
 
+# ソースコードのコピー
 COPY . .
 
 EXPOSE 8080
 ENV PORT=8080
 
-# 例: UvicornでFastAPIを起動する場合 (app.main:app はご自身のアプリに合わせて変更してください)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8080"]
+# Gunicornを使用してFlaskアプリを起動
+# ※ app.py の中で `app = Flask(__name__)` と定義している場合の例です
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 app:app
