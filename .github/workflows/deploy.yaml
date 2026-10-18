@@ -1,0 +1,50 @@
+name: Build and Deploy to GCP Cloud Run
+
+on:
+  push:
+    branches:
+      - main-gcp
+
+permissions:
+  contents: read
+  id-token: write # Workload Identity Federation による認証に必須
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # 1. Workload Identity Federation を使用して Google Cloud に認証
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v2
+        with:
+          workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
+          service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
+
+      # 2. gcloud CLI のセットアップ
+      - name: Set up Cloud SDK
+        uses: google-github-actions/setup-gcloud@v2
+
+      # 3. Docker の認証設定 (Artifact Registryを使用する場合)
+      - name: Configure Docker to Artifact Registry
+        run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev
+
+      # 4. Docker イメージのビルドとプッシュ
+      - name: Build and Push Container
+        run: |-
+          # リージョンやリポジトリ名は必要に応じて変更してください（例: asia-northeast1）
+          IMAGE_URL="asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-repo/takesato-japanese:${{ github.sha }}"
+
+          docker build -t $IMAGE_URL .
+          docker push $IMAGE_URL
+          echo "IMAGE_URL=$IMAGE_URL" >> $GITHUB_ENV
+
+      # 5. Cloud Run へのデプロイ
+      - name: Deploy to Cloud Run
+        uses: google-github-actions/deploy-cloudrun@v2
+        with:
+          service: takesato-japanese-service
+          image: ${{ env.IMAGE_URL }}
+          region: asia-northeast1
