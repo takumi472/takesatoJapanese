@@ -26,6 +26,9 @@ class User(db.Model, UserMixin):
     )  # LINEのユーザーID
     role = db.Column(db.String(20), nullable=False)  # '管理者' または 'スタッフ'
     name = db.Column(db.String(50), nullable=False)  # 氏名
+    is_deleted = db.Column(
+        db.Boolean, server_default=expression.false(), nullable=False
+    )
 
     # スタッフが記入した学習記録（1対多）
     # ※LearningRecord側の 'writer_staff' バックレフと自動接続されます
@@ -34,9 +37,6 @@ class User(db.Model, UserMixin):
     )
     staff_profile = db.relationship(
         "Staff", backref="user", uselist=False, cascade="all, delete-orphan"
-    )
-    is_deleted = db.Column(
-        db.Boolean, server_default=expression.false(), nullable=False
     )
 
     def set_password(self, password):
