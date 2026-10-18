@@ -26,6 +26,7 @@ class User(db.Model, UserMixin):
     )  # LINEのユーザーID
     role = db.Column(db.String(20), nullable=False)  # '管理者' または 'スタッフ'
     name = db.Column(db.String(50), nullable=False)  # 氏名
+    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
 
     # スタッフが記入した学習記録（1対多）
     # ※LearningRecord側の 'writer_staff' バックレフと自動接続されます
