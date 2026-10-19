@@ -16,7 +16,7 @@ login_manager = LoginManager()
 def create_app(env_name="development"):
     load_dotenv()  # アプリケーション起動時に.envファイルをロード
 
-    app = Flask(__name__)
+    app = Flask(__name__, static_folder="app/static", static_url_path="/static")
 
     # 共通のシークレットキー設定
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key-placeholder")
