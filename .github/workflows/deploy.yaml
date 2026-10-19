@@ -1,4 +1,4 @@
-name: Build and Deploy to GCP Cloud Run
+name: Build and Deploy to GCP via Cloud Build
 
 on:
   push:
@@ -28,24 +28,7 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # 3. Docker の認証設定 (Artifact Registryを使用する場合)
-      - name: Configure Docker to Artifact Registry
-        run: gcloud auth configure-docker asia-northeast1-docker.pkg.dev
-
-      # 4. Docker イメージのビルドとプッシュ
-      - name: Build and Push Container
-        run: |-
-          # リージョンやリポジトリ名は必要に応じて変更してください（例: asia-northeast1）
-          IMAGE_URL="asia-northeast1-docker.pkg.dev/${{ secrets.GCP_PROJECT_ID }}/my-app-repo/takesato-japanese:${{ github.sha }}"
-
-          docker build -t $IMAGE_URL .
-          docker push $IMAGE_URL
-          echo "IMAGE_URL=$IMAGE_URL" >> $GITHUB_ENV
-
-      # 5. Cloud Run へのデプロイ
-      - name: Deploy to Cloud Run
-        uses: google-github-actions/deploy-cloudrun@v2
-        with:
-          service: takesato-japanese-service
-          image: ${{ env.IMAGE_URL }}
-          region: asia-northeast1
+      # 3. Cloud Build へビルド・デプロイを依頼 (cloudbuild.yamlを使用)
+      - name: Run Cloud Build
+        run: |
+          gcloud builds submit --config=cloudbuild.yaml .
