@@ -4,14 +4,14 @@ steps:
     args:
       - 'build'
       - '-t'
-      - '${_REGION}-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
+      - 'asia-northeast1-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
       - '.'
 
   # 2. プッシュ
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '${_REGION}-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
+      - 'asia-northeast1-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
 
   # 3. Cloud Run デプロイ
   - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
@@ -20,8 +20,8 @@ steps:
       - 'run'
       - 'deploy'
       - '${_SERVICE_NAME}'
-      - '--image=${_REGION}-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
-      - '--region=${_REGION}'
+      - '--image=asia-northeast1-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
+      - '--region=asia-northeast1'
       - '--platform=managed'
       - '--allow-unauthenticated'
 
