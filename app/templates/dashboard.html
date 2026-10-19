@@ -20,18 +20,21 @@
                 （権限: {{ current_user.role }}）
             </p>
             <div style="max-width:220px;">
-                <a href="{{ url_for('auth.manual') }}" class="manual-btn-card shadow-sm">
+                <a href="{{ url_for('auth.manual') }}" class="manual-btn-card shadow-sm text-decoration-none">
                     <div class="manual-icon"><i class="bi bi-question-circle-fill"></i></div>
                     <div class="text-start"><div style="font-weight: 600; font-size: 0.9rem;">使い方マニュアル</div></div>
                 </a>
             </div>
         </div>
 
-        <div >
+        <div class="d-flex align-items-center gap-2">
+            <!-- パスワード再設定ボタンをログアウトボタンの隣に移動 -->
+            <a href="{{ url_for('auth.forgot_password') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
+                <i class="bi bi-key-fill"></i> パスワード再設定
+            </a>
             <a href="#" onClick="showDialog()" class="btn-logout d-inline-flex align-items-center gap-1">
-                    <i class="bi bi-box-arrow-right"></i> ログアウト
-                </a>
-
+                <i class="bi bi-box-arrow-right"></i> ログアウト
+            </a>
         </div>
 
     </div>
@@ -285,5 +288,11 @@
         }
     }
 </script>
+<footer class="text-center text-muted py-4 mt-5">
+    <small>
+        © 2026 TAKUMI DATA SYSTEMS. All Rights Reserved.<br>
+        Designed & Built with ☕ by TAKUMI DATA SYSTEMS
+    </small>
+</footer>
 </body>
 </html>

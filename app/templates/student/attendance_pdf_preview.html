@@ -3,88 +3,115 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>
-      PDF出力プレビュー - {{ target_date.strftime('%Y年%m月%d日') }}
-    </title>
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
-      rel="stylesheet"
-    />
-    <link
-      href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css"
-      rel="stylesheet"
-    />
+    <title>出席表 PDF出力 最終確認 - {{ target_date.strftime('%Y年%m月%d日') }}</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet" />
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-      body { background-color: #f8f9fa; }
-      .main-container { max-width: 900px; margin: 30px auto; }
-      .header-box { background: white; border-top: 8px solid #20c997; border-radius: 8px; padding: 20px; }
-      .drag-handle { cursor: move; color: #adb5bd; }
-      .sortable-ghost { background: #e9ecef; opacity: 0.7; }
-      .sortable-drag { background-color: #ffffff; }
-      .student-avatar { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 1px solid #ddd; }
-      .avatar-placeholder { width: 45px; height: 45px; border-radius: 50%; background-color: #e8eaed; display: flex; align-items-center; justify-content-center; color: #5f6368; }
-      .btn-floating-back {
-          position: fixed; bottom: 30px; right: 30px; width: 56px; height: 56px; border-radius: 50%;
-          background-color: #6c757d; color: white; z-index: 1050; transition: transform 0.2s, background-color 0.2s;
+      .header-box {
+        background: #ffffff;
+        border-top: 8px solid var(--primary-color, #673ab7);
+        border-radius: 8px;
+        padding: 24px;
       }
-      .btn-floating-back:hover { background-color: #5a6268; transform: scale(1.1); color: white; }
+      .drag-handle {
+        cursor: move;
+        color: #adb5bd;
+      }
+      .sortable-ghost {
+        background: #e9ecef;
+        opacity: 0.7;
+      }
+      .sortable-drag {
+        background-color: #ffffff;
+      }
+      .student-avatar {
+        width: 42px;
+        height: 42px;
+        object-fit: cover;
+        border-radius: 6px;
+        border: 1px solid #ced4da;
+      }
+      .avatar-placeholder {
+        width: 42px;
+        height: 42px;
+        border-radius: 6px;
+        background-color: #e9ecef;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: #6c757d;
+        margin: 0 auto;
+      }
+      .summary-cell {
+        background-color: #e0f2fe !important;
+        font-weight: 700;
+      }
+      #save-status-badge {
+        transition: opacity 0.3s ease;
+      }
     </style>
   </head>
   <body>
-    <div class="container main-container">
+    <div class="container main-container my-4" style="max-width: 1060px;">
       <div class="header-box shadow-sm mb-4">
-        <div
-          class="d-flex justify-content-between align-items-center flex-wrap gap-3"
-        >
+        <div class="d-flex justify-content-between align-items-center flex-wrap gap-3">
           <div>
             <div class="d-flex align-items-center gap-2">
-              <h1 class="h4 mb-0 fw-bold">PDF出力 最終確認</h1>
+              <a href="{{ url_for('student.attendance_list', date=target_date.strftime('%Y-%m-%d')) }}" class="btn btn-outline-secondary btn-sm" title="戻る">
+                <i class="bi bi-chevron-left"></i>
+              </a>
+              <h1 class="h4 mb-0 fw-bold">{{ fiscal_year }}年度 受講生 出席表（最終確認）</h1>
             </div>
-            <small class="text-muted"
-              >{{ target_date.strftime('%Y年%m月%d日') }} の出席リスト</small
-            >
+            <p class="text-muted small mb-0 mt-1">
+              対象日: <strong>{{ target_date.strftime('%Y年%m月%d日') }}（日）</strong> ｜ 登録受講生: <strong>{{ students|length }}</strong> 名
+            </p>
           </div>
-          <div>
+          <div class="d-flex align-items-center gap-2">
+            <span id="save-status-badge" class="badge bg-success-subtle text-success border border-success-subtle d-none px-3 py-2">
+              <i class="bi bi-check-circle-fill me-1"></i> 順番をDBに保存しました
+            </span>
             <button
               type="button"
-              class="btn btn-success btn-lg align-items-center gap-2"
+              class="btn btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm"
+              onclick="saveStudentOrder(true)"
+              title="現在の並び順をデータベースに保存します"
+            >
+              <i class="bi bi-floppy"></i> 順番を保存
+            </button>
+            <button
+              type="button"
+              class="btn btn-success d-inline-flex align-items-center gap-2 shadow-sm"
               onclick="downloadPDF()"
             >
               <i class="bi bi-file-earmark-pdf-fill"></i> この内容でPDFを生成
             </button>
           </div>
         </div>
-        <hr />
-        <p class="text-muted mb-0">
-          <i class="bi bi-info-circle-fill me-1"></i> 各行の左側にある
-          <i class="bi bi-grip-vertical"></i>
-          ハンドルをドラッグ＆ドロップして、PDFに出力する順番を自由に変更できます。
-          「優先」にチェックを入れた生徒は、PDFの上部にまとめて表示されます。
+        <hr class="my-3" />
+        <p class="text-muted small mb-0">
+          <i class="bi bi-info-circle-fill text-primary me-1"></i>
+          左側の <i class="bi bi-grip-vertical"></i> ハンドルをドラッグ＆ドロップして受講生の順番を変更できます。
+          変更した順番は自動的にDBに保存され、次回以降の出席表やPDF出力にも反映されます。
         </p>
       </div>
 
-      <div class="table-responsive bg-white rounded shadow-sm border">
-        <table class="table table-hover align-middle mb-0">
-          <thead class="table-light" style="font-size: 13px">
+      <div class="table-responsive bg-white rounded shadow-sm border mb-5">
+        <table class="table table-bordered table-hover align-middle mb-0 text-nowrap">
+          <thead class="table-light text-center" style="font-size: 13px;">
             <tr>
-              <th scope="col" class="text-center" style="width: 5%">優先</th>
-              <th scope="col" class="text-center" style="width: 10%">
-                <i class="bi bi-grip-vertical"></i> 番号
+              <th scope="col" style="width: 5%;">優先</th>
+              <th scope="col" style="width: 7%;"><i class="bi bi-grip-vertical"></i> 番号</th>
+              <th scope="col" style="width: 20%; cursor: pointer;" class="text-start  user-select-none"  title="クリックして名前順（五十音順）で並び替え">
+                受講生 氏名
               </th>
-              <th scope="col" class="text-center" style="width: 10%">顔写真</th>
-              <th scope="col" style="width: 25%">生徒の名前</th>
-              <th scope="col" class="text-center" style="width: 12%">
-                {{ date_three_weeks_ago.strftime('%m/%d') }}
-              </th>
-              <th scope="col" class="text-center" style="width: 12%">
-                {{ date_two_weeks_ago.strftime('%m/%d') }}
-              </th>
-              <th scope="col" class="text-center" style="width: 12%">
-                {{ date_one_week_ago.strftime('%m/%d') }}
-              </th>
-              <th scope="col" class="text-center" style="width: 12%">
-                {{ target_date.strftime('%m/%d') }}
-              </th>
+              <th scope="col" style="width: 13%;">国籍</th>
+              <th scope="col" style="width: 7%;">級</th>
+              <th scope="col" style="width: 8%;">写真</th>
+              {% for d in date_columns %}
+              <th scope="col" style="width: 10%;">{{ d.label }}</th>
+              {% endfor %}
             </tr>
           </thead>
           <tbody class="sortable-list">
@@ -95,96 +122,200 @@
                   <input
                     class="form-check-input priority-check"
                     type="checkbox"
-                    {%
-                    if
-                    s.is_priority
-                    %}checked{%
-                    endif
-                    %}
-                    title="PDF出力時に優先して上部に表示します"
+                    {% if s.is_priority %}checked{% endif %}
+                    title="優先受講生として設定"
                   />
                 </div>
               </td>
               <td class="text-center text-muted fw-bold">
-                <span class="drag-handle me-1"
-                  ><i class="bi bi-grip-vertical"></i></span
-                ><span class="row-number">{{ loop.index }}</span>
+                <span class="drag-handle me-1"><i class="bi bi-grip-vertical"></i></span>
+                <span class="row-number">{{ loop.index }}</span>
+              </td>
+              <td class="fw-bold text-dark text-start student-name" data-name="{{ s.name_kana }}">
+                {{ s.name_kana }}
+              </td>
+              <td class="text-center text-secondary">
+                {{ s.country_of_origin or '' }}
+              </td>
+              <td class="text-center fw-bold">
+                <span class="badge bg-light text-dark border">{{ s.jlpt_level or '─' }}</span>
               </td>
               <td class="text-center">
                 {% if s.face_photo_path %}
-                <img
-                  src="{{ s.face_photo_path }}"
-                  class="student-avatar"
-                  alt="{{ s.name_kana }}"
-                />
+                  <img
+                    src="{{ s.face_photo_path }}"
+                    class="student-avatar"
+                    alt="{{ s.name_kana }}"
+                  />
                 {% else %}
-                <div class="avatar-placeholder">
-                  <i class="bi bi-person-fill"></i>
-                </div>
+                  <div class="avatar-placeholder">
+                    <i class="bi bi-person-fill fs-5"></i>
+                  </div>
                 {% endif %}
               </td>
-              <td><div class="fw-bold text-dark">{{ s.name_kana }}</div></td>
-              <td class="text-center">{{ s.staff_three_weeks_ago }}</td>
-              <td class="text-center">{{ s.staff_two_weeks_ago }}</td>
-              <td class="text-center">{{ s.staff_one_week_ago }}</td>
-              <td class="text-center">{{ s.assigned_staff_name }}</td>
+              {% for d in date_columns %}
+              <td class="text-center font-monospace">
+                {% set staff_val = s.attendance_by_date.get(d.date) %}
+                {% if staff_val and staff_val != '─' %}
+                  <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">{{ staff_val }}</span>
+                {% else %}
+                  <span class="text-muted">─</span>
+                {% endif %}
+              </td>
+              {% endfor %}
             </tr>
             {% endfor %}
           </tbody>
+          <tfoot>
+            <tr class="summary-cell">
+              <td colspan="6" class="text-center fw-bold py-2" style="letter-spacing: 2px;">
+                出席者数
+              </td>
+              {% for d in date_columns %}
+              <td class="text-center fw-bold py-2">
+                {% if attendance_counts.get(d.date, 0) > 0 %}
+                  {{ attendance_counts.get(d.date) }} 名
+                {% else %}
+                  <span class="text-muted">0</span>
+                {% endif %}
+              </td>
+              {% endfor %}
+            </tr>
+          </tfoot>
         </table>
       </div>
     </div>
 
     <!-- 浮遊戻るボタン -->
     <button type="button" class="btn btn-floating-back shadow d-flex align-items-center justify-content-center border-0" onclick="window.history.back()" title="戻る">
-      戻る
+      <i class="bi bi-chevron-left fs-4"></i>
     </button>
 
     <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script>
-      function downloadPDF() {
-        const selectedDate = "{{ target_date.strftime('%Y-%m-%d') }}";
-        const studentOrder = [];
-        const priorityIds = [];
+      let nameSortAsc = true;
 
-        document.querySelectorAll(".sortable-list tr").forEach((tr) => {
-          const studentId = tr.dataset.studentId;
-          studentOrder.push(studentId);
+      function toggleNameSort() {
+        const list = document.querySelector(".sortable-list");
+        if (!list) return;
 
-          const isPriority = tr.querySelector(".priority-check").checked;
-          if (isPriority) {
-            priorityIds.push(studentId);
+        const rows = Array.from(list.querySelectorAll("tr[data-student-id]"));
+        if (rows.length === 0) return;
+
+        rows.sort((rowA, rowB) => {
+          const nameA = rowA.querySelector(".student-name")?.dataset.name || rowA.querySelector(".student-name")?.textContent.trim() || "";
+          const nameB = rowB.querySelector(".student-name")?.dataset.name || rowB.querySelector(".student-name")?.textContent.trim() || "";
+          const cmp = nameA.localeCompare(nameB, "ja");
+          return nameSortAsc ? cmp : -cmp;
+        });
+
+        // アイコンの更新
+        const sortIcon = document.getElementById("name-sort-icon");
+        if (sortIcon) {
+          sortIcon.className = nameSortAsc ? "bi bi-sort-alpha-down text-primary ms-1" : "bi bi-sort-alpha-up text-primary ms-1";
+        }
+
+        // 行を再配置して番号を再採番
+        rows.forEach((row, index) => {
+          list.appendChild(row);
+          const numberCell = row.querySelector(".row-number");
+          if (numberCell) {
+            numberCell.textContent = index + 1;
           }
         });
 
-        const baseUrl = "{{ url_for('student.download_attendance_pdf') }}";
-        const downloadUrl = `${baseUrl}?date=${selectedDate}&order=${studentOrder.join(",")}&priority_ids=${priorityIds.join(",")}`;
+        // 次回クリック用に昇順・降順を反転
+        nameSortAsc = !nameSortAsc;
 
-        // 新しいタブでPDFを開く
-        window.open(downloadUrl, "_blank");
+        // ソート結果を自動でDBに保存
+        saveStudentOrder(true);
+      }
+
+      function getCurrentStudentIds() {
+        const studentIds = [];
+        document.querySelectorAll(".sortable-list tr").forEach((tr) => {
+          const studentId = tr.dataset.studentId;
+          if (studentId) {
+            studentIds.push(parseInt(studentId, 10));
+          }
+        });
+        return studentIds;
+      }
+
+      function getPriorityIds() {
+        const priorityIds = [];
+        document.querySelectorAll(".sortable-list tr").forEach((tr) => {
+          const studentId = tr.dataset.studentId;
+          const isPriority = tr.querySelector(".priority-check").checked;
+          if (isPriority && studentId) {
+            priorityIds.push(studentId);
+          }
+        });
+        return priorityIds;
+      }
+
+      function saveStudentOrder(showFeedback = false) {
+        const order = getCurrentStudentIds();
+        if (order.length === 0) return Promise.resolve();
+
+        return fetch("{{ url_for('student.reorder_students') }}", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ order: order }),
+        })
+          .then((res) => res.json())
+          .then((data) => {
+            if (data.status === "success" && showFeedback) {
+              const badge = document.getElementById("save-status-badge");
+              badge.classList.remove("d-none");
+              setTimeout(() => {
+                badge.classList.add("d-none");
+              }, 3000);
+            }
+          })
+          .catch((err) => console.error("Error saving order:", err));
+      }
+
+      function downloadPDF() {
+        const selectedDate = "{{ target_date.strftime('%Y-%m-%d') }}";
+        const studentOrder = getCurrentStudentIds();
+        const priorityIds = getPriorityIds();
+
+        // 順番をDBに保存してからPDFをダウンロード
+        saveStudentOrder(false).finally(() => {
+          const baseUrl = "{{ url_for('student.download_attendance_pdf') }}";
+          const downloadUrl = `${baseUrl}?date=${selectedDate}&order=${studentOrder.join(",")}&priority_ids=${priorityIds.join(",")}`;
+          window.open(downloadUrl, "_blank");
+        });
       }
 
       document.addEventListener("DOMContentLoaded", function () {
         const sortableList = document.querySelector(".sortable-list");
 
-        new Sortable(sortableList, {
-          handle: ".drag-handle",
-          animation: 150,
-          ghostClass: "sortable-ghost",
-          dragClass: "sortable-drag",
-          onEnd: function (evt) {
-            // 番号を振り直す
-            const rows = evt.from.querySelectorAll("tr");
-            rows.forEach((row, index) => {
-              const numberCell = row.querySelector(".row-number");
-              if (numberCell) {
-                numberCell.textContent = index + 1;
-              }
-            });
-          },
-        });
+        if (sortableList) {
+          new Sortable(sortableList, {
+            handle: ".drag-handle",
+            animation: 150,
+            ghostClass: "sortable-ghost",
+            dragClass: "sortable-drag",
+            onEnd: function (evt) {
+              // 番号を振り直す
+              const rows = evt.from.querySelectorAll("tr");
+              rows.forEach((row, index) => {
+                const numberCell = row.querySelector(".row-number");
+                if (numberCell) {
+                  numberCell.textContent = index + 1;
+                }
+              });
 
-        // 優先チェックボックスの変更をDBに保存する機能
+              // ドラッグ＆ドロップ完了時に自動で順番をDBに保存
+              saveStudentOrder(true);
+            },
+          });
+        }
+
+        // 優先チェックボックスの変更をDBに保存
         const checkboxes = document.querySelectorAll(".priority-check");
         checkboxes.forEach((checkbox) => {
           checkbox.addEventListener("change", function () {
@@ -201,7 +332,7 @@
               .then((data) => {
                 if (data.status !== "success") {
                   alert("優先設定の保存に失敗しました。");
-                  this.checked = !isPriority; // 失敗したらチェックを元に戻す
+                  this.checked = !isPriority;
                 }
               })
               .catch(() => {
@@ -212,12 +343,5 @@
         });
       });
     </script>
-
-    <footer class="text-center text-muted py-4 mt-5">
-        <small>
-            © 2026 TAKUMI DATA SYSTEMS. All Rights Reserved.<br>
-            Designed & Built with ☕ by TAKUMI DATA SYSTEMS
-        </small>
-    </footer>
   </body>
 </html>

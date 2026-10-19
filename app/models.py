@@ -95,6 +95,7 @@ class Student(db.Model):
     how_knew_class = db.Column(db.String(50), nullable=False)  # (11)
     how_knew_class_other = db.Column(db.Text)  # (12)
     is_priority = db.Column(db.Boolean, default=False, nullable=False)  # 優先フラグ
+    display_order = db.Column(db.Integer, default=0, nullable=True)  # 出席表・表示順
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
