@@ -1,0 +1,73 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+
+# Environment variables & secrets
+.env
+.env.local
+.env.*.local
+
+# Database files
+instance/
+*.sqlite
+*.sqlite3
+*.db
+
+# Static user uploads (preserve directory structure with .gitkeep)
+app/static/uploads/*
+!app/static/uploads/.gitkeep
+
+# macOS metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# IDEs & Editor configs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# Temporary / scratch / node files
+gyoza/
+node_modules/
+.cache/
+
+# Testing & Linting artifacts
+.coverage
+htmlcov/
+.pytest_cache/
+.ruff_cache/
+

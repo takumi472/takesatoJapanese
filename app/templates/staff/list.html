@@ -7,110 +7,7 @@
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Vercel Speed Insights -->
-    <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-    </script>
-    {% if not config.DEBUG %}
-  <script src="/_vercel/speed-insights/script.js" defer></script>
-{% endif %}
-    <style>
-        body {
-            background-color: #f8f9fa;
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            color: #333;
-        }
-        .page-header {
-            background-color: #fff;
-            border-bottom: 1px solid #e0e0e0;
-            border-top: 8px solid #673ab7; /* Googleフォームと統一感を持たせるアクセントカラー */
-            box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-        }
-        .staff-card {
-            background-color: #fff;
-            border: 1px solid #e0e0e0;
-            border-radius: 8px;
-            transition: transform 0.2s, box-shadow 0.2s;
-            overflow: hidden;
-        }
-        .staff-card:hover {
-            transform: translateY(-4px);
-            box-shadow: 0 6px 12px rgba(0,0,0,0.1);
-        }
-        .avatar-container {
-            width: 100%;
-            aspect-ratio: 1 / 1; /* 正方形を維持 */
-            overflow: hidden;
-            background-color: #f1f3f4;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-        }
-        .staff-avatar {
-            width: 80%;
-            height: 80%;
-            border-radius: 50%;
-            object-fit: cover; /* 画像の比率を崩さずにトリミング */
-        }
-        .staff-name {
-            font-size: 18px;
-            font-weight: bold;
-            color: #202124;
-            margin-bottom: 4px;
-        }
-        .staff-info {
-            font-size: 14px;
-            color: #5f6368;
-        }
-        .btn-add-staff {
-            background-color: #673ab7;
-            color: white;
-            font-weight: 500;
-        }
-        .btn-add-staff:hover {
-            background-color: #512da8;
-            color: white;
-        }
-        /* 全てのページで共通して使うクラス */
-.main-container {
-    max-width: 1000px;
-    margin-left: auto;
-    margin-right: auto;
-    margin-top: 60px;
-    padding-left: 15px;
-    padding-right: 15px;
-}
-
-/* ヘッダーの調整 */
-.welcome-header {
-    background-color: #fff;
-    border-top: 8px solid #673ab7;
-    border-radius: 8px;
-    padding: 30px;
-    /* コンテナの幅いっぱいに広がるように設定 */
-    width: 100%;
-}
-    </style>
-    <style>
-        /* 浮遊（Floating）戻るボタンのスタイル */
-        .btn-floating-back {
-            position: fixed;
-            bottom: 30px;
-            right: 30px;
-            width: 56px;
-            height: 56px;
-            border-radius: 50%;
-            background-color: #673ab7;
-            color: white;
-            z-index: 1050;
-            transition: transform 0.2s, background-color 0.2s;
-        }
-        .btn-floating-back:hover {
-            background-color: #512da8;
-            transform: scale(1.1);
-            color: white;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 
@@ -161,7 +58,7 @@
                             {{ s.last_name_kana }} {{ s.first_name_kana }}
                         </div>
                         <div class="staff-info text-truncate">
-                            {{ s.address.split(' ')[0] if s.address else '未登録' }}
+                            {{ s.display_address if s.display_address else (s.address.split(' ')[0] if s.address else '未登録') }}
                         </div>
                     </div>
 
@@ -201,8 +98,8 @@
 
 <footer class="text-center text-muted py-4 mt-5">
     <small>
-        © 2026 Phyo. All Rights Reserved.<br>
-        Designed & Built with ☕ by Phyo
+        © 2026 TAKUMI DATA SYSTEMS. All Rights Reserved.<br>
+        Designed & Built with ☕ by TAKUMI DATA SYSTEMS
     </small>
 </footer>
 </body>

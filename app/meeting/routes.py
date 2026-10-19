@@ -1,5 +1,4 @@
 import os
-import time
 from datetime import datetime
 
 from flask import (
@@ -26,20 +25,6 @@ PDF_EXTENSION = ".pdf"
 # Get folder prefix from environment to support multiple sites easily
 # Example: 'takesato' or 'school_b'
 FOLDER_PREFIX = os.environ.get("CLOUDINARY_FOLDER_PREFIX", "general")
-
-# Cloudinaryの設定は、通常、アプリケーションの初期化時に行われます（例: app/__init__.pyまたはconfig.py）。
-# ここでは、current_app.configから設定が読み込まれることを想定しています。
-# 例: current_app.config['CLOUDINARY_CLOUD_NAME'], current_app.config['CLOUDINARY_API_KEY'], etc.
-# Cloudinaryの初期化
-cloudinary.config(
-    cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME")
-    or current_app.config.get("CLOUDINARY_CLOUD_NAME"),
-    api_key=os.environ.get("CLOUDINARY_API_KEY")
-    or current_app.config.get("CLOUDINARY_API_KEY"),
-    api_secret=os.environ.get("CLOUDINARY_API_SECRET")
-    or current_app.config.get("CLOUDINARY_API_SECRET"),
-    secure=True,
-)
 
 
 @meeting_bp.route("/")

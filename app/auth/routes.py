@@ -33,44 +33,6 @@ line = oauth.register(
         "token_endpoint_auth_method": "client_secret_post",
     },
 )
-# line = oauth.register(
-#     name="line",
-#     client_id=os.environ.get("LINE_CLIENT_ID"),
-#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
-#     server_metadata_url="https://access.line.me/.well-known/openid-configuration",
-#     client_kwargs={
-#         "scope": "openid profile email",
-#         "token_endpoint_auth_method": "client_secret_post",
-#         # 🔑 Force Authlib to recognize and accept the RS256 algorithm signature
-#         "id_token_signed_response_alg": None,
-#     },
-# )
-# line = oauth.register(
-#     name="line",
-#     client_id=os.environ.get("LINE_CLIENT_ID"),
-#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
-#     server_metadata_url="https://access.line.me/.well-known/openid-configuration",
-#     client_kwargs={
-#         "scope": "openid profile email",
-#         "token_endpoint_auth_method": "client_secret_post",
-#     },
-# )
-# line = oauth.register(
-#     name="line",
-#     client_id=os.environ.get("LINE_CLIENT_ID"),
-#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
-#     api_base_url="https://api.line.me/v2/",
-#     authorize_url="https://access.line.me/oauth2/v2.1/authorize",
-#     access_token_url="https://api.line.me/oauth2/v2.1/token",
-#     # jwks_uri="https://api.line.me/oauth2/v2.1/certs",
-#     client_kwargs={
-#         "scope": "openid profile email",
-#         # 内部でのJWT検証（JWS）の手続きを強制的にオフにする
-#         "token_endpoint_auth_method": "client_secret_post",
-#         # LINEのIDトークンは通常RS256ですが、環境に応じて自動検証させるため
-#         # 必要に応じて 'HS256' に戻せるよう、指定を柔軟にするかデフォルトに委ねます
-#     },
-# )
 
 
 def get_weekly_stats(start_date):
@@ -238,18 +200,35 @@ def line_callback():
         f"Extracted LINE user profile - sub (ID): {line_id}, name: {line_name}"
     )
 
-    if not line_name:
+    if not line_id and not line_name:
         current_app.logger.error(
-            "LINE Login Error: 'sub' (User ID) field missing from verified userinfo response."
+            "LINE Login Error: Both 'sub' and 'name' fields missing from verified userinfo response."
         )
-        flash("LINEからユーザー識別子を取得できませんでした。", "danger")
+        flash("LINEからユーザー識別情報を取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
     # 5. データベース照合処理
-    current_app.logger.info(
-        f"Searching database for local user matched with line_user_id: {line_id}"
-    )
-    user = User.query.filter_by(line_user_id=line_name).first()
+    # 優先度1: 永続的かつ一意な sub (line_id) で検索
+    user = None
+    if line_id:
+        user = User.query.filter_by(line_user_id=line_id).first()
+
+    # 優先度2: 登録時に表示名(line_name)が手動入力されたレガシーユーザーの後方互換検索
+    if not user and line_name:
+        user = User.query.filter_by(line_user_id=line_name).first()
+        # 初回ログイン時に安全な不変ID (line_id) へ自動アップグレード
+        if user and line_id:
+            try:
+                user.line_user_id = line_id
+                db.session.commit()
+                current_app.logger.info(
+                    f"Successfully upgraded user {user.username} line_user_id to immutable sub: {line_id}"
+                )
+            except Exception as commit_err:
+                db.session.rollback()
+                current_app.logger.warning(
+                    f"Failed to auto-upgrade line_user_id: {commit_err}"
+                )
 
     if user:
         current_app.logger.info(

@@ -10,23 +10,7 @@
 
     <meta name="theme-color" content="#673ab7">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <!-- Vercel Speed Insights -->
-    <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-    </script>
-    {% if not config.DEBUG %}
-  <script src="/_vercel/speed-insights/script.js" defer></script>
-{% endif %}
-    <style>
-        body { background-color: #f0ebf8; }
-        .login-container { max-width: 450px; margin: 100px auto; }
-        .login-card {
-            background-color: #ffffff;
-            border-top: 10px solid #673ab7;
-            border-radius: 8px;
-            padding: 30px;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 

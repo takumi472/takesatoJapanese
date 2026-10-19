@@ -1,4 +1,3 @@
-import os
 from flask import (
     Blueprint,
     render_template,
@@ -29,11 +28,13 @@ def create_record():
 
     if request.method == "POST":
         try:
+            # 管理者の場合は指定された staff_id (User.id)、スタッフ本人の場合は current_user.id
+            staff_id_raw = request.form.get("staff_id")
+            if is_admin and staff_id_raw and staff_id_raw.strip().isdigit():
+                staff_id = int(staff_id_raw)
+            else:
+                staff_id = current_user.id
 
-            # 修正後：空文字ならNoneを代入
-            staff_id = request.form.get("staff_id")
-
-            # 他の数値項目も同様に処理しておくと安心です
             student_id_raw = request.form.get("student_id")
             student_id = (
                 int(student_id_raw)
@@ -114,17 +115,10 @@ def record_list(student_id):
 def edit_record(record_id):
     record = LearningRecord.query.get_or_404(record_id)
 
-    # ★ 権限チェック: アドミンでない、かつ本人でない場合はエラー(403 Forbidden)を返す
+    # 権限チェック: LearningRecord.staff_id は users.id を格納しているため current_user.id と照合
     if current_user.role != "admin" and current_user.id != record.staff_id:
         flash("この学習記録を編集する権限がありません。", "danger")
         return redirect(url_for("record.record_list", student_id=record.student_id))
-
-    # ログインユーザーがスタッフの場合、そのスタッフが記録の担当者であることを確認
-    # NOTE: The comparison `current_user.id != record.staff_id` is likely incorrect.
-    # `record.staff_id` is the ID of the Staff record, while `current_user.id` is the ID of the User record.
-    # To correctly check if the current user is the staff member who created the record,
-    # it should be `current_user.id != record.staff.user_id` (assuming `record.staff` relationship is loaded).
-    # For this refactoring, I will keep the original comparison but add a comment about this potential bug.
 
     if request.method == "POST":
         try:

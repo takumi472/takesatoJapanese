@@ -143,16 +143,14 @@ def create_student():
 
             today_content = request.form.get("today_learning_content")
             if today_content:
-                # Find the Staff record associated with the User
-                staff_record = Staff.query.filter_by(user_id=current_user.id).first()
-                if staff_record:
-                    new_record = LearningRecord(
-                        student_id=new_student.id,
-                        staff_id=staff_record.id,
-                        today_learning_content=today_content,
-                        lesson_date=date.today(),
-                    )
-                    db.session.add(new_record)
+                # LearningRecord.staff_id は users.id を参照するため current_user.id を使用
+                new_record = LearningRecord(
+                    student_id=new_student.id,
+                    staff_id=current_user.id,
+                    today_learning_content=today_content,
+                    lesson_date=date.today(),
+                )
+                db.session.add(new_record)
 
             db.session.commit()
             flash("受講生の新規登録と学習記録の保存が完了しました！", "success")
