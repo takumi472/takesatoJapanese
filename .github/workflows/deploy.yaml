@@ -1,4 +1,4 @@
-name: Build and Deploy to GCP via Cloud Build
+name: Build and Deploy to GCP Cloud Run
 
 on:
   push:
@@ -28,7 +28,7 @@ jobs:
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # 3. Cloud Build へビルド・デプロイを依頼 (cloudbuild.yamlを使用)
+      # 3. ルートにある cloudbuild.yaml を使用して Cloud Build を実行
       - name: Run Cloud Build
         run: |
           gcloud builds submit --config=cloudbuild.yaml .
