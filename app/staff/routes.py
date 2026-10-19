@@ -8,6 +8,7 @@ from app.models import db, User, Staff
 from werkzeug.security import generate_password_hash
 import cloudinary
 import cloudinary.uploader
+from email.message import EmailMessage
 from sqlalchemy.orm import joinedload
 
 staff_bp = Blueprint("staff", __name__)
