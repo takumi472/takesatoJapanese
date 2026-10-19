@@ -1,7 +1,6 @@
 import os
 from flask import (
     Blueprint,
-    make_response,
     render_template,
     request,
     redirect,
@@ -16,10 +15,6 @@ from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from app import db
 from app.models import User, Student, Staff, Meeting, LearningRecord
-from collections import Counter
-import secrets
-import smtplib
-import ssl
 from authlib.integrations.flask_client import OAuth
 
 auth_bp = Blueprint("auth", __name__)
@@ -38,44 +33,6 @@ line = oauth.register(
         "token_endpoint_auth_method": "client_secret_post",
     },
 )
-# line = oauth.register(
-#     name="line",
-#     client_id=os.environ.get("LINE_CLIENT_ID"),
-#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
-#     server_metadata_url="https://access.line.me/.well-known/openid-configuration",
-#     client_kwargs={
-#         "scope": "openid profile email",
-#         "token_endpoint_auth_method": "client_secret_post",
-#         # 🔑 Force Authlib to recognize and accept the RS256 algorithm signature
-#         "id_token_signed_response_alg": None,
-#     },
-# )
-# line = oauth.register(
-#     name="line",
-#     client_id=os.environ.get("LINE_CLIENT_ID"),
-#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
-#     server_metadata_url="https://access.line.me/.well-known/openid-configuration",
-#     client_kwargs={
-#         "scope": "openid profile email",
-#         "token_endpoint_auth_method": "client_secret_post",
-#     },
-# )
-# line = oauth.register(
-#     name="line",
-#     client_id=os.environ.get("LINE_CLIENT_ID"),
-#     client_secret=os.environ.get("LINE_CLIENT_SECRET"),
-#     api_base_url="https://api.line.me/v2/",
-#     authorize_url="https://access.line.me/oauth2/v2.1/authorize",
-#     access_token_url="https://api.line.me/oauth2/v2.1/token",
-#     # jwks_uri="https://api.line.me/oauth2/v2.1/certs",
-#     client_kwargs={
-#         "scope": "openid profile email",
-#         # 内部でのJWT検証（JWS）の手続きを強制的にオフにする
-#         "token_endpoint_auth_method": "client_secret_post",
-#         # LINEのIDトークンは通常RS256ですが、環境に応じて自動検証させるため
-#         # 必要に応じて 'HS256' に戻せるよう、指定を柔軟にするかデフォルトに委ねます
-#     },
-# )
 
 
 def get_weekly_stats(start_date):
@@ -243,18 +200,35 @@ def line_callback():
         f"Extracted LINE user profile - sub (ID): {line_id}, name: {line_name}"
     )
 
-    if not line_name:
+    if not line_id and not line_name:
         current_app.logger.error(
-            "LINE Login Error: 'sub' (User ID) field missing from verified userinfo response."
+            "LINE Login Error: Both 'sub' and 'name' fields missing from verified userinfo response."
         )
-        flash("LINEからユーザー識別子を取得できませんでした。", "danger")
+        flash("LINEからユーザー識別情報を取得できませんでした。", "danger")
         return redirect(url_for("auth.login"))
 
     # 5. データベース照合処理
-    current_app.logger.info(
-        f"Searching database for local user matched with line_user_id: {line_id}"
-    )
-    user = User.query.filter_by(line_user_id=line_name).first()
+    # 優先度1: 永続的かつ一意な sub (line_id) で検索
+    user = None
+    if line_id:
+        user = User.query.filter_by(line_user_id=line_id).first()
+
+    # 優先度2: 登録時に表示名(line_name)が手動入力されたレガシーユーザーの後方互換検索
+    if not user and line_name:
+        user = User.query.filter_by(line_user_id=line_name).first()
+        # 初回ログイン時に安全な不変ID (line_id) へ自動アップグレード
+        if user and line_id:
+            try:
+                user.line_user_id = line_id
+                db.session.commit()
+                current_app.logger.info(
+                    f"Successfully upgraded user {user.username} line_user_id to immutable sub: {line_id}"
+                )
+            except Exception as commit_err:
+                db.session.rollback()
+                current_app.logger.warning(
+                    f"Failed to auto-upgrade line_user_id: {commit_err}"
+                )
 
     if user:
         current_app.logger.info(
@@ -369,11 +343,24 @@ def logout():
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    if request.method == "POST":
-        # 管理者でなければ操作不可
+    is_admin = current_user.is_authenticated and current_user.role == "admin"
 
-        username = request.form.get("username")
-        new_password = request.form.get("new_password")
+    if request.method == "POST":
+        # 管理者のみ操作可能
+        if not is_admin:
+            flash("パスワードのリセットは管理者のみ実行できます。管理者としてログインしてください。", "danger")
+            return redirect(url_for("auth.login"))
+
+        username = (request.form.get("username") or "").strip()
+        new_password = (request.form.get("new_password") or "").strip()
+
+        if not username or not new_password:
+            flash("ユーザー名と新しいパスワードの両方を入力してください。", "warning")
+            return redirect(url_for("auth.forgot_password"))
+
+        if len(new_password) < 6:
+            flash("パスワードは6文字以上で入力してください。", "warning")
+            return redirect(url_for("auth.forgot_password"))
 
         user = User.query.filter_by(username=username).first()
 
@@ -385,10 +372,11 @@ def forgot_password():
             user.set_password(new_password)
             db.session.commit()
             flash(f"{user.name}さんのパスワードを正常にリセットしました。", "success")
-            return redirect(url_for("auth.login"))
+            return redirect(url_for("auth.dashboard" if is_admin else "auth.login"))
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error resetting password for {username}: {e}")
             flash("パスワードのリセット中にエラーが発生しました。", "danger")
 
-    return render_template("auth/forgot_password.html")
+    return render_template("auth/forgot_password.html", is_admin=is_admin)
+

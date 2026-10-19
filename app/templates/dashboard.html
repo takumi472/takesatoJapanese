@@ -6,68 +6,8 @@
     <title>ダッシュボード - 武里日本語教室</title>
     <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Vercel Speed Insights -->
-    <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-    </script>
-    {% if not config.DEBUG %}
-  <script src="/_vercel/speed-insights/script.js" defer></script>
-{% endif %}
-    <style>
-    body { background-color: #f0ebf8; color: #202124; }
-    .dashboard-container { max-width: 1000px; margin: 20px auto; }
-    .welcome-header { background-color: #fff; border-top: 10px solid #673ab7; border-radius: 8px; padding: 30px; }
-    .menu-card { background-color: #fff; border: 1px solid #dadce0; border-radius: 8px; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; text-decoration: none; color: inherit; display: block; }
-    .menu-card:hover { transform: translateY(-4px); box-shadow: 0 8px 16px rgba(0,0,0,0.1); border-color: #673ab7; }
-    .icon-circle { width: 60px; height: 60px; background-color: #f0ebf8; color: #673ab7; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 28px; margin-bottom: 15px; }
-    .count-badge { font-size: 14px; background-color: #e8f0fe; color: #1a73e8; padding: 4px 12px; border-radius: 20px; font-weight: bold; }
-    .btn-logout {
-        color: #d93025;
-        text-decoration: none;
-        font-size: 14px;
-        border: 1px solid #d93025;
-        padding: 6px 16px;
-        /* border-radius: 50px;  */
-        transition: all 0.2s;
-        font-weight: 500;
-    }
-    .btn-logout:hover {
-        background-color: #d93025;
-        color: #fff !important;
-    }
-    .transition-card { transition: transform 0.2s, box-shadow 0.2s; }
-    .transition-card:hover { transform: translateY(-3px); box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important; }
-    .chart-container-pie { position: relative; height: 250px; width: 100%; display: flex; justify-content: center; }
-    .manual-btn-card {
-        background-color: #fff;
-        border: 1px solid #dadce0;
-        border-radius: 8px;
-        padding: 5px;
-        text-decoration: none;
-        color: #202124;
-        display: flex;
-        align-items: center;
-        gap: 12px;
-        transition: all 0.2s;
-    }
-    .manual-btn-card:hover {
-        box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        border-color: #0d6efd;
-        color: #0d6efd;
-    }
-    .manual-icon {
-        width: 36px;
-        height: 36px;
-        background-color: #e7f3ff;
-        color: #0d6efd;
-        border-radius: 50%;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        font-size: 18px;
-    }
-</style>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
 </head>
 <body>
 <div class="dashboard-container mb-5">
@@ -80,18 +20,21 @@
                 （権限: {{ current_user.role }}）
             </p>
             <div style="max-width:220px;">
-                <a href="{{ url_for('auth.manual') }}" class="manual-btn-card shadow-sm">
+                <a href="{{ url_for('auth.manual') }}" class="manual-btn-card shadow-sm text-decoration-none">
                     <div class="manual-icon"><i class="bi bi-question-circle-fill"></i></div>
                     <div class="text-start"><div style="font-weight: 600; font-size: 0.9rem;">使い方マニュアル</div></div>
                 </a>
             </div>
         </div>
 
-        <div >
+        <div class="d-flex align-items-center gap-2">
+            <!-- パスワード再設定ボタンをログアウトボタンの隣に移動 -->
+            <a href="{{ url_for('auth.forgot_password') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
+                <i class="bi bi-key-fill"></i> パスワード再設定
+            </a>
             <a href="#" onClick="showDialog()" class="btn-logout d-inline-flex align-items-center gap-1">
-                    <i class="bi bi-box-arrow-right"></i> ログアウト
-                </a>
-
+                <i class="bi bi-box-arrow-right"></i> ログアウト
+            </a>
         </div>
 
     </div>
@@ -222,12 +165,6 @@
         </div>
     </div>
 </div>
-<script>
-    window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-</script>
-{% if not config.DEBUG %}
-  <script src="/_vercel/speed-insights/script.js" defer></script>
-{% endif %}
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script>
     // 既存の折れ線グラフ
@@ -351,5 +288,11 @@
         }
     }
 </script>
+<footer class="text-center text-muted py-4 mt-5">
+    <small>
+        © 2026 TAKUMI DATA SYSTEMS. All Rights Reserved.<br>
+        Designed & Built with ☕ by TAKUMI DATA SYSTEMS
+    </small>
+</footer>
 </body>
 </html>

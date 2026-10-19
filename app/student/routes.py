@@ -5,7 +5,6 @@ from collections import defaultdict
 import json
 import base64
 from functools import lru_cache
-from urllib3.exceptions import InsecureRequestWarning
 from datetime import datetime, timedelta, date, timezone
 from xhtml2pdf import pisa
 import cloudinary
@@ -24,7 +23,6 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
-from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import User, Student, LearningRecord, Staff
@@ -145,16 +143,14 @@ def create_student():
 
             today_content = request.form.get("today_learning_content")
             if today_content:
-                # Find the Staff record associated with the User
-                staff_record = Staff.query.filter_by(user_id=current_user.id).first()
-                if staff_record:
-                    new_record = LearningRecord(
-                        student_id=new_student.id,
-                        staff_id=staff_record.id,
-                        today_learning_content=today_content,
-                        lesson_date=date.today(),
-                    )
-                    db.session.add(new_record)
+                # LearningRecord.staff_id は users.id を参照するため current_user.id を使用
+                new_record = LearningRecord(
+                    student_id=new_student.id,
+                    staff_id=current_user.id,
+                    today_learning_content=today_content,
+                    lesson_date=date.today(),
+                )
+                db.session.add(new_record)
 
             db.session.commit()
             flash("受講生の新規登録と学習記録の保存が完了しました！", "success")
@@ -282,52 +278,198 @@ def update_student(id):
     )
 
 
+@student_bp.route("/reorder", methods=["POST"])
+@login_required
+@roles_required("admin", "staff")
+def reorder_students():
+    """生徒の並び順（表示順）を一括更新してDBに保存するAPI"""
+    data = request.get_json() or {}
+    order_ids = data.get("order")
+    if not order_ids or not isinstance(order_ids, list):
+        return jsonify({"status": "error", "message": "order list is required"}), 400
+
+    for index, student_id in enumerate(order_ids, start=1):
+        try:
+            sid = int(student_id)
+            student = Student.query.get(sid)
+            if student:
+                student.display_order = index
+        except (ValueError, TypeError):
+            continue
+
+    db.session.commit()
+    return jsonify({"status": "success", "message": "順番をDBに保存しました"})
+
+
+def get_sunday_of_week(d: date) -> date:
+    """
+    指定された日付の週の日曜日（毎週日曜日のレッスン日）を取得する。
+    Pythonの weekday(): 月=0, 火=1, ..., 土=5, 日=6。
+    - 日曜日の場合はそのまま
+    - 月〜土の場合はその週の日曜日（(6 - d.weekday())日後）
+    """
+    days_to_add = 6 - d.weekday()
+    return d + timedelta(days=days_to_add)
+
+
+def get_attendance_dates(target_date, count=4):
+    """
+    target_date（毎週日曜日）を最新として、直近の日曜レッスン日を合計 count 日分（昇順）取得する。
+    DBに過去の日曜日の学習記録があればその日付を採用し、
+    足りない場合は過去に遡って 7 日刻み（毎週日曜日）で補完する。
+    """
+    target_date = get_sunday_of_week(target_date)
+
+    distinct_dates = (
+        db.session.query(LearningRecord.lesson_date)
+        .filter(LearningRecord.lesson_date <= target_date)
+        .distinct()
+        .order_by(LearningRecord.lesson_date.desc())
+        .limit(count * 2)
+        .all()
+    )
+    # 日曜日（weekday == 6）の日付のみを抽出
+    found_dates = [d[0] for d in distinct_dates if d[0].weekday() == 6][:count]
+
+    if not found_dates or target_date not in found_dates:
+        found_dates.insert(0, target_date)
+        found_dates = found_dates[:count]
+
+    needed = count - len(found_dates)
+    oldest = found_dates[-1] if found_dates else target_date
+    for i in range(1, needed + 1):
+        found_dates.append(oldest - timedelta(days=7 * i))
+
+    found_dates.sort()
+    return found_dates
+
+
+def get_fiscal_year(target_date):
+    """年度（4月〜翌年3月）を計算"""
+    return target_date.year if target_date.month >= 4 else target_date.year - 1
+
+
+def get_attendance_matrix(student_ids, dates):
+    """
+    各生徒・各日付の担当スタッフ名マップと、各日付の出席者数カウントを返す
+    """
+    records = (
+        LearningRecord.query.options(
+            joinedload(LearningRecord.writer_staff).joinedload(User.staff_profile)
+        )
+        .filter(
+            LearningRecord.student_id.in_(student_ids),
+            LearningRecord.lesson_date.in_(dates),
+        )
+        .all()
+    )
+
+    student_attendance = defaultdict(dict)
+    attendance_counts = {d: 0 for d in dates}
+
+    for rec in records:
+        staff_name = "─"
+        if rec.writer_staff:
+            if (
+                rec.writer_staff.staff_profile
+                and rec.writer_staff.staff_profile.last_name_kanji
+            ):
+                staff_name = rec.writer_staff.staff_profile.last_name_kanji
+            elif rec.writer_staff.name:
+                staff_name = rec.writer_staff.name.split()[0]
+
+        student_attendance[rec.student_id][rec.lesson_date] = staff_name
+        attendance_counts[rec.lesson_date] = (
+            attendance_counts.get(rec.lesson_date, 0) + 1
+        )
+
+    return student_attendance, attendance_counts
+
+
 @student_bp.route("/attendance")
 @login_required
 def attendance_list():
-    # 1. クエリパラメータから日付を取得（指定がなければ今日の日付）
+    # 1. クエリパラメータから日付を取得（毎週日曜日のレッスン日に自動補正）
     date_str = request.args.get("date")
     if date_str:
-        target_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+        try:
+            raw_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            target_date = get_sunday_of_week(raw_date)
+        except ValueError:
+            target_date = get_sunday_of_week(datetime.now().date())
     else:
-        target_date = datetime.now().date()
+        target_date = get_sunday_of_week(datetime.now().date())
 
-    # 2. その日の学習記録がある生徒と、優先設定されている生徒の両方を取得
-    logs = (
-        LearningRecord.query.options(
-            joinedload(LearningRecord.student), joinedload(LearningRecord.writer_staff)
-        )
-        .filter_by(lesson_date=target_date)
+    dates = get_attendance_dates(target_date, count=4)
+    date_columns = [
+        {
+            "date": d,
+            "label": f"{d.month}月{d.day}日",
+            "iso": d.strftime("%Y-%m-%d"),
+        }
+        for d in dates
+    ]
+
+    # 2. 対象生徒の選定（国籍別グループは廃止し、フラットな一覧）
+    threshold_date = target_date - timedelta(days=60)
+    recent_student_ids = {
+        r[0]
+        for r in db.session.query(LearningRecord.student_id)
+        .filter(LearningRecord.lesson_date >= threshold_date)
         .all()
-    )
-    # 学習記録から生徒IDと担当者名のマップを作成
-    attended_students_map = {
-        log.student.id: log.writer_staff.name if log.writer_staff else "自習"
-        for log in logs
-        if log.student
+    }
+    target_date_student_ids = {
+        r[0]
+        for r in db.session.query(LearningRecord.student_id)
+        .filter(LearningRecord.lesson_date.in_(dates))
+        .all()
+    }
+    priority_student_ids = {
+        s.id for s in Student.query.filter_by(is_priority=True).all()
+    }
+    ordered_student_ids = {
+        s.id for s in Student.query.filter(Student.display_order > 0).all()
     }
 
-    # 優先設定されている生徒を取得
-    priority_students = Student.query.filter_by(is_priority=True).all()
-    priority_student_ids = {s.id for s in priority_students}
+    target_ids = (
+        recent_student_ids
+        | target_date_student_ids
+        | priority_student_ids
+        | ordered_student_ids
+    )
+    if not target_ids:
+        target_ids = {s.id for s in Student.query.all()}
 
-    # 表示対象となる全生徒IDを結合（重複排除）
-    all_student_ids = set(attended_students_map.keys()) | priority_student_ids
-    all_students = Student.query.filter(Student.id.in_(all_student_ids)).all()
+    # DBに保存された display_order の昇順、未設定は後方、ID昇順で取得
+    students_query = (
+        Student.query.filter(Student.id.in_(target_ids))
+        .order_by(Student.display_order.asc().nulls_last(), Student.name_kana.asc())
+        .all()
+    )
 
-    # 3. 国籍ごとに生徒をグループ化
-    grouped_students = defaultdict(list)
-    for student in all_students:
-        # その日の担当者名を設定（出席していなければ '─'）
-        student.assigned_staff_name = attended_students_map.get(student.id, "─")
-        country = student.country_of_origin or "不明"
-        grouped_students[country].append(student)
+    student_attendance, attendance_counts = get_attendance_matrix(
+        [s.id for s in students_query], dates
+    )
+
+    for s in students_query:
+        s.attendance_by_date = student_attendance.get(s.id, {})
+        s.assigned_staff_name = s.attendance_by_date.get(target_date, "─")
+
+    fiscal_year = get_fiscal_year(target_date)
+
+    prev_sunday = target_date - timedelta(days=7)
+    next_sunday = target_date + timedelta(days=7)
 
     return render_template(
         "student/attendence.html",
         target_date=target_date,
-        grouped_students=dict(grouped_students),  # 扱いやすいように通常の辞書型に変換
-        total_count=len(all_students),
+        prev_sunday=prev_sunday,
+        next_sunday=next_sunday,
+        fiscal_year=fiscal_year,
+        students=students_query,
+        date_columns=date_columns,
+        attendance_counts=attendance_counts,
+        total_count=len(students_query),
     )
 
 
@@ -335,224 +477,161 @@ def attendance_list():
 @login_required
 def attendance_pdf_preview():
     """PDF出力前の最終確認・並び替え画面を表示する"""
-    # 1. 出席リスト画面から日付と生徒の初期順序を取得
+
     date_str = request.args.get("date")
     order_str = request.args.get("order", "")
 
-    target_date = (
-        datetime.strptime(date_str, "%Y-%m-%d").date()
-        if date_str
-        else datetime.now().date()
-    )
+    if date_str:
+        try:
+            raw_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            target_date = get_sunday_of_week(raw_date)
+        except ValueError:
+            target_date = get_sunday_of_week(datetime.now().date())
+    else:
+        target_date = get_sunday_of_week(datetime.now().date())
+
+    dates = get_attendance_dates(target_date, count=4)
+    date_columns = [
+        {
+            "date": d,
+            "label": f"{d.month}月{d.day}日",
+            "iso": d.strftime("%Y-%m-%d"),
+        }
+        for d in dates
+    ]
 
     ordered_ids = [int(id) for id in order_str.split(",") if id.isdigit()]
 
-    if not ordered_ids:
+    if ordered_ids:
+        students_query = Student.query.filter(Student.id.in_(ordered_ids)).all()
+        students_map = {s.id: s for s in students_query}
+        students = [students_map[sid] for sid in ordered_ids if sid in students_map]
+    else:
+        threshold_date = target_date - timedelta(days=60)
+        recent_ids = {
+            r[0]
+            for r in db.session.query(LearningRecord.student_id)
+            .filter(LearningRecord.lesson_date >= threshold_date)
+            .all()
+        }
+        target_date_ids = {
+            r[0]
+            for r in db.session.query(LearningRecord.student_id)
+            .filter(LearningRecord.lesson_date.in_(dates))
+            .all()
+        }
+        priority_ids = {s.id for s in Student.query.filter_by(is_priority=True).all()}
+        ordered_ids_db = {
+            s.id for s in Student.query.filter(Student.display_order > 0).all()
+        }
+        target_ids = recent_ids | target_date_ids | priority_ids | ordered_ids_db
+        if not target_ids:
+            target_ids = {s.id for s in Student.query.all()}
+
+        students = (
+            Student.query.filter(Student.id.in_(target_ids))
+            .order_by(Student.name_kana.asc())
+            .all()
+        )
+
+    if not students:
         flash("PDFに出力する生徒がいません。", "warning")
         return redirect(url_for("student.attendance_list", date=date_str))
 
-    # 2. 渡された順序を維持して生徒情報を取得
-    students_query = Student.query.filter(Student.id.in_(ordered_ids)).all()
-    students_map = {s.id: s for s in students_query}
-    students = [students_map[sid] for sid in ordered_ids if sid in students_map]
-
-    # 3. 過去3週間分の日付を計算
-    one_week_ago = target_date - timedelta(days=7)
-    two_weeks_ago = target_date - timedelta(days=14)
-    three_weeks_ago = target_date - timedelta(days=21)
-
-    # 4. 当日および過去の学習記録を一括で取得
-    all_dates_to_check = [target_date, one_week_ago, two_weeks_ago, three_weeks_ago]
-    records = (
-        LearningRecord.query.filter(
-            LearningRecord.lesson_date.in_(all_dates_to_check),
-            LearningRecord.student_id.in_(ordered_ids),
-        )
-        .options(joinedload(LearningRecord.writer_staff))
-        .all()
+    student_attendance, attendance_counts = get_attendance_matrix(
+        [s.id for s in students], dates
     )
 
-    # 5. 生徒IDと日付をキーにした担当者マップを作成
-    attendance_history = defaultdict(dict)
-    for rec in records:
-        if rec.writer_staff:
-            attendance_history[rec.student_id][rec.lesson_date] = rec.writer_staff.name
+    for s in students:
+        s.attendance_by_date = student_attendance.get(s.id, {})
+        s.assigned_staff_name = s.attendance_by_date.get(target_date, "─")
 
-    # 6. 各生徒オブジェクトに担当者情報をセット
-    for student in students:
-        history = attendance_history.get(student.id, {})
-        student.assigned_staff_name = history.get(target_date, "─")
-        student.staff_one_week_ago = history.get(one_week_ago, "")
-        student.staff_two_weeks_ago = history.get(two_weeks_ago, "")
-        student.staff_three_weeks_ago = history.get(three_weeks_ago, "")
+    fiscal_year = get_fiscal_year(target_date)
 
     return render_template(
         "student/attendance_pdf_preview.html",
         target_date=target_date,
+        fiscal_year=fiscal_year,
         students=students,
-        date_one_week_ago=one_week_ago,
-        date_two_weeks_ago=two_weeks_ago,
-        date_three_weeks_ago=three_weeks_ago,
+        date_columns=date_columns,
+        attendance_counts=attendance_counts,
     )
 
 
 @student_bp.route("/attendance/download-pdf")
 @login_required
 def download_attendance_pdf():
-    # 1. フロントエンドから日付と並び順IDを取得
     date_str = request.args.get("date")
     order_str = request.args.get("order", "")
-    priority_ids_str = request.args.get("priority_ids", "")
 
-    target_date = (
-        datetime.strptime(date_str, "%Y-%m-%d").date()
-        if date_str
-        else datetime.now().date()
-    )
+    if date_str:
+        try:
+            raw_date = datetime.strptime(date_str, "%Y-%m-%d").date()
+            target_date = get_sunday_of_week(raw_date)
+        except ValueError:
+            target_date = get_sunday_of_week(datetime.now().date())
+    else:
+        target_date = get_sunday_of_week(datetime.now().date())
 
-    # 日付カラム用の日付を計算
-    three_weeks_ago = target_date - timedelta(days=21)
-    two_weeks_ago = target_date - timedelta(days=14)
-    one_week_ago = target_date - timedelta(days=7)
-    next_week = target_date + timedelta(days=7)
-    # 2. プレビュー画面で最終決定された並び順と優先IDを取得
+    dates = get_attendance_dates(target_date, count=4)
+    date_columns = [
+        {
+            "date": d,
+            "label": f"{d.month}月{d.day}日",
+            "iso": d.strftime("%Y-%m-%d"),
+        }
+        for d in dates
+    ]
+
     ordered_ids = [int(id) for id in order_str.split(",") if id.isdigit()]
-    priority_ids = {int(id) for id in priority_ids_str.split(",") if id.isdigit()}
 
-    # 3. DBで「優先」設定されている生徒もリストに含める
-    priority_students_from_db = Student.query.filter_by(is_priority=True).all()
-    priority_student_ids_from_db = {s.id for s in priority_students_from_db}
+    # 出力対象の生徒を取得（DBのReorderは行わず、指定された順序でPDFを生成）
+    if ordered_ids:
+        students_query = Student.query.filter(Student.id.in_(ordered_ids)).all()
+        students_map = {s.id: s for s in students_query}
+        all_students = [students_map[sid] for sid in ordered_ids if sid in students_map]
+    else:
+        all_students = Student.query.order_by(Student.name_kana.asc()).all()
 
-    # 4. 最終的にPDFに表示する生徒のIDリストを作成
-    # プレビュー画面の並び順を最優先し、DBの優先生徒を追加する
-    final_student_ids = ordered_ids[:]  # コピーを作成
-    for sid in priority_student_ids_from_db:
-        if sid not in priority_student_ids_from_db:
-            final_student_ids.append(sid)
-
-    # 5. 該当日の学習記録と生徒情報を取得
-    logs = (
-        LearningRecord.query.options(joinedload(LearningRecord.student))
-        .filter(LearningRecord.lesson_date == target_date)
-        .all()
-    )
-    students_map = {log.student.id: log for log in logs if log.student}
-
-    # --- 過去の出席記録を取得 ---
-    student_ids_on_list = final_student_ids
-    past_dates = [one_week_ago, two_weeks_ago, three_weeks_ago]
-    past_records = (
-        LearningRecord.query.options(
-            joinedload(LearningRecord.writer_staff).joinedload(User.staff_profile)
-        )
-        .filter(
-            LearningRecord.student_id.in_(student_ids_on_list),
-            LearningRecord.lesson_date.in_(past_dates),
-        )
-        .all()
+    student_attendance, attendance_counts = get_attendance_matrix(
+        [s.id for s in all_students], dates
     )
 
-    # 生徒IDと日付をキーにした担当者マップを作成
-    attendance_history = defaultdict(dict)
-    for rec in past_records:
-        # ★修正: フルネームから姓のみに変更
-        if rec.writer_staff and rec.writer_staff.staff_profile:
-            first_name = rec.writer_staff.staff_profile.first_name_kanji
-            attendance_history[rec.student_id][rec.lesson_date] = first_name
+    # Base64画像変換
+    for student in all_students:
+        student.attendance_by_date = student_attendance.get(student.id, {})
+        student.face_photo_base64 = None
+        if student.face_photo_path:
+            try:
+                response = requests.get(student.face_photo_path, timeout=5)
+                if response.status_code == 200:
+                    b64_data = base64.b64encode(response.content).decode("utf-8")
+                    content_type = response.headers.get("Content-Type", "image/jpeg")
+                    student.face_photo_base64 = f"data:{content_type};base64,{b64_data}"
+            except Exception as e:
+                current_app.logger.warning(
+                    f"Failed to fetch image for student {student.id} during PDF generation: {e}"
+                )
 
-    # 6. 優先生徒と通常生徒に振り分ける
-    priority_students = []
-    other_students = []
+    fiscal_year = get_fiscal_year(target_date)
 
-    # SSL証明書の警告を非表示にする
-    requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
-
-    # 優先生徒と出席生徒の情報を取得
-    all_target_students = Student.query.filter(Student.id.in_(final_student_ids)).all()
-    all_students_map = {s.id: s for s in all_target_students}
-
-    for student_id in final_student_ids:
-        student = all_students_map.get(student_id)
-        if not student:
-            continue
-
-        # その日の出席情報があれば担当者名を取得、なければ「自習」
-        if student_id in students_map:
-            log = students_map[student_id]
-            staff_user = Staff.query.get(log.staff_id)
-            student.assigned_staff_name = (
-                staff_user.first_name_kanji if staff_user else "─"
-            )
-
-            # 過去の担当者情報を生徒オブジェクトにセット
-            student.staff_one_week_ago = attendance_history.get(student.id, {}).get(
-                one_week_ago, ""
-            )
-            student.staff_two_weeks_ago = attendance_history.get(student.id, {}).get(
-                two_weeks_ago, ""
-            )
-            student.staff_three_weeks_ago = attendance_history.get(student.id, {}).get(
-                three_weeks_ago, ""
-            )
-        else:
-            student.assigned_staff_name = "─"
-
-            # --- 画像をBase64に変換する処理を追加 ---
-            student.face_photo_base64 = None  # 属性を初期化しておく
-            if student.face_photo_path:
-                try:
-                    # SSL検証を無効にして画像データを取得
-                    response = requests.get(
-                        student.face_photo_path, verify=False, timeout=10
-                    )
-                    if response.status_code == 200:
-                        # Base64エンコードして、テンプレートで使えるようにData URI形式にする
-                        # ★注意: student.face_photo_path を上書きしない！
-                        # データベースのフィールドを汚してしまい、autoflush時にエラーを引き起こす原因になる。
-                        # テンプレート専用の新しい属性に格納する。
-                        b64_data = base64.b64encode(response.content).decode("utf-8")
-                        student.face_photo_base64 = f"data:image/jpeg;base64,{b64_data}"
-                except Exception as e:
-                    current_app.logger.error(
-                        f"Failed to fetch or encode image for student {student.id}: {e}"
-                    )
-
-        # 優先生徒は必ず出席者リストへ。それ以外の生徒は出席記録がある場合のみリストに追加。
-        if student.is_priority or student_id in students_map:
-            priority_students.append(student)
-        else:
-            other_students.append(student)
-    all_students = priority_students + other_students
-
-    # 7. HTMLテンプレートをレンダリング
     rendered_html = render_template(
         "student/attendance_pdf_template.html",
-        date_three_weeks_ago=three_weeks_ago.strftime("%m/%d"),
-        date_two_weeks_ago=two_weeks_ago.strftime("%m/%d"),
-        date_one_week_ago=one_week_ago.strftime("%m/%d"),
-        date_target=target_date.strftime("%m/%d"),
-        date_next_week=next_week.strftime("%m/%d"),
+        target_date=target_date,
+        fiscal_year=fiscal_year,
+        date_columns=date_columns,
         all_students=all_students,
-        num_priority=len(priority_students),
+        attendance_counts=attendance_counts,
     )
 
-    # 8. xhtml2pdf を使ってPDFを生成
     pdf_buffer = io.BytesIO()
-    font_path = os.path.join(current_app.root_path, "static", "fonts", "ipaexg.ttf")
-
-    # --- 修正: SSL検証を無効化し、日本語フォントを正しく参照させるためのコールバック ---
-    import ssl
-
-    # SSL証明書の検証を無効にするグローバルコンテキストを作成
-    # これにより、xhtml2pdfが外部URL（例: Cloudinary）から画像を取得する際のSSLエラーを回避します。
-    ssl._create_default_https_context = ssl._create_unverified_context
+    font_path = os.path.join(current_app.root_path, "fonts", "ipaexg.ttf")
+    if not os.path.exists(font_path):
+        font_path = os.path.join(current_app.root_path, "static", "fonts", "ipaexg.ttf")
 
     def link_callback(uri, rel):
-        # 日本語フォントファイルへのパスを解決
         if "HeiseiKakuGo-W5" in uri or "HeiseiMin-W3" in uri:
             return font_path
-        # それ以外のローカルファイル（CSSなど）へのパスを解決
-        # URIが外部リソース（http/https/data）でない場合にのみ、ローカルパスを解決
         return uri
 
     pisa_status = pisa.CreatePDF(
@@ -565,11 +644,12 @@ def download_attendance_pdf():
     if pisa_status.err:
         return "PDF生成中にエラーが発生しました。", 500
 
-    # 9. PDFをレスポンスとして返す
     pdf_buffer.seek(0)
     response = make_response(pdf_buffer.read())
     response.headers["Content-Type"] = "application/pdf"
     response.headers["Content-Disposition"] = (
         f"attachment; filename=attendance_{target_date}.pdf"
     )
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
     return response

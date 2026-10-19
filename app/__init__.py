@@ -60,7 +60,28 @@ def create_app(env_name="development"):
 
     db.init_app(app)
 
-    # --- Blueprintの登録などはこの下に記述 ---i
+    with app.app_context():
+        try:
+            from sqlalchemy import text
+
+            if db.engine.dialect.name == "sqlite":
+                res = db.session.execute(text("PRAGMA table_info(students);")).fetchall()
+                col_names = [r[1] for r in res]
+                if col_names and "display_order" not in col_names:
+                    db.session.execute(
+                        text("ALTER TABLE students ADD COLUMN display_order INTEGER DEFAULT 0;")
+                    )
+                    db.session.commit()
+            elif db.engine.dialect.name == "postgresql":
+                db.session.execute(
+                    text("ALTER TABLE students ADD COLUMN IF NOT EXISTS display_order INTEGER DEFAULT 0;")
+                )
+                db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            app.logger.warning(f"Auto-migration notice: {e}")
+
+    # --- Blueprintの登録などはこの下に記述 ---
     from app.auth.routes import auth_bp
     from app.staff.routes import staff_bp
     from app.student.routes import student_bp

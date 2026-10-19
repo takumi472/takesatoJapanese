@@ -1,20 +1,13 @@
-# app/staff/routes.py
-from flask import Blueprint, render_template, request, redirect, url_for, flash
-from flask_login import (
-    current_user,
-    login_required,
-)  # login_requiredは使用されているため残す
-from app.models import db, User, Staff
-from werkzeug.security import generate_password_hash
-from datetime import datetime
-import smtplib
-import ssl
-import cloudinary
-import cloudinary.uploader
-from flask import current_app  # current_appはログなどで使用するため残す
 import os
 import json
 from functools import lru_cache
+from datetime import datetime
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask_login import current_user, login_required
+from app.models import db, User, Staff
+from werkzeug.security import generate_password_hash
+import cloudinary
+import cloudinary.uploader
 from email.message import EmailMessage
 from sqlalchemy.orm import joinedload
 
@@ -322,28 +315,28 @@ def edit_staff(id):
 @staff_bp.route("/")
 @login_required
 def staff_list():
-    # N+1問題対策: joinedload を使って、関連するUserオブジェクトも一度に取得する
-    from sqlalchemy.orm import joinedload
-
+    # N+1問題対策: joinedload を使って関連するUserオブジェクトも一度に取得
     all_staff = (
-        Staff.query.join(User)  # Userテーブルを結合
-        .filter(User.is_deleted == False)  # ★論理削除されていないユーザーのみ抽出
+        Staff.query.join(User)
+        .filter(User.is_deleted.is_(False))
         .options(joinedload(Staff.user))
         .order_by(Staff.id.asc())
         .all()
     )
 
+    region_data = get_region_data()
     for staff in all_staff:
+        # DB内の staff.address は変更せず、表示専用の display_address 属性に格納
+        staff.display_address = staff.address or "未登録"
         if not staff.address:
             continue
 
-        region_data = get_region_data()
         found = False
         for region, prefs in region_data.items():
             for pref, cities in prefs.items():
                 for city in cities:
                     if city in staff.address:
-                        staff.address = f"{pref}{city}"
+                        staff.display_address = f"{pref}{city}"
                         found = True
                         break
                 if found:
@@ -351,7 +344,6 @@ def staff_list():
             if found:
                 break
 
-    # テンプレート（list.html）にスタッフ一覧データを渡してレンダリング
     return render_template(
         "staff/list.html", staff_list=all_staff, current_user=current_user
     )

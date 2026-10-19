@@ -3,25 +3,18 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{{ target_date.strftime('%Y%m%d') }}_出席リスト</title>
+    <title>{{ fiscal_year }}年度 受講生 出席表 - 武里日本語教室</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    <!-- Vercel Speed Insights -->
-    <script>
-        if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
-            window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-            const s = document.createElement('script');
-            s.src = "/_vercel/speed-insights/script.js";
-            s.defer = true;
-            document.head.appendChild(s);
-        }
-    </script>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
-        body { background-color: #f8f9fa; font-family: 'Helvetica Neue', Arial, sans-serif; }
-        .main-container { max-width: 900px; margin: 30px auto; padding: 0 15px; }
-        .header-box { background: white; border-top: 8px solid #673ab7; border-radius: 8px; padding: 20px; }
-        .country-section { background: white; border-radius: 8px; border: 1px solid #e0e0e0; margin-bottom: 25px; overflow: hidden; }
-        .country-header { background-color: #f1f3f4; padding: 12px 20px; font-weight: bold; font-size: 16px; color: #202124; border-bottom: 1px solid #e0e0e0; }
+        .header-box {
+            background: #ffffff;
+            border-top: 8px solid var(--primary-color, #673ab7);
+            border-radius: 8px;
+            padding: 24px;
+        }
         .drag-handle {
             cursor: move;
             color: #adb5bd;
@@ -33,157 +26,262 @@
         .sortable-drag {
             background-color: #ffffff;
         }
-        .student-avatar { width: 45px; height: 45px; object-fit: cover; border-radius: 50%; border: 1px solid #ddd; }
-        .avatar-placeholder { width: 45px; height: 45px; border-radius: 50%; background-color: #e8eaed; display: flex; align-items: center; justify-content: center; color: #5f6368; margin: 0 auto; }
-
-        /* ================= 🖨️ PDF・印刷専用のレイアウト微調整（超重要） ================= */
+        .student-avatar {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 6px;
+            border: 1px solid #ced4da;
+        }
+        .avatar-placeholder {
+            width: 100px;
+            height: 100px;
+            border-radius: 6px;
+            background-color: #e9ecef;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #6c757d;
+            margin: 0 auto;
+        }
+        .summary-cell {
+            background-color: #e0f2fe !important;
+            font-weight: 700;
+        }
         @media print {
-            @page {
-                size: A4;
-                margin: 20mm 15mm; /* 印刷時の余白を最適化 */
-            }
-            /* 画面用ボタンやフォーム、ナビゲーションをPDFから完全に除外 */
-            .no-print, .btn, form, .bi-house-door-fill {
+            .no-print, .btn, form, .btn-floating-back {
                 display: none !important;
             }
             body {
                 background-color: #ffffff !important;
-                -webkit-print-color-adjust: exact;
-                print-color-adjust: exact;
-            }
-            .main-container {
-                margin: 0 !important;
-                padding: 0 !important;
-                max-width: 100% !important;
             }
             .header-box {
                 border: none !important;
                 box-shadow: none !important;
                 padding: 0 0 10px 0 !important;
-                border-bottom: 2px solid #673ab7 !important;
-                border-radius: 0 !important;
-                margin-bottom: 20px !important;
-            }
-            .country-section {
-                page-break-inside: avoid; /* テーブルがページの途中で不自然に切れるのを防ぐ */
-                box-shadow: none !important;
-                border: 1px solid #cccccc !important;
+                border-bottom: 2px solid var(--primary-color, #673ab7) !important;
             }
         }
-        /* 浮遊（Floating）戻るボタンのスタイル */
-            .btn-floating-back {
-                position: fixed;
-                bottom: 30px;
-                right: 30px;
-                width: 56px;
-                height: 56px;
-                border-radius: 50%;
-                background-color: #673ab7;
-                color: white;
-                z-index: 1050;
-                transition: transform 0.2s, background-color 0.2s;
-            }
-            .btn-floating-back:hover {
-                background-color: #512da8;
-                transform: scale(1.1);
-                color: white;
-            }
     </style>
 </head>
 <body>
 
-<div class="container main-container">
+<div class="container main-container my-4" style="max-width: 1100px;">
     <div class="header-box shadow-sm mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
             <div class="d-flex align-items-center gap-2">
-                <a href="{{ url_for('auth.dashboard') }}" class="btn btn-sm btn-primary no-print"><i class="bi bi-house-door-fill"></i></a>
-                <h1 class="h4 mb-0 fw-bold">{{ target_date.strftime('%Y年%m月%d日') }} 出席リスト</h1>
+                <a href="{{ url_for('auth.dashboard') }}" class="btn btn-outline-secondary btn-sm no-print" title="ダッシュボードへ戻る">
+                    <i class="bi bi-house-door-fill"></i>
+                </a>
+                <h1 class="h4 mb-0 fw-bold">{{ fiscal_year }}年度 受講生 出席表</h1>
             </div>
-            <small class="text-muted">総出席数: <strong>{{ total_count }}</strong> 名（国籍順ソート）</small>
+            <div class="mt-1 small text-muted">
+                対象日: <strong>{{ target_date.strftime('%Y年%m月%d日') }}（日）</strong> ｜ 受講生: <strong>{{ total_count }}</strong> 名
+            </div>
         </div>
 
-        <div class="no-print">
-            <form method="GET" action="{{ url_for('student.attendance_list') }}" class="d-flex gap-2">
-                <input type="date" id="datePicker" name="date" class="form-control form-control-sm" value="{{ target_date }}">
-                <button type="submit" class="btn btn-sm btn-primary" style="min-width:70px;">日付変更</button>
-                <button type="button" class="btn btn-sm btn-success align-items-center gap-1" onclick="goToPdfPreview()" style="min-width: 150px;">
-                    <i class="bi bi-file-earmark-pdf-fill"></i> PDF出力
-                </button>
-            </form>
+        <div class="no-print d-flex align-items-center gap-2 flex-wrap">
+            <span id="save-status-badge" class="badge bg-success-subtle text-success border border-success-subtle d-none px-3 py-2">
+                <i class="bi bi-check-circle-fill me-1"></i> 順番をDBに保存しました
+            </span>
+            <div class="d-flex align-items-center gap-1">
+                <a href="{{ url_for('student.attendance_list', date=prev_sunday.strftime('%Y-%m-%d')) }}" class="btn btn-sm btn-outline-secondary" title="前週の日曜日へ">
+                    <i class="bi bi-chevron-left"></i> 前週
+                </a>
+                <form method="GET" action="{{ url_for('student.attendance_list') }}" class="d-flex align-items-center gap-1 mb-0">
+                    <input type="date" id="datePicker" name="date" class="form-control form-control-sm" value="{{ target_date }}" title="任意の日付を選択しても該当週の日曜日に自動調整されます">
+                    <button type="submit" class="btn btn-sm btn-outline-primary text-nowrap">変更</button>
+                </form>
+                <a href="{{ url_for('student.attendance_list', date=next_sunday.strftime('%Y-%m-%d')) }}" class="btn btn-sm btn-outline-secondary" title="翌週の日曜日へ">
+                    翌週 <i class="bi bi-chevron-right"></i>
+                </a>
+            </div>
+            <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm text-nowrap" onclick="saveStudentOrder(true)" title="現在の並び順をデータベースに保存します">
+                <i class="bi bi-floppy"></i> 順番を保存
+            </button>
+            <button type="button" class="btn btn-sm btn-success d-inline-flex align-items-center gap-1 shadow-sm text-nowrap" onclick="goToPdfPreview()">
+                <i class="bi bi-file-earmark-pdf-fill"></i> PDF出力 / 最終確認
+            </button>
         </div>
     </div>
 
-    {% for country, students in grouped_students.items() %}
-    <div class="country-section shadow-sm">
-        <div class="country-header d-flex justify-content-between align-items-center">
-            <span><i class="bi bi-flag-fill text-secondary me-2"></i>国籍: {{ country }}</span>
-            <span class="badge bg-secondary">{{ students|length }}名</span>
-        </div>
-
-        <div class="table-responsive">
-            <table class="table table-hover align-middle mb-0">
-                <thead class="table-light" style="font-size: 13px;">
-                    <tr>
-                        <th scope="col" class="text-center no-print" style="width: 5%;">優先</th>
-                        <th scope="col" class="text-center" style="width: 10%;"><i class="bi bi-grip-vertical"></i> 番号</th>
-                        <th scope="col" class="text-center" style="width: 15%;">顔写真</th>
-                        <th scope="col" style="width: 35%;">生徒の名前</th>
-                        <th scope="col" style="width: 20%;">国籍</th>
-                        <th scope="col" style="width: 20%;">担当スタッフ</th>
-                    </tr>
-                </thead>
-                <tbody class="sortable-list" data-country="{{ country }}">
-                    {% for s in students %}
-                    <tr data-student-id="{{ s.id }}">
-                        <td class="text-center no-print">
-                            <div class="form-check d-flex justify-content-center">
-                                <input class="form-check-input priority-check"
-                                       type="checkbox"
-                                       data-student-id="{{ s.id }}"
-                                       {% if s.is_priority %}checked{% endif %}
-                                       title="優先生徒として設定します。PDF出力や一覧表示で上位に表示されます。">
-                            </div>
-                        </td>
-                        <td class="text-center text-muted fw-bold"><span class="drag-handle me-1"><i class="bi bi-grip-vertical"></i></span><span class="row-number">{{ loop.index }}</span></td>
-
-                        <td class="text-center">
-                            {% if s.face_photo_path %}
-                                <img src="{{ s.face_photo_path }}" class="student-avatar" alt="{{ s.name_kana }}">
-                            {% else %}
-                                <div class="avatar-placeholder"><i class="bi bi-person-fill"></i></div>
-                            {% endif %}
-                        </td>
-
-                        <td><div class="fw-bold text-dark">{{ s.name_kana }}</div></td>
-
-                        <td><span class="text-secondary">{{ country }}</span></td>
-
-                        <td>
-                            <span class="badge bg-light text-dark border"><i class="bi bi-person-badge text-muted me-1"></i>{{ s.assigned_staff_name }}</span>
-                        </td>
-                    </tr>
+    {% if students %}
+    <div class="table-responsive bg-white rounded shadow-sm border mb-5">
+        <table class="table table-bordered table-hover align-middle mb-0 text-nowrap">
+            <thead class="table-light text-center" style="font-size: 13px;">
+                <tr>
+                    <th scope="col" class="no-print" style="width: 5%;">優先</th>
+                    <th scope="col" style="width: 7%;"><i class="bi bi-grip-vertical"></i> 番号</th>
+                    <th scope="col" style="width: 18%; cursor: pointer;" class="text-start user-select-none" title="クリックして名前順（五十音順）で並び替え">
+                        受講生 氏名
+                    </th>
+                    <th scope="col" style="width: 12%;">国籍</th>
+                    <th scope="col" style="width: 6%;">級</th>
+                    <th scope="col" style="width: 8%;">写真</th>
+                    {% for d in date_columns %}
+                    <th scope="col" style="width: 11%;">{{ d.label }}</th>
                     {% endfor %}
-                </tbody>
-            </table>
-        </div>
+                    <th scope="col" class="no-print" style="width: 10%;">操作</th>
+                </tr>
+            </thead>
+            <tbody class="sortable-list">
+                {% for s in students %}
+                <tr data-student-id="{{ s.id }}">
+                    <td class="text-center no-print">
+                        <div class="form-check d-flex justify-content-center">
+                            <input class="form-check-input priority-check"
+                                   type="checkbox"
+                                   data-student-id="{{ s.id }}"
+                                   {% if s.is_priority %}checked{% endif %}
+                                   title="優先生徒として設定">
+                        </div>
+                    </td>
+                    <td class="text-center text-muted fw-bold">
+                        <span class="drag-handle me-1"><i class="bi bi-grip-vertical"></i></span>
+                        <span class="row-number">{{ loop.index }}</span>
+                    </td>
+                    <td class="fw-bold text-dark text-start student-name" data-name="{{ s.name_kana }}">
+                        {% set name_parts = s.name_kana.split('.') %}
+                        {{ name_parts[1] }}
+                    </td>
+                    <td class="text-center text-secondary">
+                        {{ s.country_of_origin or '' }}
+                    </td>
+                    <td class="text-center fw-bold">
+                        <span class="badge bg-light text-dark border">{{ s.jlpt_level or '─' }}</span>
+                    </td>
+                    <td class="text-center">
+                        {% if s.face_photo_path %}
+                            <img src="{{ s.face_photo_path }}" class="student-avatar" alt="{{ s.name_kana }}">
+                        {% else %}
+                            <div class="avatar-placeholder"><i class="bi bi-person-fill fs-5"></i></div>
+                        {% endif %}
+                    </td>
+                    {% for d in date_columns %}
+                    <td class="text-center font-monospace">
+                        {% set staff_val = s.attendance_by_date.get(d.date) %}
+                        {% if staff_val and staff_val != '─' %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">{{ staff_val }}</span>
+                        {% else %}
+                            <span class="text-muted">─</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td class="text-center no-print">
+                        <a href="{{ url_for('record.record_list', student_id=s.id) }}" class="btn btn-outline-secondary btn-sm py-1 px-2" style="font-size: 11px;" title="学習記録">
+                            <i class="bi bi-pencil-square"></i> 記録
+                        </a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+            <tfoot>
+                <tr class="summary-cell">
+                    <td colspan="6" class="text-center fw-bold py-2" style="letter-spacing: 2px;">
+                        出席者数
+                    </td>
+                    {% for d in date_columns %}
+                    <td class="text-center fw-bold py-2">
+                        {% if attendance_counts.get(d.date, 0) > 0 %}
+                            {{ attendance_counts.get(d.date) }} 名
+                        {% else %}
+                            <span class="text-muted">0</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                    <td class="no-print"></td>
+                </tr>
+            </tfoot>
+        </table>
     </div>
     {% else %}
     <div class="text-center py-5 bg-white rounded shadow-sm border">
-        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem运行;"></i>
-        <p class="text-muted mt-2 mb-0">この日の出席記録（学習録）はありません。</p>
+        <i class="bi bi-calendar-x text-muted" style="font-size: 3rem;"></i>
+        <p class="text-muted mt-2 mb-0">受講生データが見つかりませんでした。</p>
     </div>
-    {% endfor %}
+    {% endif %}
 </div>
 
 <!-- 浮遊戻るボタン -->
-<button type="button" class="btn btn-floating-back shadow d-flex align-items-center justify-content-center border-0" onclick="window.history.back()" title="戻る">
-    戻る
+<button type="button" class="btn btn-floating-back shadow d-flex align-items-center justify-content-center border-0 no-print" onclick="window.history.back()" title="戻る">
+    <i class="bi bi-chevron-left fs-4"></i>
 </button>
 
 <script src="https://cdn.jsdelivr.net/npm/sortablejs@latest/Sortable.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
+let nameSortAsc = true;
+
+function toggleNameSort() {
+    const list = document.querySelector('.sortable-list');
+    if (!list) return;
+
+    const rows = Array.from(list.querySelectorAll('tr[data-student-id]'));
+    if (rows.length === 0) return;
+
+    rows.sort((rowA, rowB) => {
+        const nameA = rowA.querySelector('.student-name')?.dataset.name || rowA.querySelector('.student-name')?.textContent.trim() || '';
+        const nameB = rowB.querySelector('.student-name')?.dataset.name || rowB.querySelector('.student-name')?.textContent.trim() || '';
+        const cmp = nameA.localeCompare(nameB, 'ja');
+        return nameSortAsc ? cmp : -cmp;
+    });
+
+    // アイコンの更新
+    const sortIcon = document.getElementById('name-sort-icon');
+    if (sortIcon) {
+        sortIcon.className = nameSortAsc ? 'bi bi-sort-alpha-down text-primary ms-1' : 'bi bi-sort-alpha-up text-primary ms-1';
+    }
+
+    // 行を再配置して番号を再採番
+    rows.forEach((row, index) => {
+        list.appendChild(row);
+        const numberCell = row.querySelector('.row-number');
+        if (numberCell) {
+            numberCell.textContent = index + 1;
+        }
+    });
+
+    // 次回クリック用に昇順・降順を反転
+    nameSortAsc = !nameSortAsc;
+
+    // ソート結果を自動でDBに保存
+    saveStudentOrder(true);
+}
+
+function getCurrentStudentIds() {
+    const studentIds = [];
+    document.querySelectorAll('.sortable-list tr').forEach(tr => {
+        const studentId = tr.dataset.studentId;
+        if (studentId) {
+            studentIds.push(parseInt(studentId, 10));
+        }
+    });
+    return studentIds;
+}
+
+function saveStudentOrder(showFeedback = false) {
+    const order = getCurrentStudentIds();
+    if (order.length === 0) return Promise.resolve();
+
+    return fetch("{{ url_for('student.reorder_students') }}", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ order: order })
+    })
+    .then(res => res.json())
+    .then(data => {
+        if (data.status === 'success' && showFeedback) {
+            const badge = document.getElementById("save-status-badge");
+            badge.classList.remove("d-none");
+            setTimeout(() => {
+                badge.classList.add("d-none");
+            }, 3000);
+        }
+    })
+    .catch(err => console.error("Error saving order:", err));
+}
+
 function goToPdfPreview() {
     const selectedDate = document.getElementById('datePicker').value;
     if (!selectedDate) {
@@ -191,51 +289,40 @@ function goToPdfPreview() {
         return;
     }
 
-    // 表示されている生徒のIDを現在の順番で取得
-    const studentOrder = [];
-    document.querySelectorAll('.sortable-list').forEach(tbody => {
-        const rows = Array.from(tbody.querySelectorAll('tr'));
-        rows.forEach(tr => {
-            const studentId = tr.dataset.studentId;
-            studentOrder.push(studentId);
-        });
-    });
+    const studentOrder = getCurrentStudentIds();
 
-    // プレビュー画面へのURLを生成して移動
-    const baseUrl = "{{ url_for('student.attendance_pdf_preview') }}";
-    const previewUrl = `${baseUrl}?date=${selectedDate}&order=${studentOrder.join(',')}`;
-    window.location.href = previewUrl;
+    saveStudentOrder(false).finally(() => {
+        const baseUrl = "{{ url_for('student.attendance_pdf_preview') }}";
+        const previewUrl = `${baseUrl}?date=${selectedDate}&order=${studentOrder.join(',')}`;
+        window.location.href = previewUrl;
+    });
 }
 
 document.addEventListener('DOMContentLoaded', function () {
-    const sortableLists = document.querySelectorAll('.sortable-list');
+    const sortableList = document.querySelector('.sortable-list');
 
-    sortableLists.forEach(list => {
-        new Sortable(list, {
+    if (sortableList) {
+        new Sortable(sortableList, {
             handle: '.drag-handle',
             animation: 150,
             ghostClass: 'sortable-ghost',
             dragClass: 'sortable-drag',
             onEnd: function (evt) {
-                // 同じテーブル内での並び替えの場合のみ番号を更新
-                if (evt.from === evt.to) {
-                    const rows = evt.from.querySelectorAll('tr');
-                    rows.forEach((row, index) => {
-                        const numberCell = row.querySelector('.row-number');
-                        if (numberCell) {
-                            numberCell.textContent = index + 1;
-                        }
-                    });
-                }
+                const rows = evt.from.querySelectorAll('tr');
+                rows.forEach((row, index) => {
+                    const numberCell = row.querySelector('.row-number');
+                    if (numberCell) {
+                        numberCell.textContent = index + 1;
+                    }
+                });
+
+                // 並び替え完了時に自動でDBへ順番を保存
+                saveStudentOrder(true);
             }
         });
-    });
-});
+    }
 
-</script>
-<script>
-document.addEventListener('DOMContentLoaded', function () {
-    // すべての優先チェックボックスにイベントリスナーを設定
+    // 優先チェックボックスの変更をDBに保存
     const checkboxes = document.querySelectorAll('.priority-check');
     checkboxes.forEach(checkbox => {
         checkbox.addEventListener('change', function () {
@@ -244,12 +331,8 @@ document.addEventListener('DOMContentLoaded', function () {
 
             fetch(`/student/${studentId}/toggle-priority`, {
                 method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                },
-                body: JSON.stringify({
-                    is_priority: isPriority
-                })
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ is_priority: isPriority })
             })
             .then(response => {
                 if (!response.ok) {
@@ -257,18 +340,9 @@ document.addEventListener('DOMContentLoaded', function () {
                 }
                 return response.json();
             })
-            .then(data => {
-                if (data.status === 'success') {
-                    console.log(`生徒ID: ${data.student_id} の優先度を ${data.is_priority} に更新しました。`);
-                    // ここでToast通知などを表示すると、より分かりやすくなります。
-                } else {
-                    throw new Error(data.message || '更新に失敗しました。');
-                }
-            })
             .catch(error => {
                 console.error('優先度の更新中にエラーが発生しました:', error);
                 alert(`エラー: ${error.message}`);
-                // エラーが発生した場合、チェックボックスの状態を元に戻す
                 this.checked = !isPriority;
             });
         });

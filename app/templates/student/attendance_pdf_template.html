@@ -3,151 +3,217 @@
 <head>
     <meta charset="UTF-8">
     <style>
-        /* xhtml2pdf用の日本語フォント設定 */
+        /* xhtml2pdf 日本語フォント設定 */
         html { font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif; }
 
         @page {
             size: A4 portrait;
-            margin: 20mm 15mm;
+            margin: 12mm 10mm 12mm 10mm;
         }
 
         body {
             font-family: HeiseiKakuGo-W5, HeiseiMin-W3, sans-serif;
-            color: #333333;
+            color: #000000;
+            margin: 0;
+            padding: 0;
         }
 
-        .header {
-            border-bottom: 3px solid #673ab7;
-            padding-bottom: 5px;
-            margin-bottom: 20px;
+        .title-container {
+            text-align: center;
+            margin-bottom: 12px;
         }
 
-        .title { font-size: 18pt; font-weight: bold; }
+        .title {
+            font-size: 15pt;
+            font-weight: bold;
+            letter-spacing: 2px;
+        }
 
-        .table {
+        .attendance-table {
             width: 100%;
             border-collapse: collapse;
+            border: 1px solid #000000;
         }
 
-        .table th {
-            background-color: #f8f9fa;
-            border-bottom: 2px solid #e0e0e0;
-            border-left: 1px solid #e0e0e0;
-            border-right: 1px solid #e0e0e0;
-            padding: 6px;
-            font-size: 10pt;
-            text-align: left;
+        .attendance-table th {
+            border: 1px solid #000000;
+            background-color: #ffffff;
+            padding: 6px 3px;
+            font-size: 9.5pt;
+            font-weight: bold;
+            text-align: center;
+            vertical-align: middle;
         }
 
-        .table td {
-            padding: 8px;
-            border-bottom: 1px solid #e0e0e0;
-            border-left: 1px solid #e0e0e0;
-            border-right: 1px solid #e0e0e0;
-            font-size: 11pt;
-            vertical-align: middle; /* 写真と文字の上下中央揃え */
+        .attendance-table td {
+            border: 1px solid #000000;
+            padding: 4px 4px;
+            font-size: 9.5pt;
+            vertical-align: middle;
+            height: 65px;
+        }
+
+        .attendance-table tr{
+            height: 65px;
         }
 
         .text-center { text-align: center; }
+        .text-start { text-align: left; }
 
-        /* 写真のサイズ固定 */
-        .student-avatar {
-            width: 60px;
-            height: 60px;
-            border-radius: 8px;
+        .num-col {
+            width: 4%;
+            text-align: center;
+            font-weight: bold;
+            font-size: 9pt;
         }
 
-        /* 会議資料一覧の「表示」ボタンに合わせたリンクスタイル */
-        .view-link {
-            font-size: 8pt;
-            color: #673ab7;
-            text-decoration: none;
-            border: 1px solid #673ab7;
-            padding: 1px 4px;
-            border-radius: 3px;
+        .name-col {
+            width: 20%;
+            font-weight: bold;
+            font-size: 10pt;
+            padding-left: 6px;
         }
 
-        /* 写真がない場合のテキストスタイル */
-        .no-avatar {
+        .country-col {
+            width: 15%;
+            font-size: 9pt;
+            padding-left: 6px;
+        }
+
+        .level-col {
+            width: 7%;
+            text-align: center;
+            font-size: 9pt;
+            font-weight: bold;
+        }
+
+        .photo-col {
+            width: 10%;
+            text-align: center;
+        }
+
+        .date-col {
+            width: 11%;
+            text-align: center;
+            font-size: 9.5pt;
+        }
+
+        /* 写真サイズ */
+        .student-photo {
+            width: 70px;
+            height: 70px;
+            border-radius: 2px;
+        }
+
+        .no-photo {
             font-size: 16pt;
-            color: #cccccc;
+            color: #999999;
         }
 
-        /* ページを強制的に区切るためのスタイル */
+        /* 最下行：出席者数集計 */
+        .summary-row td {
+            border: 1px solid #000000;
+            background-color: #dbeafe; /* 薄い青背景 */
+            font-weight: bold;
+            font-size: 10pt;
+            padding: 6px 4px;
+            height: 30px;
+        }
+
+        .summary-label {
+            text-align: center;
+            letter-spacing: 4px;
+        }
+
         .page-break {
             page-break-after: always;
-        }
-
-        /* フッター用のスタイル */
-        .footer {
-            position: fixed;
-            bottom: -15mm; /* @pageのmargin-bottomより少し内側に配置 */
-            left: 0;
-            right: 0;
-            text-align: center;
-            font-size: 8pt;
-            color: #888;
         }
     </style>
 </head>
 <body>
-    <div class="header">
-        <div class="title">武里日本語教室 出席管理台帳</div>
+    <div class="title-container">
+        <div class="title">{{ fiscal_year }}年度 受講生 出席表</div>
     </div>
 
-    {# --- 全生徒のリスト --- #}
-    <table class="table">
+    <table class="attendance-table">
         <thead>
             <tr>
-                <th style="width: 5%;" class="text-center">No.</th>
-                <th style="width: 23%;">生徒の名前</th>
-                <th style="width: 10%;" class="text-center">写真</th>
-                <th style="width: 13%;" class="text-center">{{ date_three_weeks_ago }}</th>
-                <th style="width: 13%;" class="text-center">{{ date_two_weeks_ago }}</th>
-                <th style="width: 13%;" class="text-center">{{ date_one_week_ago }}</th>
-                <th style="width: 13%;" class="text-center">{{ date_target }}</th>
-                <th style="width: 10%;" class="text-center">{{ date_next_week }}</th>
+                <th class="num-col"></th>
+                <th class="name-col">受講生 氏名</th>
+                <th class="country-col">国籍</th>
+                <th class="level-col">級</th>
+                <th class="photo-col">写真</th>
+                {% for d in date_columns %}
+                <th class="date-col">{{ d.label }}</th>
+                {% endfor %}
             </tr>
         </thead>
         <tbody>
             {% for student in all_students %}
             <tr>
-                <td class="text-center" style="width: 5%; color: #888;">{{ loop.index }}</td>
-                <td style="width: 23%; font-weight: bold;">{{ student.name_kana }}</td>
-                <td class="text-center" style="width: 10%;">
-                    {% if student.face_photo_path %}
-                        <img src="{{ student.face_photo_path }}" class="student-avatar">
+                {% set name_parts = student.name_kana.split('.') %}
+                <td class="num-col">{{ name_parts[0] }}</td>
+                <td class="name-col">{{ name_parts[1] }}</td>
+                <td class="country-col">{{ student.country_of_origin or '' }}</td>
+                <td class="level-col">{{ student.jlpt_level or '' }}</td>
+                <td class="photo-col">
+                    {% if student.face_photo_base64 %}
+                        <img src="{{ student.face_photo_base64 }}" class="student-photo" alt="{{ student.name_kana }}">
+                    {% elif student.face_photo_path %}
+                        <img src="{{ student.face_photo_path }}" class="student-photo" alt="{{ student.name_kana }}">
                     {% else %}
-                        <span class="no-avatar">👤</span>
+                        <span class="no-photo">👤</span>
                     {% endif %}
                 </td>
-                <td class="text-center" style="width: 13%;">{{ student.staff_three_weeks_ago }}</td>
-                <td class="text-center" style="width: 13%;">{{ student.staff_two_weeks_ago }}</td>
-                <td class="text-center" style="width: 13%;">{{ student.staff_one_week_ago }}</td>
-                <td class="text-center" style="width: 13%;">{{ student.assigned_staff_name }}</td>
-                <td class="text-center" style="width: 10%;"></td>
+                {% for d in date_columns %}
+                <td class="date-col">
+                    {{ student.attendance_by_date.get(d.date, '') }}
+                </td>
+                {% endfor %}
             </tr>
 
-            {# --- 12行ごとに改ページを挿入 --- #}
-            {% if loop.index % 12 == 0 and not loop.last %}
+            {# 13行ごとに改ページを挿入 #}
+            {% if loop.index % 13 == 0 and not loop.last %}
+                <tr class="summary-row">
+                    <td colspan="5" class="summary-label">出席者数</td>
+                    {% for d in date_columns %}
+                    <td class="date-col">
+
+                    </td>
+                    {% endfor %}
+                </tr>
                 </tbody></table>
                 <div class="page-break"></div>
-                <table class="table">
+                <div class="title-container">
+                    <div class="title">{{ fiscal_year }}年度 受講生 出席表（続き）</div>
+                </div>
+                <table class="attendance-table">
                     <thead>
                         <tr>
-                            <th style="width: 5%;" class="text-center">No.</th>
-                            <th style="width: 23%;">生徒の名前</th>
-                            <th style="width: 10%;" class="text-center">写真</th>
-                            <th style="width: 13%;" class="text-center">{{ date_three_weeks_ago }}</th>
-                            <th style="width: 13%;" class="text-center">{{ date_two_weeks_ago }}</th>
-                            <th style="width: 13%;" class="text-center">{{ date_one_week_ago }}</th>
-                            <th style="width: 13%;" class="text-center">{{ date_target }}</th>
-                            <th style="width: 10%;" class="text-center">{{ date_next_week }}</th>
+                            <th class="num-col"></th>
+                            <th class="name-col">受講生 氏名</th>
+                            <th class="country-col">国籍</th>
+                            <th class="level-col">級</th>
+                            <th class="photo-col">写真</th>
+                            {% for d in date_columns %}
+                            <th class="date-col">{{ d.label }}</th>
+                            {% endfor %}
                         </tr>
                     </thead>
                     <tbody>
             {% endif %}
             {% endfor %}
+
+            <!-- 最下行：出席者数集計行 -->
+            <tr class="summary-row">
+                <td colspan="5" class="summary-label">出席者数</td>
+                    {% for d in date_columns %}
+                    <td class="date-col">
+                    </td>
+                    {% endfor %}
+            </tr>
+            </tbody></table>
+
         </tbody>
     </table>
 </body>

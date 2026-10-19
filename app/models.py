@@ -2,7 +2,7 @@ from app import db, login_manager
 from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
-
+from sqlalchemy.sql import expression
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -26,7 +26,9 @@ class User(db.Model, UserMixin):
     )  # LINEのユーザーID
     role = db.Column(db.String(20), nullable=False)  # '管理者' または 'スタッフ'
     name = db.Column(db.String(50), nullable=False)  # 氏名
-    is_deleted = db.Column(db.Boolean, default=False, nullable=False)
+    is_deleted = db.Column(
+        db.Boolean, server_default=expression.false(), nullable=False
+    )
 
     # スタッフが記入した学習記録（1対多）
     # ※LearningRecord側の 'writer_staff' バックレフと自動接続されます
@@ -93,6 +95,7 @@ class Student(db.Model):
     how_knew_class = db.Column(db.String(50), nullable=False)  # (11)
     how_knew_class_other = db.Column(db.Text)  # (12)
     is_priority = db.Column(db.Boolean, default=False, nullable=False)  # 優先フラグ
+    display_order = db.Column(db.Integer, default=0, nullable=True)  # 出席表・表示順
 
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
 
