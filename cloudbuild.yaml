@@ -1,0 +1,21 @@
+steps:
+  # 1. Build the container image using the Dockerfile
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'build'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/<REPOSITORY>/<IMAGE_NAME>:$COMMIT_SHA'
+      - '-t'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/<REPOSITORY>/<IMAGE_NAME>:latest'
+      - '.'
+
+  # 2. Push the built container image to Artifact Registry
+  - name: 'gcr.io/cloud-builders/docker'
+    args:
+      - 'push'
+      - '--all-tags'
+      - 'asia-northeast1-docker.pkg.dev/$PROJECT_ID/<REPOSITORY>/<IMAGE_NAME>'
+
+# Set logging option to solve the "invalid argument: if build.service_account is specified" error
+options:
+  logging: CLOUD_LOGGING_ONLY
