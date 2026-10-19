@@ -115,7 +115,9 @@
                 <td class="text-center" style="width: 5%; color: #888;">{{ loop.index }}</td>
                 <td style="width: 23%; font-weight: bold;">{{ student.name_kana }}</td>
                 <td class="text-center" style="width: 10%;">
-                    {% if student.face_photo_path %}
+                    {% if student.face_photo_base64 %}
+                        <img src="{{ student.face_photo_base64 }}" class="student-avatar">
+                    {% elif student.face_photo_path %}
                         <img src="{{ student.face_photo_path }}" class="student-avatar">
                     {% else %}
                         <span class="no-avatar">👤</span>

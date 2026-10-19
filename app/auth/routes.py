@@ -1,7 +1,6 @@
 import os
 from flask import (
     Blueprint,
-    make_response,
     render_template,
     request,
     redirect,
@@ -16,10 +15,6 @@ from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from app import db
 from app.models import User, Student, Staff, Meeting, LearningRecord
-from collections import Counter
-import secrets
-import smtplib
-import ssl
 from authlib.integrations.flask_client import OAuth
 
 auth_bp = Blueprint("auth", __name__)
@@ -369,11 +364,24 @@ def logout():
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    if request.method == "POST":
-        # 管理者でなければ操作不可
+    is_admin = current_user.is_authenticated and current_user.role == "admin"
 
-        username = request.form.get("username")
-        new_password = request.form.get("new_password")
+    if request.method == "POST":
+        # 管理者のみ操作可能
+        if not is_admin:
+            flash("パスワードのリセットは管理者のみ実行できます。管理者としてログインしてください。", "danger")
+            return redirect(url_for("auth.login"))
+
+        username = (request.form.get("username") or "").strip()
+        new_password = (request.form.get("new_password") or "").strip()
+
+        if not username or not new_password:
+            flash("ユーザー名と新しいパスワードの両方を入力してください。", "warning")
+            return redirect(url_for("auth.forgot_password"))
+
+        if len(new_password) < 6:
+            flash("パスワードは6文字以上で入力してください。", "warning")
+            return redirect(url_for("auth.forgot_password"))
 
         user = User.query.filter_by(username=username).first()
 
@@ -385,10 +393,11 @@ def forgot_password():
             user.set_password(new_password)
             db.session.commit()
             flash(f"{user.name}さんのパスワードを正常にリセットしました。", "success")
-            return redirect(url_for("auth.login"))
+            return redirect(url_for("auth.dashboard" if is_admin else "auth.login"))
         except Exception as e:
             db.session.rollback()
             current_app.logger.error(f"Error resetting password for {username}: {e}")
             flash("パスワードのリセット中にエラーが発生しました。", "danger")
 
-    return render_template("auth/forgot_password.html")
+    return render_template("auth/forgot_password.html", is_admin=is_admin)
+

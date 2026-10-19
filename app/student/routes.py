@@ -5,7 +5,6 @@ from collections import defaultdict
 import json
 import base64
 from functools import lru_cache
-from urllib3.exceptions import InsecureRequestWarning
 from datetime import datetime, timedelta, date, timezone
 from xhtml2pdf import pisa
 import cloudinary
@@ -24,7 +23,6 @@ from flask import (
 )
 from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
-from werkzeug.utils import secure_filename
 
 from app import db
 from app.models import User, Student, LearningRecord, Staff
@@ -427,12 +425,12 @@ def download_attendance_pdf():
     # プレビュー画面の並び順を最優先し、DBの優先生徒を追加する
     final_student_ids = ordered_ids[:]  # コピーを作成
     for sid in priority_student_ids_from_db:
-        if sid not in priority_student_ids_from_db:
+        if sid not in final_student_ids:
             final_student_ids.append(sid)
 
     # 5. 該当日の学習記録と生徒情報を取得
     logs = (
-        LearningRecord.query.options(joinedload(LearningRecord.student))
+        LearningRecord.query.options(joinedload(LearningRecord.student), joinedload(LearningRecord.writer_staff))
         .filter(LearningRecord.lesson_date == target_date)
         .all()
     )
@@ -455,7 +453,6 @@ def download_attendance_pdf():
     # 生徒IDと日付をキーにした担当者マップを作成
     attendance_history = defaultdict(dict)
     for rec in past_records:
-        # ★修正: フルネームから姓のみに変更
         if rec.writer_staff and rec.writer_staff.staff_profile:
             first_name = rec.writer_staff.staff_profile.first_name_kanji
             attendance_history[rec.student_id][rec.lesson_date] = first_name
@@ -463,9 +460,6 @@ def download_attendance_pdf():
     # 6. 優先生徒と通常生徒に振り分ける
     priority_students = []
     other_students = []
-
-    # SSL証明書の警告を非表示にする
-    requests.packages.urllib3.disable_warnings(category=InsecureRequestWarning)
 
     # 優先生徒と出席生徒の情報を取得
     all_target_students = Student.query.filter(Student.id.in_(final_student_ids)).all()
@@ -479,10 +473,12 @@ def download_attendance_pdf():
         # その日の出席情報があれば担当者名を取得、なければ「自習」
         if student_id in students_map:
             log = students_map[student_id]
-            staff_user = Staff.query.get(log.staff_id)
-            student.assigned_staff_name = (
-                staff_user.first_name_kanji if staff_user else "─"
-            )
+            staff_name = "─"
+            if log.writer_staff and log.writer_staff.staff_profile:
+                staff_name = log.writer_staff.staff_profile.first_name_kanji or log.writer_staff.name
+            elif log.writer_staff:
+                staff_name = log.writer_staff.name
+            student.assigned_staff_name = staff_name
 
             # 過去の担当者情報を生徒オブジェクトにセット
             student.staff_one_week_ago = attendance_history.get(student.id, {}).get(
@@ -497,32 +493,28 @@ def download_attendance_pdf():
         else:
             student.assigned_staff_name = "─"
 
-            # --- 画像をBase64に変換する処理を追加 ---
-            student.face_photo_base64 = None  # 属性を初期化しておく
-            if student.face_photo_path:
-                try:
-                    # SSL検証を無効にして画像データを取得
-                    response = requests.get(
-                        student.face_photo_path, verify=False, timeout=10
-                    )
-                    if response.status_code == 200:
-                        # Base64エンコードして、テンプレートで使えるようにData URI形式にする
-                        # ★注意: student.face_photo_path を上書きしない！
-                        # データベースのフィールドを汚してしまい、autoflush時にエラーを引き起こす原因になる。
-                        # テンプレート専用の新しい属性に格納する。
-                        b64_data = base64.b64encode(response.content).decode("utf-8")
-                        student.face_photo_base64 = f"data:image/jpeg;base64,{b64_data}"
-                except Exception as e:
-                    current_app.logger.error(
-                        f"Failed to fetch or encode image for student {student.id}: {e}"
-                    )
-
         # 優先生徒は必ず出席者リストへ。それ以外の生徒は出席記録がある場合のみリストに追加。
-        if student.is_priority or student_id in students_map:
+        if student.is_priority or student.id in priority_ids or student_id in students_map:
             priority_students.append(student)
         else:
             other_students.append(student)
+
     all_students = priority_students + other_students
+
+    # --- 画像を安全にBase64に変換し、xhtml2pdf内部での外部HTTP/SSLエラーを防ぐ ---
+    for student in all_students:
+        student.face_photo_base64 = None
+        if student.face_photo_path:
+            try:
+                response = requests.get(student.face_photo_path, timeout=5)
+                if response.status_code == 200:
+                    b64_data = base64.b64encode(response.content).decode("utf-8")
+                    content_type = response.headers.get("Content-Type", "image/jpeg")
+                    student.face_photo_base64 = f"data:{content_type};base64,{b64_data}"
+            except Exception as e:
+                current_app.logger.warning(
+                    f"Failed to fetch image for student {student.id} during PDF generation: {e}"
+                )
 
     # 7. HTMLテンプレートをレンダリング
     rendered_html = render_template(
@@ -540,19 +532,11 @@ def download_attendance_pdf():
     pdf_buffer = io.BytesIO()
     font_path = os.path.join(current_app.root_path, "static", "fonts", "ipaexg.ttf")
 
-    # --- 修正: SSL検証を無効化し、日本語フォントを正しく参照させるためのコールバック ---
-    import ssl
-
-    # SSL証明書の検証を無効にするグローバルコンテキストを作成
-    # これにより、xhtml2pdfが外部URL（例: Cloudinary）から画像を取得する際のSSLエラーを回避します。
-    ssl._create_default_https_context = ssl._create_unverified_context
-
     def link_callback(uri, rel):
         # 日本語フォントファイルへのパスを解決
         if "HeiseiKakuGo-W5" in uri or "HeiseiMin-W3" in uri:
             return font_path
         # それ以外のローカルファイル（CSSなど）へのパスを解決
-        # URIが外部リソース（http/https/data）でない場合にのみ、ローカルパスを解決
         return uri
 
     pisa_status = pisa.CreatePDF(
