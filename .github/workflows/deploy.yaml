@@ -27,6 +27,6 @@ jobs:
         uses: google-github-actions/setup-gcloud@v2
 
       # Cloud Build にリージョンやリソース名（サービス名）を環境変数や置換変数として渡す
-      - name: Run Cloud Build
-        run: |
-          gcloud builds submit --config=cloudbuild.yaml .
+      # - name: Run Cloud Build
+      #   run: |
+      #     gcloud builds submit --config=cloudbuild.yaml .
