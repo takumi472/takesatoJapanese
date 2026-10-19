@@ -634,8 +634,10 @@ def download_attendance_pdf():
             return font_path
         return uri
 
+    html_bytes = io.BytesIO(rendered_html.encode("utf-8"))
+
     pisa_status = pisa.CreatePDF(
-        io.StringIO(rendered_html),
+        html_bytes,
         dest=pdf_buffer,
         encoding="utf-8",
         link_callback=link_callback,
