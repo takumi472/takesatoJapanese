@@ -5,7 +5,7 @@ WORKDIR /app
 # Install dependencies
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install gunicorn uvicorn
+RUN pip install gunicorn
 
 # Copy all project files
 COPY . .
@@ -13,6 +13,6 @@ COPY . .
 EXPOSE 8080
 ENV PORT=8080
 
-# Run with Gunicorn using Uvicorn worker for FastAPI
-# (Change `run:app` to match your actual file and FastAPI instance variable, e.g., `main:app` or `app.main:app`)
-CMD exec gunicorn --bind :$PORT --workers 1 --worker-class uvicorn.workers.UvicornWorker --timeout 0 run:app
+# Run with Gunicorn using run.py as the entry point
+# (Change `app` to whatever your Flask instance variable is named inside run.py, e.g., `run:app`)
+CMD exec gunicorn --bind :$PORT --workers 1 --threads 8 --timeout 0 run:app
