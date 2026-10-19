@@ -50,6 +50,11 @@
             padding: 4px 4px;
             font-size: 9.5pt;
             vertical-align: middle;
+            height: 65px;
+        }
+
+        .attendance-table tr{
+            height: 65px;
         }
 
         .text-center { text-align: center; }
@@ -95,9 +100,9 @@
 
         /* 写真サイズ */
         .student-photo {
-            width: 38px;
-            height: 38px;
-            border-radius: 4px;
+            width: 70px;
+            height: 70px;
+            border-radius: 2px;
         }
 
         .no-photo {
@@ -112,6 +117,7 @@
             font-weight: bold;
             font-size: 10pt;
             padding: 6px 4px;
+            height: 30px;
         }
 
         .summary-label {
@@ -145,8 +151,9 @@
         <tbody>
             {% for student in all_students %}
             <tr>
-                <td class="num-col">{{ loop.index }}</td>
-                <td class="name-col">{{ student.name_kana }}</td>
+                {% set name_parts = student.name_kana.split('.') %}
+                <td class="num-col">{{ name_parts[0] }}</td>
+                <td class="name-col">{{ name_parts[1] }}</td>
                 <td class="country-col">{{ student.country_of_origin or '' }}</td>
                 <td class="level-col">{{ student.jlpt_level or '' }}</td>
                 <td class="photo-col">
@@ -165,8 +172,16 @@
                 {% endfor %}
             </tr>
 
-            {# 14行ごとに改ページを挿入 #}
-            {% if loop.index % 14 == 0 and not loop.last %}
+            {# 13行ごとに改ページを挿入 #}
+            {% if loop.index % 13 == 0 and not loop.last %}
+                <tr class="summary-row">
+                    <td colspan="5" class="summary-label">出席者数</td>
+                    {% for d in date_columns %}
+                    <td class="date-col">
+
+                    </td>
+                    {% endfor %}
+                </tr>
                 </tbody></table>
                 <div class="page-break"></div>
                 <div class="title-container">
@@ -192,14 +207,13 @@
             <!-- 最下行：出席者数集計行 -->
             <tr class="summary-row">
                 <td colspan="5" class="summary-label">出席者数</td>
-                {% for d in date_columns %}
-                <td class="date-col">
-                    {% if attendance_counts.get(d.date, 0) > 0 %}
-                        {{ attendance_counts.get(d.date) }}
-                    {% endif %}
-                </td>
-                {% endfor %}
+                    {% for d in date_columns %}
+                    <td class="date-col">
+                    </td>
+                    {% endfor %}
             </tr>
+            </tbody></table>
+
         </tbody>
     </table>
 </body>

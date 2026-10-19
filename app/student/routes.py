@@ -563,7 +563,6 @@ def attendance_pdf_preview():
 def download_attendance_pdf():
     date_str = request.args.get("date")
     order_str = request.args.get("order", "")
-    priority_ids_str = request.args.get("priority_ids", "")
 
     if date_str:
         try:
@@ -585,23 +584,8 @@ def download_attendance_pdf():
     ]
 
     ordered_ids = [int(id) for id in order_str.split(",") if id.isdigit()]
-    priority_ids = {int(id) for id in priority_ids_str.split(",") if id.isdigit()}
 
-    # --- 最後の確認する際に決めた順番をDBに保存 ---
-    if ordered_ids:
-        for idx, sid in enumerate(ordered_ids, start=1):
-            st = Student.query.get(sid)
-            if st:
-                st.display_order = idx
-                if sid in priority_ids:
-                    st.is_priority = True
-        try:
-            db.session.commit()
-        except Exception as e:
-            db.session.rollback()
-            current_app.logger.warning(f"Failed to persist student order to DB: {e}")
-
-    # 出力対象の生徒を取得
+    # 出力対象の生徒を取得（DBのReorderは行わず、指定された順序でPDFを生成）
     if ordered_ids:
         students_query = Student.query.filter(Student.id.in_(ordered_ids)).all()
         students_map = {s.id: s for s in students_query}
@@ -641,7 +625,9 @@ def download_attendance_pdf():
     )
 
     pdf_buffer = io.BytesIO()
-    font_path = os.path.join(current_app.root_path, "static", "fonts", "ipaexg.ttf")
+    font_path = os.path.join(current_app.root_path, "fonts", "ipaexg.ttf")
+    if not os.path.exists(font_path):
+        font_path = os.path.join(current_app.root_path, "static", "fonts", "ipaexg.ttf")
 
     def link_callback(uri, rel):
         if "HeiseiKakuGo-W5" in uri or "HeiseiMin-W3" in uri:
@@ -664,4 +650,6 @@ def download_attendance_pdf():
     response.headers["Content-Disposition"] = (
         f"attachment; filename=attendance_{target_date}.pdf"
     )
+    response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
+    response.headers["Pragma"] = "no-cache"
     return response

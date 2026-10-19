@@ -27,15 +27,15 @@
             background-color: #ffffff;
         }
         .student-avatar {
-            width: 42px;
-            height: 42px;
+            width: 100px;
+            height: 100px;
             object-fit: cover;
             border-radius: 6px;
             border: 1px solid #ced4da;
         }
         .avatar-placeholder {
-            width: 42px;
-            height: 42px;
+            width: 100px;
+            height: 100px;
             border-radius: 6px;
             background-color: #e9ecef;
             display: flex;
@@ -96,9 +96,6 @@
                     翌週 <i class="bi bi-chevron-right"></i>
                 </a>
             </div>
-            <button type="button" class="btn btn-sm btn-outline-secondary d-inline-flex align-items-center gap-1 shadow-sm text-nowrap" onclick="toggleNameSort()" title="生徒の名前（五十音順）で並び替えます">
-                <i class="bi bi-sort-alpha-down"></i> 名前順ソート
-            </button>
             <button type="button" class="btn btn-sm btn-outline-primary d-inline-flex align-items-center gap-1 shadow-sm text-nowrap" onclick="saveStudentOrder(true)" title="現在の並び順をデータベースに保存します">
                 <i class="bi bi-floppy"></i> 順番を保存
             </button>
@@ -115,8 +112,8 @@
                 <tr>
                     <th scope="col" class="no-print" style="width: 5%;">優先</th>
                     <th scope="col" style="width: 7%;"><i class="bi bi-grip-vertical"></i> 番号</th>
-                    <th scope="col" style="width: 18%; cursor: pointer;" class="text-start sortable-header user-select-none" onclick="toggleNameSort()" title="クリックして名前順（五十音順）で並び替え">
-                        受講生 氏名 <i class="bi bi-arrow-down-up text-muted ms-1" id="name-sort-icon"></i>
+                    <th scope="col" style="width: 18%; cursor: pointer;" class="text-start user-select-none" title="クリックして名前順（五十音順）で並び替え">
+                        受講生 氏名
                     </th>
                     <th scope="col" style="width: 12%;">国籍</th>
                     <th scope="col" style="width: 6%;">級</th>
@@ -144,7 +141,8 @@
                         <span class="row-number">{{ loop.index }}</span>
                     </td>
                     <td class="fw-bold text-dark text-start student-name" data-name="{{ s.name_kana }}">
-                        {{ s.name_kana }}
+                        {% set name_parts = s.name_kana.split('.') %}
+                        {{ name_parts[1] }}
                     </td>
                     <td class="text-center text-secondary">
                         {{ s.country_of_origin or '' }}
