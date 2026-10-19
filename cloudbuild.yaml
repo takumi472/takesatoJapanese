@@ -1,21 +1,29 @@
 steps:
-  # 1. Build the container image using the Dockerfile
+  # 1. Docker イメージのビルド
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'build'
       - '-t'
-      - 'asia-northeast1-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
-      - '-t'
-      - 'asia-northeast1-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:latest'
+      - '${_REGION}-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
       - '.'
 
-  # 2. Push the built container image to Artifact Registry
+  # 2. プッシュ
   - name: 'gcr.io/cloud-builders/docker'
     args:
       - 'push'
-      - '--all-tags'
-      - 'asia-northeast1-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese'
+      - '${_REGION}-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
 
-# Set logging option to solve the "invalid argument: if build.service_account is specified" error
+  # 3. Cloud Run デプロイ
+  - name: 'gcr.io/google.com/cloudsdktool/cloud-sdk'
+    entrypoint: 'gcloud'
+    args:
+      - 'run'
+      - 'deploy'
+      - '${_SERVICE_NAME}'
+      - '--image=${_REGION}-docker.pkg.dev/decent-envoy-512013-j5/my-app-repo/takesato-japanese:$COMMIT_SHA'
+      - '--region=${_REGION}'
+      - '--platform=managed'
+      - '--allow-unauthenticated'
+
 options:
   logging: CLOUD_LOGGING_ONLY

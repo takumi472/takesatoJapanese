@@ -29,7 +29,4 @@ jobs:
       # Cloud Build にリージョンやリソース名（サービス名）を環境変数や置換変数として渡す
       - name: Run Cloud Build
         run: |
-          gcloud builds submit \
-            --config=cloudbuild.yaml \
-            --substitutions=_REGION="asia-northeast1",_SERVICE_NAME="takesato-japanese-service" \
-            .
+          gcloud builds submit --config=cloudbuild.yaml .
