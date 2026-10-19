@@ -7,7 +7,7 @@ on:
 
 permissions:
   contents: read
-  id-token: write # Workload Identity Federation による認証に必須
+  id-token: write
 
 jobs:
   deploy:
@@ -17,18 +17,19 @@ jobs:
       - name: Checkout Code
         uses: actions/checkout@v4
 
-      # 1. Workload Identity Federation を使用して Google Cloud に認証
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           workload_identity_provider: ${{ secrets.WIF_PROVIDER }}
           service_account: ${{ secrets.WIF_SERVICE_ACCOUNT }}
 
-      # 2. gcloud CLI のセットアップ
       - name: Set up Cloud SDK
         uses: google-github-actions/setup-gcloud@v2
 
-      # 3. ルートにある cloudbuild.yaml を使用して Cloud Build を実行
+      # Cloud Build にリージョンやリソース名（サービス名）を環境変数や置換変数として渡す
       - name: Run Cloud Build
         run: |
-          gcloud builds submit --config=cloudbuild.yaml .
+          gcloud builds submit \
+            --config=cloudbuild.yaml \
+            --substitutions=_REGION="asia-northeast1",_SERVICE_NAME="takesato-japanese-service" \
+            .
