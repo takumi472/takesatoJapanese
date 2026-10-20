@@ -193,6 +193,7 @@ def student_list():
     students_with_date = (
         db.session.query(Student, latest_record_sub.c.latest_date)
         .outerjoin(latest_record_sub, Student.id == latest_record_sub.c.student_id)
+        .order_by(Student.name_kana.asc())
         .all()
     )
 
@@ -210,6 +211,11 @@ def student_list():
             active_students.append(student)
         else:
             inactive_students.append(student)
+
+    active_students.sort(
+        key=lambda s: s.display_order if s.display_order else float("inf")
+    )
+    inactive_students.sort(key=lambda s: s.name_kana)
 
     return render_template(
         "student/list.html",
