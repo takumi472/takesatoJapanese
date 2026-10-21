@@ -64,11 +64,6 @@ def on_load(state):
     oauth.init_app(state.app)
 
 
-@auth_bp.route("/", methods=["GET", "POST"])
-def auth_route():
-    return redirect(url_for("auth.login"))
-
-
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     # 既にログイン済みの場合は、ダッシュボードへリダイレクト
@@ -379,4 +374,3 @@ def forgot_password():
             flash("パスワードのリセット中にエラーが発生しました。", "danger")
 
     return render_template("auth/forgot_password.html", is_admin=is_admin)
-
