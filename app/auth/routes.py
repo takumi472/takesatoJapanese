@@ -64,6 +64,47 @@ def on_load(state):
     oauth.init_app(state.app)
 
 
+@auth_bp.route("/")
+@auth_bp.route("/index")
+def serve_index():
+    return render_template("site/index.html")
+
+
+@auth_bp.route("/about")
+def serve_about():
+    return render_template("site/about.html")
+
+
+@auth_bp.route("/schedule")
+def serve_schedule():
+    return render_template("site/schedule.html")
+
+
+@auth_bp.route("/volunteer")
+def serve_volunteer():
+    return render_template("site/volunteer.html")
+
+
+@auth_bp.route("/students")
+def serve_students():
+    return render_template("site/students.html")
+
+
+@auth_bp.route("/events")
+def serve_events():
+    return render_template("site/events.html")
+
+
+@auth_bp.route("/services")
+def serve_services():
+    return render_template("site/services.html")
+
+
+@auth_bp.route("/contact")
+def serve_contact():
+    return render_template("site/contact.html")
+
+
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
     # 既にログイン済みの場合は、ダッシュボードへリダイレクト
