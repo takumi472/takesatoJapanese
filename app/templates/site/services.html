@@ -481,53 +481,168 @@
         background-color: #4b5563;
         color: #ffffff;
       }
+      .service-img-box {
+          width: 180px;
+          height: 180px;
+          background-color: #e5e7eb;
+          border-radius: 6px;
+          margin-bottom: 1rem;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          color: #4b5563;
+          font-size: 0.9rem;
+          font-weight: bold;
+          overflow: hidden;
+      }
+
+      .service-img-box img {
+          width: 180px;
+          height: 180px;
+          object-fit: cover;
+      }
+      .menu-toggle {
+    display: none; /* PCでは非表示 */
+    background: var(--primary, #2563eb);
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ヘルパー全体のコンテナ調整 */
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    position: relative;
+}
+
+.nav-menu ul {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* スマホ表示（画面幅1200px以下）の切り替え */
+@media (max-width: 1200px) {
+    .header-container {
+        flex-wrap: wrap;
+    }
+
+    /* ハンバーガーボタンを表示 */
+    .menu-toggle {
+        display: inline-flex; /* スマホで確実に表示させる */
+        margin-left: auto;
+    }
+
+    .nav-menu {
+        display: none;
+        width: 100%;
+        order: 3;
+        background-color: #ffffff;
+        padding: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .nav-menu.active {
+        display: block;
+    }
+
+    .nav-menu ul {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+        text-align: center;
+    }
+  }
     </style>
   </head>
   <body>
     <header>
-      <div class="header-container">
-        <a href="/index" class="logo">武里日本語教室</a>
-        <nav>
-          <ul>
-            <li><a href="/index" class="active">ホーム</a></li>
-            <li><a href="/about">教室について</a></li>
-            <li><a href="/schedule">開催情報</a></li>
-            <li><a href="/volunteer">ボランティア募集</a></li>
-            <li><a href="/students">受講生自己紹介</a></li>
-            <li><a href="/events">イベント</a></li>
-            <li><a href="/services">関連教室・サービス</a></li>
-            <li><a href="/contact" class="btn-header">お問い合わせ</a></li>
-            <li>
-              <a
-                href="/login"
-                class="btn-header"
-                style="color: var(--primary); font-weight: bold"
-                >ログイン</a
-              >
-            </li>
-          </ul>
-        </nav>
-        <!-- 翻訳ウィジェットをここに配置 -->
-        <div id="google_translate_element"></div>
-      </div>
+  <div class="header-container">
+    <a href="/index" class="logo">武里日本語教室</a>
 
-      <script type="text/javascript">
-        function googleTranslateElementInit() {
-          new google.translate.TranslateElement(
-            {
-              pageLanguage: "ja",
-              includedLanguages: "en,vi,id,my,zh-CN,ne,tl",
-              layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-            },
-            "google_translate_element",
-          );
-        }
-      </script>
-      <script
-        type="text/javascript"
-        src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
-      ></script>
-    </header>
+    <!-- スマホ用ハンバーガーボタン（文字入りで確実に見えるようにする） -->
+    <button class="menu-toggle" id="menuToggle" aria-label="メニューを開閉">
+      <i class="fa-solid fa-bars"></i> メニュー
+    </button>
+
+    <!-- ナビゲーションメニュー -->
+    <nav class="nav-menu" id="navMenu">
+      <ul>
+        <li><a href="/index" class="active">ホーム</a></li>
+        <li><a href="/about">教室について</a></li>
+        <li><a href="/schedule">開催情報</a></li>
+        <li><a href="/volunteer">ボランティア募集</a></li>
+        <li><a href="/students">受講生自己紹介</a></li>
+        <li><a href="/events">イベント</a></li>
+        <li><a href="/services">関連教室・サービス</a></li>
+        <li><a href="/contact" class="btn-header">お問い合わせ</a></li>
+        <li>
+          <a
+            href="https://www.takesato-japanese.net"
+            target="_blank"
+            class="btn-header"
+            style="color: var(--primary); font-weight: bold"
+            >ログイン</a
+          >
+        </li>
+      </ul>
+    </nav>
+
+    <!-- 翻訳ウィジェット -->
+    <div id="google_translate_element"></div>
+  </div>
+
+  <!-- 開閉スクリプト -->
+  <script>
+    const menuToggle = document.getElementById('menuToggle');
+    const navMenu = document.getElementById('navMenu');
+
+    menuToggle.addEventListener('click', () => {
+      navMenu.classList.toggle('active');
+      const icon = menuToggle.querySelector('i');
+      if (navMenu.classList.contains('active')) {
+        icon.classList.remove('fa-bars');
+        icon.classList.add('fa-xmark');
+        menuToggle.innerHTML = '<i class="fa-solid fa-xmark"></i> 閉じる';
+      } else {
+        icon.classList.remove('fa-xmark');
+        icon.classList.add('fa-bars');
+        menuToggle.innerHTML = '<i class="fa-solid fa-bars"></i> メニュー';
+      }
+    });
+  </script>
+
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement(
+        {
+          pageLanguage: "ja",
+          includedLanguages: "en,vi,id,my,zh-CN,ne,tl",
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+        },
+        "google_translate_element",
+      );
+    }
+  </script>
+  <script
+    type="text/javascript"
+    src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+  ></script>
+</header>
 
     <div class="page-header">
       <h1>関連教室・サービス</h1>
@@ -577,40 +692,19 @@
         <div class="grid-2">
           <div class="service-card">
             <span class="service-meta"
-              >毎月2回 日曜 09:00-10:30 | 1回 1,500円</span
-            >
-            <h3>中上級英会話教室</h3>
-            <p>
-              オーストラリア人講師による大人向けの中上級英会話クラスです。（体験レッスン無料）
-            </p>
-            <div class="sns-links">
-              <a
-                href="https://www.facebook.com/TakenokoKodomo/"
-                target="_blank"
-                class="btn-sns btn-fb"
-              >
-                <i class="fa-brands fa-facebook"></i> Facebook
-              </a>
-              <a
-                href="https://www.youtube.com/@studyclass_takenoko/videos"
-                target="_blank"
-                class="btn-sns btn-yt"
-              >
-                <i class="fa-brands fa-youtube"></i> YouTube
-              </a>
-            </div>
-          </div>
-          <div class="service-card">
-            <span class="service-meta"
-              >毎月2回 日曜 09:00-10:30 | 1回 1,500円</span
+              >毎月2回 第１、３日曜 09:00-10:30 | 1回 1,500円</span
             >
             <h3>初中級英会話教室</h3>
+            <div class="service-img-box">
+              <span><img src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1792633360/%E3%83%9B%E3%82%9A%E3%83%BC%E3%83%AB%E5%85%88%E7%94%9F_bl5wrw.jpg" alt="講師写真"></span>
+              <!-- 例: <img src="images/teacher.jpg" alt="講師写真"> -->
+            </div>
             <p>
               春日部市在住のフィリピン人講師が教える大人を対象とした初中級英会話クラスです。（体験レッスン無料）
             </p>
             <div class="sns-links">
               <a
-                href="https://www.facebook.com/TakenokoKodomo/"
+                href="https://www.facebook.com/English.Club.Takesato"
                 target="_blank"
                 class="btn-sns btn-fb"
               >
@@ -627,15 +721,19 @@
           </div>
           <div class="service-card">
             <span class="service-meta"
-              >毎月2回 日曜 10:30-12:00 | 1回 1,500円</span
+              >毎月2回 第２、４日曜 09:00-10:30 | 1回 1,500円</span
             >
-            <h3>小学生英会話教室</h3>
+            <h3>中上級英会話教室</h3>
+            <div class="service-img-box">
+              <span><img src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1792633360/%E3%83%9B%E3%82%9A%E3%83%BC%E3%83%AB%E5%85%88%E7%94%9F_bl5wrw.jpg" alt="講師写真"></span>
+              <!-- 例: <img src="images/teacher.jpg" alt="講師写真"> -->
+            </div>
             <p>
-              学校で習う文法や語彙を使って楽しく学ぶ小学生向け英会話。（体験レッスン無料）
+              春日部市在住のフィリピン人講師が教える大人を対象とした初中級英会話クラスです。（体験レッスン無料）
             </p>
             <div class="sns-links">
               <a
-                href="https://www.facebook.com/TakenokoKodomo/"
+                href="https://www.facebook.com/English.Club.Takesato"
                 target="_blank"
                 class="btn-sns btn-fb"
               >
@@ -652,40 +750,19 @@
           </div>
           <div class="service-card">
             <span class="service-meta"
-              >毎月2回 日曜 10:30-12:00 | 1回 1,500円</span
+              >毎週 土曜 10:00-11:30 | 1回 1,500円</span
             >
-            <h3>幼児英会話教室</h3>
-            <p>
-              ナイジェリア人講師による幼稚園児向けのアルファベット・会話クラス。（体験レッスン無料）
-            </p>
-            <div class="sns-links">
-              <a
-                href="https://www.facebook.com/TakenokoKodomo/"
-                target="_blank"
-                class="btn-sns btn-fb"
-              >
-                <i class="fa-brands fa-facebook"></i> Facebook
-              </a>
-              <a
-                href="https://www.youtube.com/@studyclass_takenoko/videos"
-                target="_blank"
-                class="btn-sns btn-yt"
-              >
-                <i class="fa-brands fa-youtube"></i> YouTube
-              </a>
+            <h3>上級英会話教室</h3>
+            <div class="service-img-box">
+              <span><img src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1792633360/%E3%82%A2%E3%83%A0%E3%83%8A%E5%85%88%E7%94%9F_rq2eog.jpg" alt="講師写真"></span>
+              <!-- 例: <img src="images/teacher.jpg" alt="講師写真"> -->
             </div>
-          </div>
-          <div class="service-card">
-            <span class="service-meta"
-              >毎月2回 日曜 13:00-14:30 | 1回 1,500円</span
-            >
-            <h3>初級ベトナム語教室</h3>
             <p>
-              ベトナムの文化や習慣も学べる初級ベトナム語の文法・会話クラス。（体験レッスン無料）
+              チュニジア人講師による大人向けの上級英会話クラスです。（体験レッスン無料）
             </p>
             <div class="sns-links">
               <a
-                href="https://www.facebook.com/TakenokoKodomo/"
+                href="https://www.facebook.com/English.Club.Takesato"
                 target="_blank"
                 class="btn-sns btn-fb"
               >
@@ -705,12 +782,45 @@
               >毎月2回 日曜 13:00-14:30 | 1回 1,500円</span
             >
             <h3>初級フランス語教室</h3>
+            <div class="service-img-box">
+              <span><img src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1792633360/%E3%82%A2%E3%83%A0%E3%83%8A%E5%85%88%E7%94%9F_rq2eog.jpg" alt="講師写真"></span>
+              <!-- 例: <img src="images/teacher.jpg" alt="講師写真"> -->
+            </div>
             <p>
               チュニジア人講師による初級フランス語の文法・会話クラス。（体験レッスン無料）
             </p>
             <div class="sns-links">
               <a
-                href="https://www.facebook.com/TakenokoKodomo/"
+                href="https://www.facebook.com/amnafrenchclass"
+                target="_blank"
+                class="btn-sns btn-fb"
+              >
+                <i class="fa-brands fa-facebook"></i> Facebook
+              </a>
+              <a
+                href="https://www.youtube.com/@studyclass_takenoko/videos"
+                target="_blank"
+                class="btn-sns btn-yt"
+              >
+                <i class="fa-brands fa-youtube"></i> YouTube
+              </a>
+            </div>
+          </div>
+          <div class="service-card">
+            <span class="service-meta"
+              >毎月2回 日曜 13:00-14:30 | 1回 1,500円</span
+            >
+            <h3>初級ベトナム語教室</h3>
+            <div class="service-img-box">
+              <span><img src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1792633360/%E3%83%88%E3%83%A9%E3%83%B3%E5%85%88%E7%94%9F_erkagq.jpg" alt="講師写真"></span>
+              <!-- 例: <img src="images/teacher.jpg" alt="講師写真"> -->
+            </div>
+            <p>
+              ベトナムの文化や習慣も学べる初級ベトナム語の文法・会話クラス。（体験レッスン無料）
+            </p>
+            <div class="sns-links">
+              <a
+                href="https://www.facebook.com/Tran.Vietnamese.Takesato"
                 target="_blank"
                 class="btn-sns btn-fb"
               >
@@ -734,6 +844,35 @@
         <div class="grid-2">
           <div class="service-card" style="grid-column: 1 / -1">
             <span class="service-meta"
+              >毎月1回 日曜 13:00-15:00 | 1回 1,000円<</span
+            >
+            <h3>シャインカービングクラス</h3>
+            <div class="service-img-box">
+              <span><img src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1792633359/%E3%82%B7%E3%83%A3%E3%82%A4%E3%83%B3%E3%82%AB%E3%83%BC%E5%85%88%E7%94%9F_fjq2o5.jpg" alt="講師写真"></span>
+              <!-- 例: <img src="images/teacher.jpg" alt="講師写真"> -->
+            </div>
+            <p>
+              ガラスの様な質感が生まれる新しいアート。専用シートを彫刻刀で彫り美しい作品を作ります。（体験無料）
+            </p>
+            <div class="sns-links">
+              <a
+                href="https://www.facebook.com/ShineCarving.Takesato"
+                target="_blank"
+                class="btn-sns btn-fb"
+              >
+                <i class="fa-brands fa-facebook"></i> Facebook
+              </a>
+              <a
+                href="https://www.youtube.com/@%E3%82%B7%E3%83%A3%E3%82%A4%E3%83%B3%E3%82%AB%E3%83%BC%E3%83%93%E3%83%B3%E3%82%B0%E6%95%99%E5%AE%A4%E6%AD%A6%E9%87%8C/videos"
+                target="_blank"
+                class="btn-sns btn-yt"
+              >
+                <i class="fa-brands fa-youtube"></i> YouTube
+              </a>
+            </div>
+          </div>
+          <div class="service-card" style="grid-column: 1 / -1">
+            <span class="service-meta"
               >毎月1回 日曜 10:00-15:00 | 1回 3,000円〜（材料費込）</span
             >
             <h3>外国料理教室</h3>
@@ -742,14 +881,14 @@
             </p>
             <div class="sns-links">
               <a
-                href="https://www.facebook.com/TakenokoKodomo/"
+                href="https://www.facebook.com/English.Club.Takesato"
                 target="_blank"
                 class="btn-sns btn-fb"
               >
                 <i class="fa-brands fa-facebook"></i> Facebook
               </a>
               <a
-                href="https://www.youtube.com/@studyclass_takenoko/videos"
+                href="https://youtu.be/CbY0e0lvzkk?si=xv-eUZx5oA3a_Cg5"
                 target="_blank"
                 class="btn-sns btn-yt"
               >

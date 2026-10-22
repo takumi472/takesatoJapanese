@@ -464,53 +464,148 @@
         height: 100%;
         border: 0;
       }
+      .menu-toggle {
+    display: none; /* PCでは非表示 */
+    background: var(--primary, #2563eb);
+    color: #ffffff;
+    border: none;
+    padding: 0.5rem 1rem;
+    border-radius: 4px;
+    font-size: 0.95rem;
+    font-weight: bold;
+    cursor: pointer;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+/* ヘルパー全体のコンテナ調整 */
+.header-container {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    position: relative;
+}
+
+.nav-menu ul {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    list-style: none;
+    margin: 0;
+    padding: 0;
+}
+
+/* スマホ表示（画面幅1200px以下）の切り替え */
+@media (max-width: 1200px) {
+    .header-container {
+        flex-wrap: wrap;
+    }
+
+    /* ハンバーガーボタンを表示 */
+    .menu-toggle {
+        display: inline-flex; /* スマホで確実に表示させる */
+        margin-left: auto;
+    }
+
+    .nav-menu {
+        display: none;
+        width: 100%;
+        order: 3;
+        background-color: #ffffff;
+        padding: 1rem 0;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.05);
+        border-top: 1px solid #e5e7eb;
+    }
+
+    .nav-menu.active {
+        display: block;
+    }
+
+    .nav-menu ul {
+        flex-direction: column;
+        gap: 0.75rem;
+        align-items: center;
+        text-align: center;
+    }
+  }
     </style>
   </head>
   <body>
     <header>
-      <div class="header-container">
-        <a href="/index" class="logo">武里日本語教室</a>
-        <nav>
-          <ul>
-            <li><a href="/index" class="active">ホーム</a></li>
-            <li><a href="/about">教室について</a></li>
-            <li><a href="/schedule">開催情報</a></li>
-            <li><a href="/volunteer">ボランティア募集</a></li>
-            <li><a href="/students">受講生自己紹介</a></li>
-            <li><a href="/events">イベント</a></li>
-            <li><a href="/services">関連教室・サービス</a></li>
-            <li><a href="/contact" class="btn-header">お問い合わせ</a></li>
-            <li>
-              <a
-                href="/login"
-                class="btn-header"
-                style="color: var(--primary); font-weight: bold"
-                >ログイン</a
-              >
-            </li>
-          </ul>
-        </nav>
-        <!-- 翻訳ウィジェットをここに配置 -->
-        <div id="google_translate_element"></div>
-      </div>
+  <div class="header-container">
+    <a href="/index" class="logo">武里日本語教室</a>
 
-      <script type="text/javascript">
-        function googleTranslateElementInit() {
-          new google.translate.TranslateElement(
-            {
-              pageLanguage: "ja",
-              includedLanguages: "en,vi,id,my,zh-CN,ne,tl",
-              layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
-            },
-            "google_translate_element",
-          );
-        }
-      </script>
-      <script
-        type="text/javascript"
-        src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
-      ></script>
-    </header>
+    <!-- スマホ用ハンバーガーボタン（文字入りで確実に見えるようにする） -->
+    <button class="menu-toggle" id="menuToggle" aria-label="メニューを開閉">
+      <i class="fa-solid fa-bars"></i> メニュー
+    </button>
+
+    <!-- ナビゲーションメニュー -->
+    <nav class="nav-menu" id="navMenu">
+      <ul>
+        <li><a href="/index" class="active">ホーム</a></li>
+        <li><a href="/about">教室について</a></li>
+        <li><a href="/schedule">開催情報</a></li>
+        <li><a href="/volunteer">ボランティア募集</a></li>
+        <li><a href="/students">受講生自己紹介</a></li>
+        <li><a href="/events">イベント</a></li>
+        <li><a href="/services">関連教室・サービス</a></li>
+        <li><a href="/contact" class="btn-header">お問い合わせ</a></li>
+        <li>
+          <a
+            href="https://www.takesato-japanese.net"
+            target="_blank"
+            class="btn-header"
+            style="color: var(--primary); font-weight: bold"
+            >ログイン</a
+          >
+        </li>
+      </ul>
+    </nav>
+
+    <!-- 翻訳ウィジェット -->
+    <div id="google_translate_element"></div>
+  </div>
+
+  <!-- 開閉スクリプト -->
+  <script>
+    const menuToggle = document.getElementById('menuToggle');
+    const navMenu = document.getElementById('navMenu');
+
+    menuToggle.addEventListener('click', () => {
+      navMenu.classList.toggle('active');
+      const icon = menuToggle.querySelector('i');
+      if (navMenu.classList.contains('active')) {
+        icon.classList.remove('fa-bars');
+        icon.classList.add('fa-xmark');
+        menuToggle.innerHTML = '<i class="fa-solid fa-xmark"></i> 閉じる';
+      } else {
+        icon.classList.remove('fa-xmark');
+        icon.classList.add('fa-bars');
+        menuToggle.innerHTML = '<i class="fa-solid fa-bars"></i> メニュー';
+      }
+    });
+  </script>
+
+  <script type="text/javascript">
+    function googleTranslateElementInit() {
+      new google.translate.TranslateElement(
+        {
+          pageLanguage: "ja",
+          includedLanguages: "en,vi,id,my,zh-CN,ne,tl",
+          layout: google.translate.TranslateElement.InlineLayout.SIMPLE,
+        },
+        "google_translate_element",
+      );
+    }
+  </script>
+  <script
+    type="text/javascript"
+    src="https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit"
+  ></script>
+</header>
 
     <div class="page-header">
       <h1>受講生自己紹介</h1>
