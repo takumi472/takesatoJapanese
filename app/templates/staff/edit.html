@@ -454,7 +454,31 @@ body {
     font-size: 16px;
 }
 
-    </style>>
+@media (max-width: 576px) {
+    .container {
+        padding-left: 10px;
+        padding-right: 10px;
+        margin-top: 12px !important;
+    }
+    .page-header, .form-card, .card-question {
+        padding: 16px 14px;
+        border-radius: var(--radius-sm);
+    }
+    .page-header h1 {
+        font-size: 1.15rem;
+    }
+    input, textarea, select {
+        font-size: 16px !important;
+    }
+    .btn-submit {
+        width: 100%;
+    }
+    .btn-add-new{
+        width: 100%;
+    }
+}
+
+    </style>
 </head>
 <body>
 <div id="loading-overlay">

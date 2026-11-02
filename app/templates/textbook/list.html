@@ -1,0 +1,294 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>テキストブック発注履歴・管理 - 武里日本語教室</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <style>
+        :root {
+            --primary-color: #673ab7;
+            --primary-hover: #512da8;
+        }
+        body {
+            background-color: #f8f9fa;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            color: #333;
+            -webkit-text-size-adjust: 100%;
+        }
+        .main-container {
+            max-width: 1000px;
+            margin: 20px auto 40px auto;
+            padding-left: 12px;
+            padding-right: 12px;
+        }
+        .welcome-header {
+            background-color: #fff;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 20px 24px;
+            width: 100%;
+        }
+        .btn-primary-custom {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #ffffff;
+            font-weight: 600;
+        }
+        .btn-primary-custom:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+            color: #ffffff;
+        }
+        .nav-pills .nav-link.active {
+            background-color: var(--primary-color);
+        }
+        .nav-pills .nav-link {
+            color: #555;
+            font-weight: 500;
+            white-space: nowrap;
+            font-size: 14px;
+            padding: 6px 14px;
+        }
+        .nav-scroll-wrapper {
+            overflow-x: auto;
+            -webkit-overflow-scrolling: touch;
+            padding-bottom: 4px;
+        }
+        .nav-scroll-wrapper::-webkit-scrollbar {
+            display: none;
+        }
+
+        /* モバイル用カード */
+        .order-mobile-card {
+            background: #ffffff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 16px;
+            margin-bottom: 12px;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+            transition: border-color 0.2s ease;
+        }
+
+        @media (max-width: 576px) {
+            .main-container {
+                margin: 12px auto 30px auto;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .welcome-header {
+                padding: 16px 14px;
+                border-radius: 6px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container main-container">
+    <!-- ヘッダー（レスポンシブ） -->
+    <div class="welcome-header shadow-sm mb-3 mb-sm-4">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
+            <div class="d-flex align-items-center">
+                <a href="{{ url_for('auth.dashboard') }}" class="btn btn-primary-custom me-2 me-sm-3 flex-shrink-0" style="padding: 6px 12px;" title="ダッシュボードへ戻る">
+                    <i class="bi bi-house-door-fill"></i>
+                </a>
+                <div>
+                    <h1 class="h5 fw-bold mb-1" style="color: #202124;">テキストブック発注履歴・管理</h1>
+                    <p class="text-muted small mb-0">発注状況の確認・ステータス更新を行えます。</p>
+                </div>
+            </div>
+            <div class="w-100 w-sm-auto text-end">
+                <a href="{{ url_for('textbook.order_form') }}" class="btn btn-primary-custom w-100 w-sm-auto text-nowrap">
+                    <i class="bi bi-plus-lg me-1"></i>新規発注フォーム
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- フラッシュメッセージ -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 絞り込みタブ（モバイルでスワイプ横スクロール可能） -->
+    <div class="nav-scroll-wrapper mb-3">
+        <ul class="nav nav-pills flex-nowrap">
+            <li class="nav-item">
+                <a class="nav-link {% if not status_filter %}active{% endif %}" href="{{ url_for('textbook.order_list') }}">すべて</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if status_filter == '注文済み' %}active{% endif %}" href="{{ url_for('textbook.order_list', status='注文済み') }}">注文済み</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if status_filter == '準備中' %}active{% endif %}" href="{{ url_for('textbook.order_list', status='準備中') }}">準備中</a>
+            </li>
+            <li class="nav-item">
+                <a class="nav-link {% if status_filter == '完了' %}active{% endif %}" href="{{ url_for('textbook.order_list', status='完了') }}">受取・手配完了</a>
+            </li>
+        </ul>
+    </div>
+
+    {% if orders %}
+        <!-- モバイル表示（画面幅 < 768px）：タップしやすいカード形式 -->
+        <div class="d-block d-md-none">
+            {% for order in orders %}
+            <div class="order-mobile-card">
+                <div class="d-flex justify-content-between align-items-start mb-2 pb-2 border-bottom">
+                    <div>
+                        <span class="badge bg-secondary-subtle text-secondary border me-1">#{{ order.id }}</span>
+                        <strong class="fs-6">{{ order.staff_name }}</strong>
+                    </div>
+                    <div>
+                        <span class="badge {% if order.status == '完了' %}bg-success{% elif order.status == '準備中' %}bg-warning text-dark{% elif order.status == 'キャンセル' %}bg-danger{% else %}bg-primary{% endif %} px-2 py-1">
+                            {{ order.status }}
+                        </span>
+                    </div>
+                </div>
+
+                <div class="small text-muted mb-2">
+                    <i class="bi bi-clock me-1"></i>{{ order.created_at.strftime('%Y/%m/%d %H:%M') if order.created_at else '-' }}
+                    <span class="ms-2 badge bg-primary-subtle text-primary border">合計: {{ order.total_quantity }} 部</span>
+                </div>
+
+                <div class="mb-3">
+                    <div class="d-flex flex-wrap gap-1">
+                        {% for item in order.items_summary() %}
+                            <span class="badge bg-light text-dark border small" style="font-size: 11.5px;">
+                                {{ item.label }}: <strong class="text-primary">{{ item.quantity }}</strong>
+                            </span>
+                        {% endfor %}
+                    </div>
+                    {% if order.note %}
+                    <div class="text-muted small mt-2 bg-light p-2 rounded">
+                        <i class="bi bi-chat-left-text me-1"></i>{{ order.note }}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <!-- モバイル操作バー -->
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top">
+                    {% if is_admin %}
+                    <form action="{{ url_for('textbook.update_status', order_id=order.id) }}" method="POST" class="d-flex align-items-center gap-1 flex-grow-1 me-2">
+                        <select name="status" class="form-select form-select-sm" onchange="this.form.submit()" style="font-size: 13px;">
+                            <option value="注文済み" {% if order.status == '注文済み' %}selected{% endif %}>注文済み</option>
+                            <option value="準備中" {% if order.status == '準備中' %}selected{% endif %}>準備中</option>
+                            <option value="完了" {% if order.status == '完了' %}selected{% endif %}>完了</option>
+                            <option value="キャンセル" {% if order.status == 'キャンセル' %}selected{% endif %}>キャンセル</option>
+                        </select>
+                    </form>
+                    {% else %}
+                    <span class="text-muted small">閲覧モード</span>
+                    {% endif %}
+
+                    <div class="d-flex gap-1">
+                        <a href="{{ url_for('textbook.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary px-3" title="詳細">
+                            <i class="bi bi-eye me-1"></i>詳細
+                        </a>
+                        {% if is_admin %}
+                        <form action="{{ url_for('textbook.delete_order', order_id=order.id) }}" method="POST" onsubmit="return confirm('発注ID #{{ order.id }} を削除してもよろしいですか？');" class="d-inline">
+                            <button type="submit" class="btn btn-sm btn-outline-danger" title="削除">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- PC・タブレット表示（画面幅 >= 768px）：表形式一覧 -->
+        <div class="card border-0 shadow-sm d-none d-md-block">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th style="width: 70px;">ID</th>
+                            <th style="width: 140px;">発注日時</th>
+                            <th style="width: 130px;">担当者氏名</th>
+                            <th>注文内容（教材と部数）</th>
+                            <th style="width: 100px;" class="text-center">合計部数</th>
+                            <th style="width: 130px;">ステータス</th>
+                            <th style="width: 110px;" class="text-end">操作</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for order in orders %}
+                        <tr>
+                            <td class="fw-semibold text-muted">#{{ order.id }}</td>
+                            <td class="small text-muted">
+                                {{ order.created_at.strftime('%Y/%m/%d %H:%M') if order.created_at else '-' }}
+                            </td>
+                            <td class="fw-bold">{{ order.staff_name }}</td>
+                            <td>
+                                <div class="d-flex flex-wrap gap-1">
+                                    {% for item in order.items_summary() %}
+                                        <span class="badge bg-light text-dark border">
+                                            {{ item.label }}: <strong class="text-primary">{{ item.quantity }}</strong> 部
+                                        </span>
+                                    {% endfor %}
+                                    {% if order.note %}
+                                        <div class="w-100 text-muted small mt-1">
+                                            <i class="bi bi-chat-left-text me-1"></i>備考: {{ order.note }}
+                                        </div>
+                                    {% endif %}
+                                </div>
+                            </td>
+                            <td class="text-center">
+                                <span class="badge bg-primary fs-6">{{ order.total_quantity }} 部</span>
+                            </td>
+                            <td>
+                                {% if is_admin %}
+                                <form action="{{ url_for('textbook.update_status', order_id=order.id) }}" method="POST" class="d-inline">
+                                    <select name="status" class="form-select form-select-sm" onchange="this.form.submit()">
+                                        <option value="注文済み" {% if order.status == '注文済み' %}selected{% endif %}>注文済み</option>
+                                        <option value="準備中" {% if order.status == '準備中' %}selected{% endif %}>準備中</option>
+                                        <option value="完了" {% if order.status == '完了' %}selected{% endif %}>完了</option>
+                                        <option value="キャンセル" {% if order.status == 'キャンセル' %}selected{% endif %}>キャンセル</option>
+                                    </select>
+                                </form>
+                                {% else %}
+                                <span class="badge {% if order.status == '完了' %}bg-success{% elif order.status == '準備中' %}bg-warning text-dark{% elif order.status == 'キャンセル' %}bg-danger{% else %}bg-primary{% endif %}">
+                                    {{ order.status }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-end">
+                                <a href="{{ url_for('textbook.order_detail', order_id=order.id) }}" class="btn btn-sm btn-outline-secondary me-1" title="詳細">
+                                    <i class="bi bi-eye"></i>
+                                </a>
+                                {% if is_admin %}
+                                <form action="{{ url_for('textbook.delete_order', order_id=order.id) }}" method="POST" onsubmit="return confirm('発注ID #{{ order.id }} を削除してもよろしいですか？');" class="d-inline">
+                                    <button type="submit" class="btn btn-sm btn-outline-danger" title="削除">
+                                        <i class="bi bi-trash"></i>
+                                    </button>
+                                </form>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    {% else %}
+        <div class="card border-0 shadow-sm p-5 text-center text-muted">
+            <i class="bi bi-inbox fs-1 d-block mb-2 text-secondary"></i>
+            発注データがまだありません。
+        </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

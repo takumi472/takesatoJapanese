@@ -18,24 +18,41 @@
         body { background-color: #f0ebf8; font-family: 'Helvetica Neue', Arial, sans-serif; }
         .main-container {
             max-width: 1000px;
-            margin: 60px auto;
+            margin: 30px auto;
             padding: 0 15px;
         }
         .page-header {
             background-color: #fff;
             border-top: 8px solid #673ab7;
             border-radius: 8px;
-            padding: 30px;
-            margin-bottom: 24px;
+            padding: 24px;
+            margin-bottom: 20px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .form-card {
             background-color: #fff;
             border-radius: 8px;
-            padding: 30px;
+            padding: 24px;
             box-shadow: 0 2px 4px rgba(0,0,0,0.05);
         }
         .form-label { font-weight: 600; color: #495057; }
+
+        @media (max-width: 576px) {
+            .main-container {
+                margin: 12px auto 24px auto;
+                padding: 0 10px;
+            }
+            .page-header, .form-card {
+                padding: 16px 14px;
+                border-radius: 6px;
+            }
+            .page-header h1 {
+                font-size: 1.15rem;
+            }
+            input, textarea, select {
+                font-size: 16px !important;
+            }
+        }
     </style>
 </head>
 <body>
