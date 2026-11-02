@@ -14,7 +14,7 @@ from sqlalchemy import func
 from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from app import db
-from app.models import User, Student, Staff, Meeting, LearningRecord
+from app.models import User, Student, Staff, Meeting, LearningRecord, TextbookOrder
 from authlib.integrations.flask_client import OAuth
 
 auth_bp = Blueprint("auth", __name__)
@@ -64,9 +64,45 @@ def on_load(state):
     oauth.init_app(state.app)
 
 
-@auth_bp.route("/", methods=["GET", "POST"])
-def auth_route():
-    return redirect(url_for("auth.login"))
+@auth_bp.route("/")
+@auth_bp.route("/index")
+def serve_index():
+    return render_template("site/index.html")
+
+
+@auth_bp.route("/about")
+def serve_about():
+    return render_template("site/about.html")
+
+
+@auth_bp.route("/schedule")
+def serve_schedule():
+    return render_template("site/schedule.html")
+
+
+@auth_bp.route("/volunteer")
+def serve_volunteer():
+    return render_template("site/volunteer.html")
+
+
+@auth_bp.route("/students")
+def serve_students():
+    return render_template("site/students.html")
+
+
+@auth_bp.route("/events")
+def serve_events():
+    return render_template("site/events.html")
+
+
+@auth_bp.route("/services")
+def serve_services():
+    return render_template("site/services.html")
+
+
+@auth_bp.route("/contact")
+def serve_contact():
+    return render_template("site/contact.html")
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
@@ -265,6 +301,7 @@ def dashboard():
         "student_count": Student.query.count(),
         "staff_count": Staff.query.count(),
         "meeting_count": Meeting.query.count(),
+        "textbook_order_count": TextbookOrder.query.count(),
     }
 
     latest_meetings = Meeting.query.order_by(Meeting.date.desc()).limit(3).all()
@@ -379,4 +416,3 @@ def forgot_password():
             flash("パスワードのリセット中にエラーが発生しました。", "danger")
 
     return render_template("auth/forgot_password.html", is_admin=is_admin)
-

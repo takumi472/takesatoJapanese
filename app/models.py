@@ -140,3 +140,86 @@ class Attachment(db.Model):
     filename = db.Column(db.String(255), nullable=False)  # 保存時のファイル名
     original_name = db.Column(db.String(255), nullable=False)  # 元のファイル名
     meeting_id = db.Column(db.Integer, db.ForeignKey("meetings.id"), nullable=False)
+
+
+class TextbookOrder(db.Model):
+    """
+    テキストブック発注テーブル
+    """
+    __tablename__ = "textbook_orders"
+
+    TEXTBOOK_FIELDS = [
+        ("zero_week_1", "ゼロ初級者向けテキストブック 第1週"),
+        ("zero_week_2", "ゼロ初級者向けテキストブック 第2週"),
+        ("zero_week_3", "ゼロ初級者向けテキストブック 第3週"),
+        ("zero_week_4", "ゼロ初級者向けテキストブック 第4週"),
+        ("zero_week_5", "ゼロ初級者向けテキストブック 第5週"),
+        ("hiragana", "「ひらがな」注文部数"),
+        ("katakana", "「カタカナ」注文部数"),
+        ("nihongo_kaiwa_1", "「にほんごかいわ 1」注文部数"),
+        ("nihongo_shiori", "「にほんごしおり」注文部数"),
+        ("kanji_1", "「かんじ 1」注文部数"),
+        ("hajimete_kanji_2", "「はじめてのかんじ その2」注文部数"),
+        ("hajimete_kanji_3", "「はじめてのかんじ その3」注文部数"),
+    ]
+
+    id = db.Column(db.Integer, primary_key=True)
+    staff_name = db.Column(db.String(100), nullable=False)  # 発注担当者氏名
+    staff_id = db.Column(db.Integer, db.ForeignKey("users.id", ondelete="SET NULL"), nullable=True)
+
+    # 各テキストの注文部数（0以上の整数）
+    zero_week_1 = db.Column(db.Integer, default=0, nullable=False)
+    zero_week_2 = db.Column(db.Integer, default=0, nullable=False)
+    zero_week_3 = db.Column(db.Integer, default=0, nullable=False)
+    zero_week_4 = db.Column(db.Integer, default=0, nullable=False)
+    zero_week_5 = db.Column(db.Integer, default=0, nullable=False)
+    hiragana = db.Column(db.Integer, default=0, nullable=False)
+    katakana = db.Column(db.Integer, default=0, nullable=False)
+    nihongo_kaiwa_1 = db.Column(db.Integer, default=0, nullable=False)
+    nihongo_shiori = db.Column(db.Integer, default=0, nullable=False)
+    kanji_1 = db.Column(db.Integer, default=0, nullable=False)
+    hajimete_kanji_2 = db.Column(db.Integer, default=0, nullable=False)
+    hajimete_kanji_3 = db.Column(db.Integer, default=0, nullable=False)
+
+    note = db.Column(db.Text, nullable=True)  # 備考・連絡事項
+    status = db.Column(db.String(50), default="注文済み", nullable=False)  # 注文済み / 準備中 / 完了 / キャンセル
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+
+    # 発注者アカウントとのリレーション（任意）
+    staff_user = db.relationship("User", foreign_keys=[staff_id], backref="textbook_orders")
+
+    @property
+    def total_quantity(self):
+        """合計注文部数を計算"""
+        return sum(
+            getattr(self, field_key, 0) or 0
+            for field_key, _ in self.TEXTBOOK_FIELDS
+        )
+
+    def items_summary(self):
+        """1部以上注文された教材のサマリーリスト"""
+        items = []
+        for field_key, label in self.TEXTBOOK_FIELDS:
+            qty = getattr(self, field_key, 0) or 0
+            if qty > 0:
+                items.append({"key": field_key, "label": label, "quantity": qty})
+        return items
+
+    def to_dict(self):
+        """APIレスポンス用の辞書形式"""
+        return {
+            "id": self.id,
+            "staff_name": self.staff_name,
+            "staff_id": self.staff_id,
+            "items": {
+                field_key: getattr(self, field_key, 0) or 0
+                for field_key, _ in self.TEXTBOOK_FIELDS
+            },
+            "ordered_items": self.items_summary(),
+            "total_quantity": self.total_quantity,
+            "note": self.note,
+            "status": self.status,
+            "created_at": self.created_at.strftime("%Y-%m-%d %H:%M:%S") if self.created_at else None,
+            "updated_at": self.updated_at.strftime("%Y-%m-%d %H:%M:%S") if self.updated_at else None,
+        }

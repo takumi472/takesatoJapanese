@@ -102,6 +102,36 @@
             font-weight: bold;
             font-size: 1.1rem;
         }
+
+        /* モバイル向け最適化 */
+        .select-responsive {
+            width: 100%;
+            max-width: 320px;
+        }
+        @media (max-width: 576px) {
+            .container {
+                padding-left: 10px;
+                padding-right: 10px;
+                margin-top: 12px !important;
+            }
+            .page-header {
+                padding: 16px 14px;
+                border-radius: 6px;
+            }
+            .card-question {
+                padding: 16px 14px;
+                margin-bottom: 10px;
+                border-radius: 6px;
+            }
+            .select-responsive {
+                max-width: 100%;
+                font-size: 16px;
+                padding: 10px 12px;
+            }
+            .form-control-gf, input[type=text], textarea {
+                font-size: 16px !important;
+            }
+        }
     </style>
 </head>
 <body>
@@ -124,14 +154,14 @@
         {% endfor %}
       {% endif %}
     {% endwith %}
-    <div class="page-header d-flex align-items-center justify-content-between mb-4">
-        <div class="d-flex align-items-center">
-            <a href="{{ url_for('student.student_list') }}" class="btn btn-primary me-3" title="生徒一覧へ戻る">
+    <div class="page-header mb-3 mb-sm-4 shadow-sm">
+        <div class="d-flex align-items-start gap-2 gap-sm-3">
+            <a href="{{ url_for('student.student_list') }}" class="btn btn-primary flex-shrink-0" style="padding: 6px 12px;" title="生徒一覧へ戻る">
                 <i class="bi bi-chevron-left"></i>
             </a>
-            <div>
-                <h1 class="h4 mb-0">【編集】新規受講生の登録＆学習記録</h1>
-                <p class="text-muted mb-0 small">登録済みの受講生情報を修正し、本日の学習内容を更新してください。</p>
+            <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 fw-bold mb-1">【編集】新規受講生の登録＆学習記録</h1>
+                <p class="text-muted mb-0 small" style="line-height: 1.45;">登録済みの受講生情報を修正し、本日の学習内容を更新してください。</p>
             </div>
         </div>
     </div>
@@ -212,7 +242,7 @@
 
         <div class="card-question shadow-sm">
             <label for="jlpt_level" class="form-label fw-bold">(8) 日本語能力試験（JLPT）取得レベル <span class="required-star">*</span></label>
-            <select class="form-select w-50" id="jlpt_level" name="jlpt_level" required>
+            <select class="form-select select-responsive" id="jlpt_level" name="jlpt_level" required>
                 <option value="" disabled>選択</option>
                 <option value="N1" {% if student.jlpt_level == 'N1' %}selected{% endif %}>N1</option>
                 <option value="N2" {% if student.jlpt_level == 'N2' %}selected{% endif %}>N2</option>
@@ -268,13 +298,13 @@
             </select>
         </div>
 
-        <div class="d-flex justify-content-between align-items-center mt-4 mb-5">
-            <button type="submit" class="btn btn-submit shadow-sm">送信</button>
-            <div class="d-flex gap-2">
-                <a href="{{ url_for('student.student_list') }}" class="btn text-white px-4 fw-bold" style="background-color: #673ab7;" title="生徒一覧へ戻る">
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 mt-4 mb-5">
+            <button type="submit" class="btn btn-submit shadow-sm order-1 order-sm-0">送信</button>
+            <div class="d-flex gap-2 order-2 order-sm-1">
+                <a href="{{ url_for('student.student_list') }}" class="btn text-white py-2 px-4 fw-bold flex-fill text-center" style="background-color: #673ab7;" title="生徒一覧へ戻る">
                     戻る
                 </a>
-                <button type="reset" class="btn text-white px-4 fw-bold" style="background-color: #673ab7;">クリア</button>
+                <button type="reset" class="btn text-white py-2 px-4 fw-bold flex-fill" style="background-color: #673ab7;">クリア</button>
             </div>
         </div>
     </form>

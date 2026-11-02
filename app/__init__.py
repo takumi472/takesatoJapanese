@@ -15,8 +15,9 @@ login_manager = LoginManager()
 
 def create_app(env_name="development"):
     load_dotenv()  # アプリケーション起動時に.envファイルをロード
+    basedir = os.path.abspath(os.path.dirname(__file__))
 
-    app = Flask(__name__, static_folder="app/static", static_url_path="/static")
+    app = Flask(__name__, static_folder=os.path.join(basedir, "static"))
 
     # 共通のシークレットキー設定
     app.config["SECRET_KEY"] = os.environ.get("SECRET_KEY", "dev-key-placeholder")
@@ -63,6 +64,9 @@ def create_app(env_name="development"):
     with app.app_context():
         try:
             from sqlalchemy import text
+            from app.models import TextbookOrder  # モデル読み込み
+
+            db.create_all()  # 未作成テーブル（textbook_orders等）の自動生成
 
             if db.engine.dialect.name == "sqlite":
                 res = db.session.execute(text("PRAGMA table_info(students);")).fetchall()
@@ -87,11 +91,13 @@ def create_app(env_name="development"):
     from app.student.routes import student_bp
     from app.record.routes import record_bp
     from app.meeting.routes import meeting_bp
+    from app.textbook.routes import textbook_bp
 
     app.register_blueprint(auth_bp, url_prefix="/")
     app.register_blueprint(staff_bp, url_prefix="/staff")
     app.register_blueprint(student_bp, url_prefix="/student")
     app.register_blueprint(record_bp, url_prefix="/record")
     app.register_blueprint(meeting_bp, url_prefix="/meeting")
+    app.register_blueprint(textbook_bp, url_prefix="/textbook")
 
     return app
