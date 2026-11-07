@@ -380,7 +380,7 @@ def logout():
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
 def forgot_password():
-    is_admin = current_user.is_authenticated and current_user.role == "admin"
+    is_admin = current_user.is_authenticated and current_user.role in ["admin", "管理者"]
 
     if request.method == "POST":
         # 管理者のみ操作可能

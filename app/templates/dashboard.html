@@ -417,10 +417,63 @@ body {
 
 .chart-container-pie {
     position: relative;
-    height: 250px;
+    height: 220px;
     width: 100%;
     display: flex;
     justify-content: center;
+}
+
+/* 凡例スクロールコンテナ */
+.chart-legend-scroll {
+    max-height: 100px;
+    overflow-y: auto;
+    overflow-x: hidden;
+    margin-top: 10px;
+    padding: 4px 2px;
+    scrollbar-width: thin;
+    scrollbar-color: #c4b5e8 transparent;
+}
+.chart-legend-scroll::-webkit-scrollbar {
+    width: 4px;
+}
+.chart-legend-scroll::-webkit-scrollbar-thumb {
+    background-color: #c4b5e8;
+    border-radius: 2px;
+}
+.chart-legend-scroll::-webkit-scrollbar-track {
+    background: transparent;
+}
+.chart-legend-items {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px 10px;
+    justify-content: center;
+    align-items: center;
+}
+.chart-legend-item {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    font-size: 11px;
+    color: #444;
+    white-space: nowrap;
+    cursor: pointer;
+    padding: 1px 2px;
+    border-radius: 3px;
+    transition: opacity 0.2s;
+}
+.chart-legend-item:hover {
+    opacity: 0.75;
+}
+.chart-legend-item.hidden {
+    opacity: 0.4;
+    text-decoration: line-through;
+}
+.chart-legend-box {
+    width: 10px;
+    height: 10px;
+    border-radius: 2px;
+    flex-shrink: 0;
 }
 
 .manual-btn-card {
@@ -499,7 +552,7 @@ body {
 <div class="dashboard-container mb-5">
     <div class="welcome-header shadow-sm mb-4 d-flex flex-column flex-sm-row justify-content-between align-items-start align-items-sm-center gap-3">
 
-        <div class="w-100 w-sm-auto">
+        <div>
             <h1 class="h4 mb-2" style="font-weight: 700;">武里日本語教室 管理システム</h1>
             <p class="text-muted mb-2 small">
                 こんにちは、<strong>{{ current_user.name }}</strong> さん
@@ -513,12 +566,12 @@ body {
             </div>
         </div>
 
-        <div class="d-flex align-items-center gap-2 w-100 w-sm-auto justify-content-between justify-content-sm-end pt-2 pt-sm-0 border-top border-top-sm-0">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
             <!-- パスワード再設定ボタンをログアウトボタンの隣に移動 -->
-            <a href="{{ url_for('auth.forgot_password') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 shadow-sm flex-fill flex-sm-grow-0 justify-content-center">
+            <a href="{{ url_for('auth.forgot_password') }}" class="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1 shadow-sm">
                 <i class="bi bi-key-fill"></i> パスワード再設定
             </a>
-            <a href="#" onClick="showDialog()" class="btn-logout d-inline-flex align-items-center gap-1 flex-fill flex-sm-grow-0 justify-content-center">
+            <a href="#" onClick="showDialog()" class="btn-logout d-inline-flex align-items-center gap-1">
                 <i class="bi bi-box-arrow-right"></i> ログアウト
             </a>
         </div>
@@ -566,7 +619,7 @@ body {
             </a>
         </div>
         <div class="col">
-            <a href="{{ url_for('textbook.order_form') }}" class="menu-card p-3 p-sm-4 shadow-sm h-100">
+            <a href="{{ url_for('textbook.order_list') }}" class="menu-card p-3 p-sm-4 shadow-sm h-100">
                 <div class="d-flex justify-content-between align-items-start">
                     <div class="icon-circle"><i class="bi bi-book-fill"></i></div>
                     <span class="count-badge">発注: {{ textbook_order_count }} 件</span>
@@ -609,12 +662,15 @@ body {
     <div class="row g-4 mb-5">
 
         <div class="col-md-6">
-            <div class="card p-4 shadow-sm border-0 h-100">
+            <div class="card p-4 shadow-sm border-0">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">教室を知ったきっかけ</h5>
                 {% if how_knew_data %}
                 <div class="chart-container-pie">
                     <canvas id="howKnewChart"></canvas>
                 </div>
+                <div class="chart-legend-scroll">
+                    <div class="chart-legend-items" id="howKnewLegend"></div>
+                </div>
                 {% else %}
                 分析情報はありません。
                 {% endif %}
@@ -622,24 +678,14 @@ body {
         </div>
 
         <div class="col-md-6">
-            <div class="card p-4 shadow-sm border-0 h-100">
+            <div class="card p-4 shadow-sm border-0">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">JLPT（日本語能力試験）レベル</h5>
                 {% if jlpt_data %}
                 <div class="chart-container-pie">
                     <canvas id="jlptChart"></canvas>
                 </div>
-                {% else %}
-                分析情報はありません。
-                {% endif %}
-            </div>
-        </div>
-
-        <div class="col-md-6">
-            <div class="card p-4 shadow-sm border-0 h-100">
-                <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">居住地域</h5>
-                {% if area_data %}
-                <div class="chart-container-pie">
-                    <canvas id="areaChart"></canvas>
+                <div class="chart-legend-scroll">
+                    <div class="chart-legend-items" id="jlptLegend"></div>
                 </div>
                 {% else %}
                 分析情報はありません。
@@ -648,11 +694,30 @@ body {
         </div>
 
         <div class="col-md-6">
-            <div class="card p-4 shadow-sm border-0 h-100">
+            <div class="card p-4 shadow-sm border-0">
+                <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">居住地域</h5>
+                {% if area_data %}
+                <div class="chart-container-pie">
+                    <canvas id="areaChart"></canvas>
+                </div>
+                <div class="chart-legend-scroll">
+                    <div class="chart-legend-items" id="areaLegend"></div>
+                </div>
+                {% else %}
+                分析情報はありません。
+                {% endif %}
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <div class="card p-4 shadow-sm border-0">
                 <h5 class="card-title fw-bold mb-4" style="font-size: 15px;">出身国</h5>
                 {% if country_data %}
                 <div class="chart-container-pie">
                     <canvas id="countryChart"></canvas>
+                </div>
+                <div class="chart-legend-scroll">
+                    <div class="chart-legend-items" id="countryLegend"></div>
                 </div>
                 {% else %}
                 分析情報はありません。
@@ -706,14 +771,55 @@ body {
         responsive: true,
         maintainAspectRatio: false,
         plugins: {
-            legend: { position: 'bottom', labels: { boxWidth: 12 } }
+            legend: { display: false }  // ビルトイン凡例を非表示（カスタムHTMLに置き換え）
         }
     };
+
+    /**
+     * カスタムHTMLレジェンドを生成してコンテナに描画し、クリックで表示/非表示を切り替える
+     * @param {Chart} chart - Chart.jsのインスタンス
+     * @param {string} containerId - 凡例を描画するdiv要素のID
+     */
+    function buildCustomLegend(chart, containerId) {
+        const container = document.getElementById(containerId);
+        if (!container) return;
+        container.innerHTML = '';
+
+        const labels = chart.data.labels;
+        const colors = chart.data.datasets[0].backgroundColor;
+
+        labels.forEach(function (label, i) {
+            const item = document.createElement('span');
+            item.className = 'chart-legend-item';
+            item.dataset.index = i;
+
+            const box = document.createElement('span');
+            box.className = 'chart-legend-box';
+            box.style.backgroundColor = Array.isArray(colors) ? colors[i] : colors;
+
+            const text = document.createElement('span');
+            text.textContent = label;
+
+            item.appendChild(box);
+            item.appendChild(text);
+
+            // クリックでデータセット表示/非表示を切り替え
+            item.addEventListener('click', function () {
+                const meta = chart.getDatasetMeta(0);
+                const hidden = meta.data[i].hidden;
+                meta.data[i].hidden = !hidden;
+                item.classList.toggle('hidden', !hidden);
+                chart.update();
+            });
+
+            container.appendChild(item);
+        });
+    }
 
     // 1. 教室を知ったきっかけ
     {% if how_knew_data %}
         const howKnewLabels = {{ how_knew_labels | tojson }};
-        new Chart(document.getElementById('howKnewChart').getContext('2d'), {
+        const howKnewChart = new Chart(document.getElementById('howKnewChart').getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: howKnewLabels,
@@ -725,12 +831,13 @@ body {
             },
             options: pieOptions
         });
+        buildCustomLegend(howKnewChart, 'howKnewLegend');
     {% endif %}
 
     // 2. JLPTレベル
     {% if jlpt_data %}
         const jlptLabels = {{ jlpt_labels | tojson }};
-        new Chart(document.getElementById('jlptChart').getContext('2d'), {
+        const jlptChart = new Chart(document.getElementById('jlptChart').getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: jlptLabels,
@@ -742,12 +849,13 @@ body {
             },
             options: pieOptions
         });
+        buildCustomLegend(jlptChart, 'jlptLegend');
     {% endif %}
 
     // 3. 居住地域
     {% if area_data %}
         const areaLabels = {{ area_labels | tojson }};
-        new Chart(document.getElementById('areaChart').getContext('2d'), {
+        const areaChart = new Chart(document.getElementById('areaChart').getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: areaLabels,
@@ -759,12 +867,13 @@ body {
             },
             options: pieOptions
         });
+        buildCustomLegend(areaChart, 'areaLegend');
     {% endif %}
 
     // 4. 出身国
     {% if country_data %}
         const countryLabels = {{ country_labels | tojson }};
-        new Chart(document.getElementById('countryChart').getContext('2d'), {
+        const countryChart = new Chart(document.getElementById('countryChart').getContext('2d'), {
             type: 'doughnut',
             data: {
                 labels: countryLabels,
@@ -776,6 +885,7 @@ body {
             },
             options: pieOptions
         });
+        buildCustomLegend(countryChart, 'countryLegend');
     {% endif %}
 
     function showDialog(){

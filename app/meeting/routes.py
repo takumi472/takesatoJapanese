@@ -16,6 +16,7 @@ import cloudinary.uploader
 
 from app import db
 from app.models import Meeting, Attachment
+from werkzeug.utils import secure_filename
 
 # ブループリントの定義
 meeting_bp = Blueprint("meeting", __name__, url_prefix="/meeting")
@@ -60,8 +61,17 @@ def create_meeting():
 
             files = request.files.getlist("pdf_files")
             for file in files:
-                if file and file.filename.endswith(PDF_EXTENSION):
-                    original_name = file.filename  # オリジナルファイル名
+                if (
+                    file
+                    and file.filename
+                    and file.filename.lower().endswith(PDF_EXTENSION)
+                ):
+                    # ファイル名の安全なサニタイズ (パストラバーサル・XSS対策)
+                    safe_name = (
+                        secure_filename(file.filename)
+                        or f"document_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+                    )
+                    original_name = safe_name
 
                     # Cloudinaryにファイルをアップロード
                     # folderパラメータでCloudinary上のフォルダを指定できます
@@ -142,8 +152,16 @@ def edit_meeting(id):
             # 編集時も新規添付ファイルがあればCloudinaryにアップロード
             files = request.files.getlist("pdf_files")
             for file in files:
-                if file and file.filename.endswith(PDF_EXTENSION):
-                    original_name = file.filename
+                if (
+                    file
+                    and file.filename
+                    and file.filename.lower().endswith(PDF_EXTENSION)
+                ):
+                    safe_name = (
+                        secure_filename(file.filename)
+                        or f"document_{datetime.now().strftime('%Y%m%d%H%M%S')}.pdf"
+                    )
+                    original_name = safe_name
                     upload_result = cloudinary.uploader.upload(
                         file,
                         folder=f"{FOLDER_PREFIX}/meeting_attachments",
