@@ -1,0 +1,337 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=5.0">
+    <title>発注内容の編集 #{{ order.id }} - 武里日本語教室</title>
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.0/font/bootstrap-icons.css">
+    <style>
+        :root {
+            --primary-color: #673ab7;
+            --primary-hover: #512da8;
+            --bg-color: #f0ebf8;
+            --card-border: #dadce0;
+        }
+        body {
+            background-color: var(--bg-color);
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
+            color: #202124;
+            -webkit-text-size-adjust: 100%;
+        }
+        .form-container {
+            max-width: 740px;
+            margin: 20px auto 40px auto;
+            padding-left: 14px;
+            padding-right: 14px;
+        }
+        .page-header {
+            background-color: #ffffff;
+            border-top: 8px solid var(--primary-color);
+            border-radius: 8px;
+            padding: 20px 24px;
+        }
+        .card-question {
+            background-color: #ffffff;
+            border: 1px solid var(--card-border);
+            border-radius: 8px;
+            padding: 20px 24px;
+            margin-bottom: 12px;
+            transition: box-shadow 0.2s ease, border-color 0.2s ease;
+        }
+        .card-question:focus-within {
+            border-color: var(--primary-color);
+            box-shadow: 0 2px 8px rgba(103, 58, 183, 0.12);
+        }
+        .form-label {
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: #202124;
+            margin-bottom: 10px;
+            display: block;
+            line-height: 1.45;
+        }
+        .required-star {
+            color: #d93025;
+            margin-left: 4px;
+        }
+        .btn-theme {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #ffffff;
+            font-weight: bold;
+            transition: all 0.2s ease;
+        }
+        .btn-theme:hover {
+            background-color: var(--primary-hover);
+            border-color: var(--primary-hover);
+            color: #ffffff;
+        }
+        .order-select {
+            width: 100%;
+            max-width: 340px;
+            font-size: 15px;
+            padding: 8px 12px;
+        }
+
+        /* 浮動サマリーバー */
+        .summary-bar {
+            position: sticky;
+            bottom: 16px;
+            background: rgba(255, 255, 255, 0.96);
+            backdrop-filter: blur(8px);
+            -webkit-backdrop-filter: blur(8px);
+            border: 1px solid var(--card-border);
+            border-radius: 20px;
+            padding: 10px 18px;
+            box-shadow: 0 4px 16px rgba(0, 0, 0, 0.14);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            z-index: 100;
+        }
+
+        /* ローディング画面 */
+        #loading-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(255, 255, 255, 0.85);
+            display: none;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            z-index: 9999;
+        }
+        .loading-spinner {
+            color: var(--primary-color);
+            width: 3.5rem;
+            height: 3.5rem;
+        }
+        .loading-text {
+            margin-top: 15px;
+            color: var(--primary-color);
+            font-weight: bold;
+            font-size: 1.05rem;
+        }
+
+        /* モバイル対応 */
+        @media (max-width: 576px) {
+            .form-container {
+                margin: 12px auto 24px auto;
+                padding-left: 10px;
+                padding-right: 10px;
+            }
+            .page-header {
+                padding: 16px 14px;
+                border-radius: 6px;
+            }
+            .card-question {
+                padding: 16px 14px;
+                margin-bottom: 10px;
+                border-radius: 6px;
+            }
+            .form-label {
+                font-size: 0.94rem;
+                margin-bottom: 8px;
+            }
+            .order-select {
+                max-width: 100%;
+                font-size: 16px;
+                padding: 10px 12px;
+            }
+            .summary-bar {
+                border-radius: 14px;
+                padding: 10px 14px;
+                bottom: 10px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+<!-- 更新中ローディング表示 -->
+<div id="loading-overlay">
+    <div class="spinner-border loading-spinner" role="status">
+        <span class="visually-hidden">Loading...</span>
+    </div>
+    <div class="loading-text">保存中です...しばらくお待ちください</div>
+</div>
+
+<div class="container form-container">
+    <!-- ヘッダー -->
+    <div class="page-header mb-3 mb-sm-4 shadow-sm">
+        <div class="d-flex align-items-start gap-2 gap-sm-3">
+            <a href="{{ url_for('textbook.order_detail', order_id=order.id) }}" class="btn btn-primary flex-shrink-0" style="background-color: #673ab7; border-color: #673ab7; padding: 6px 12px;" title="詳細に戻る">
+                <i class="bi bi-chevron-left"></i>
+            </a>
+            <div class="flex-grow-1 min-w-0">
+                <h1 class="h5 fw-bold mb-1" style="word-break: break-word;">発注内容の編集 #{{ order.id }}</h1>
+                <p class="text-muted mb-0 small" style="line-height: 1.45;">
+                    発注担当者および教材の注文部数を編集できます。<br class="d-none d-sm-inline">
+                    （全スタッフ編集可能）
+                </p>
+            </div>
+        </div>
+
+        <div class="d-flex align-items-center justify-content-between mt-3 pt-2 border-top">
+            <a href="{{ url_for('textbook.order_detail', order_id=order.id) }}" class="btn btn-outline-secondary btn-sm">
+                <i class="bi bi-arrow-left me-1"></i>詳細に戻る
+            </a>
+            <div class="text-danger small fw-semibold">* 必須項目</div>
+        </div>
+    </div>
+
+    <!-- フラッシュメッセージ -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+            {% for category, message in messages %}
+                <div class="alert alert-{{ category }} alert-dismissible fade show shadow-sm" role="alert">
+                    {{ message }}
+                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="閉じる"></button>
+                </div>
+            {% endfor %}
+        {% endif %}
+    {% endwith %}
+
+    <!-- 発注編集フォーム本体 -->
+    <form id="textbookEditForm" action="{{ url_for('textbook.edit_order', order_id=order.id) }}" method="POST">
+        <!-- 1. 発注担当者氏名 -->
+        <div class="card-question shadow-sm">
+            <label for="staff_name_select" class="form-label">
+                発注担当者氏名 <span class="required-star">*</span>
+            </label>
+            <select name="staff_name" id="staff_name_select" class="form-select order-select" required>
+                <option value="" disabled>選択してください</option>
+                {% for member in staff_members %}
+                    <option value="{{ member.name }}" {% if member.name == order.staff_name %}selected{% endif %}>
+                        {{ member.name }}
+                    </option>
+                {% endfor %}
+                {% if order.staff_name and order.staff_name not in staff_members|map(attribute='name')|list %}
+                    <option value="{{ order.staff_name }}" selected>{{ order.staff_name }}</option>
+                {% endif %}
+            </select>
+        </div>
+
+        <!-- 2. 各テキストブックの注文部数 -->
+        {% for item in textbook_items %}
+        {% set current_val = order[item.key] if item.key in order.__dict__ or hasattr(order, item.key) else 0 %}
+        <div class="card-question shadow-sm">
+            <label for="{{ item.key }}" class="form-label">
+                {{ item.label }}
+            </label>
+            <select name="{{ item.key }}" id="{{ item.key }}" class="form-select order-select textbook-qty-select" data-key="{{ item.key }}">
+                <option value="0" {% if current_val == 0 %}selected{% endif %}>選択してください（0部）</option>
+                {% for qty in quantity_choices %}
+                    {% if qty > 0 %}
+                    <option value="{{ qty }}" {% if current_val == qty %}selected{% endif %}>{{ qty }} 部</option>
+                    {% endif %}
+                {% endfor %}
+                {% if current_val > 0 and current_val not in quantity_choices %}
+                <option value="{{ current_val }}" selected>{{ current_val }} 部</option>
+                {% endif %}
+            </select>
+        </div>
+        {% endfor %}
+
+        <!-- 3. 備考欄 -->
+        <div class="card-question shadow-sm">
+            <label for="order_note" class="form-label">備考・連絡事項（任意）</label>
+            <textarea name="note" id="order_note" class="form-control" rows="3" style="font-size: 15px;" placeholder="受け取り希望日や特記事項があればご記入ください">{{ order.note or '' }}</textarea>
+        </div>
+
+        <!-- 4. 管理者専用ステータス変更項目 -->
+        {% if is_admin %}
+        <div class="card-question shadow-sm bg-light">
+            <label for="order_status" class="form-label text-primary">
+                <i class="bi bi-shield-lock me-1"></i>ステータス（管理者のみ変更可能）
+            </label>
+            <select name="status" id="order_status" class="form-select order-select">
+                <option value="注文済み" {% if order.status == '注文済み' %}selected{% endif %}>注文済み</option>
+                <option value="準備中" {% if order.status == '準備中' %}selected{% endif %}>準備中</option>
+                <option value="完了" {% if order.status == '完了' %}selected{% endif %}>完了</option>
+                <option value="キャンセル" {% if order.status == 'キャンセル' %}selected{% endif %}>キャンセル</option>
+            </select>
+        </div>
+        {% endif %}
+
+        <!-- リアルタイム合計部数バー -->
+        <div class="summary-bar">
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-light text-dark border px-2 px-sm-3 py-2 rounded-pill fs-6">
+                    合計: <strong id="totalQtyBadge" class="text-primary fs-5">{{ order.total_quantity }}</strong> 部
+                </span>
+                <span id="selectedKindsCount" class="text-muted small">0 種類選択</span>
+            </div>
+            <span class="text-muted small d-none d-sm-inline">※必要部数を選択してください</span>
+        </div>
+
+        <!-- アクションボタン -->
+        <div class="d-flex flex-column flex-sm-row justify-content-between align-items-stretch align-items-sm-center gap-2 mb-5">
+            <button type="submit" id="submitBtn" class="btn btn-theme py-2 px-4 fs-6 order-1 order-sm-0">
+                <i class="bi bi-check2-circle me-1"></i>変更を保存する
+            </button>
+            <div class="d-flex gap-2 order-2 order-sm-1">
+                <a href="{{ url_for('textbook.order_detail', order_id=order.id) }}" class="btn btn-outline-secondary py-2 px-3 flex-fill text-center" title="詳細に戻る">
+                    キャンセル
+                </a>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const selects = document.querySelectorAll('.textbook-qty-select');
+        const totalQtyBadge = document.getElementById('totalQtyBadge');
+        const selectedKindsCount = document.getElementById('selectedKindsCount');
+        const form = document.getElementById('textbookEditForm');
+        const overlay = document.getElementById('loading-overlay');
+
+        function updateTotals() {
+            let total = 0;
+            let kinds = 0;
+            selects.forEach(sel => {
+                const val = parseInt(sel.value, 10) || 0;
+                if (val > 0) {
+                    total += val;
+                    kinds++;
+                    sel.closest('.card-question').style.borderColor = '#673ab7';
+                    sel.closest('.card-question').style.backgroundColor = '#faf7fd';
+                } else {
+                    sel.closest('.card-question').style.borderColor = '';
+                    sel.closest('.card-question').style.backgroundColor = '';
+                }
+            });
+            totalQtyBadge.textContent = total;
+            selectedKindsCount.textContent = `${kinds} 種類選択`;
+        }
+
+        selects.forEach(sel => sel.addEventListener('change', updateTotals));
+        updateTotals();
+
+        form.addEventListener('submit', function (e) {
+            let total = 0;
+            selects.forEach(sel => {
+                total += parseInt(sel.value, 10) || 0;
+            });
+
+            if (total === 0) {
+                e.preventDefault();
+                alert('教材を少なくとも1部以上選択してください。');
+                return false;
+            }
+
+            overlay.style.display = 'flex';
+        });
+    });
+</script>
+</body>
+</html>
+

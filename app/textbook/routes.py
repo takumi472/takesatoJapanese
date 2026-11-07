@@ -78,10 +78,47 @@ TEXTBOOK_ITEMS = [
         "label": "「はじめてのかんじ　その3」注文部数",
         "description": "はじめての漢字シリーズ その3",
     },
+    {
+        "key": "hajimete_kanji_4",
+        "label": "「はじめてのかんじ　その４」注文部数",
+        "description": "はじめての漢字シリーズ その4",
+    },
+    {
+        "key": "hajimete_kanji_5",
+        "label": "「はじめてのかんじ　その５」注文部数",
+        "description": "はじめての漢字シリーズ その5",
+    },
+    {
+        "key": "nihongo_yomimono_shokyu_1",
+        "label": "「にほんご よみもの 初級１」注文部数",
+        "description": "日本語読みもの 初級1",
+    },
+    {
+        "key": "nihongo_yomimono_chukyu_1",
+        "label": "「にほんご よみもの 中級１」注文部数",
+        "description": "日本語読みもの 中級1",
+    },
+    {
+        "key": "nihongo_yomimono_chukyu_2",
+        "label": "「にほんご よみもの 中級２」注文部数",
+        "description": "日本語読みもの 中級2",
+    },
+    {
+        "key": "hiragana_katakana_sheet",
+        "label": "「ひらがなカタカナ一覧シート」注文部数",
+        "description": "ひらがな・カタカナ一覧表シート",
+    },
 ]
 
 # 部数選択のオプション候補
 QUANTITY_CHOICES = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 15, 20]
+
+
+def _escape_like(text: str) -> str:
+    """LIKE/ILIKE クエリのワイルドカード特殊文字（%、_、\）をエスケープして安全にする"""
+    if not text:
+        return ""
+    return text.replace("\\", "\\\\").replace("%", "\\%").replace("_", "\\_")
 
 
 def _is_admin():
@@ -186,6 +223,64 @@ def order_detail(order_id):
     )
 
 
+@textbook_bp.route("/order/<int:order_id>/edit", methods=["GET", "POST"])
+@login_required
+def edit_order(order_id):
+    """発注編集画面（全スタッフ操作可能）"""
+    order = TextbookOrder.query.get_or_404(order_id)
+    staff_members = User.query.filter_by(is_deleted=False).order_by(User.name).all()
+
+    if request.method == "POST":
+        staff_name = (request.form.get("staff_name") or "").strip()
+        if not staff_name:
+            flash("発注担当者氏名は必須項目です。", "danger")
+            return redirect(url_for("textbook.edit_order", order_id=order.id))
+
+        staff_id = request.form.get("staff_id")
+        matched_user = User.query.filter_by(name=staff_name).first() if not staff_id else None
+        if matched_user:
+            order.staff_id = matched_user.id
+        elif staff_id:
+            try:
+                order.staff_id = int(staff_id)
+            except (ValueError, TypeError):
+                pass
+
+        order.staff_name = staff_name
+
+        # 各テキストブックの注文部数を更新
+        for item in TEXTBOOK_ITEMS:
+            key = item["key"]
+            val = request.form.get(key, 0)
+            try:
+                setattr(order, key, max(0, int(val)))
+            except (ValueError, TypeError):
+                setattr(order, key, 0)
+
+        order.note = (request.form.get("note") or "").strip()
+
+        # 管理者の場合のみステータス更新もフォームから許可
+        if _is_admin():
+            new_status = request.form.get("status")
+            if new_status in ["注文済み", "準備中", "完了", "キャンセル"]:
+                order.status = new_status
+
+        order.updated_at = datetime.utcnow()
+        db.session.commit()
+
+        flash(f"発注ID #{order.id} の注文内容を更新しました。", "success")
+        return redirect(url_for("textbook.order_detail", order_id=order.id))
+
+    return render_template(
+        "textbook/edit.html",
+        order=order,
+        textbook_items=TEXTBOOK_ITEMS,
+        quantity_choices=QUANTITY_CHOICES,
+        staff_members=staff_members,
+        is_admin=_is_admin(),
+    )
+
+
 @textbook_bp.route("/order/<int:order_id>/status", methods=["POST"])
 @login_required
 def update_status(order_id):
@@ -248,7 +343,8 @@ def api_get_orders():
     if status:
         query = query.filter_by(status=status)
     if staff_name:
-        query = query.filter(TextbookOrder.staff_name.ilike(f"%{staff_name}%"))
+        safe_staff_name = _escape_like(staff_name.strip())
+        query = query.filter(TextbookOrder.staff_name.ilike(f"%{safe_staff_name}%"))
 
     total = query.count()
     orders = query.order_by(TextbookOrder.created_at.desc()).offset(offset).limit(limit).all()
@@ -345,6 +441,59 @@ def api_get_order(order_id):
     if not order:
         return jsonify({"success": False, "error": "指定された発注が見つかりません。"}), 404
     return jsonify({"success": True, "order": order.to_dict()})
+
+
+@textbook_bp.route("/api/orders/<int:order_id>", methods=["PUT", "PATCH"])
+@login_required
+def api_update_order(order_id):
+    """発注内容を更新するAPI（全スタッフ操作可能）"""
+    order = TextbookOrder.query.get(order_id)
+    if not order:
+        return jsonify({"success": False, "error": "指定された発注が見つかりません。"}), 404
+
+    data = request.get_json(silent=True) or request.form.to_dict()
+
+    if "staff_name" in data:
+        name = data["staff_name"].strip()
+        if not name:
+            return jsonify({"success": False, "error": "発注担当者氏名は必須です。"}), 400
+        order.staff_name = name
+
+    if "staff_id" in data:
+        try:
+            order.staff_id = int(data["staff_id"]) if data["staff_id"] else None
+        except (ValueError, TypeError):
+            pass
+
+    if "note" in data:
+        order.note = data["note"].strip()
+
+    items_data = data.get("items")
+    for item in TEXTBOOK_ITEMS:
+        key = item["key"]
+        if items_data and key in items_data:
+            val = items_data[key]
+        elif key in data:
+            val = data[key]
+        else:
+            continue
+        try:
+            setattr(order, key, max(0, int(val)))
+        except (ValueError, TypeError):
+            setattr(order, key, 0)
+
+    if _is_admin() and "status" in data:
+        if data["status"] in ["注文済み", "準備中", "完了", "キャンセル"]:
+            order.status = data["status"]
+
+    order.updated_at = datetime.utcnow()
+    db.session.commit()
+
+    return jsonify({
+        "success": True,
+        "message": f"発注ID #{order_id} を更新しました。",
+        "order": order.to_dict(),
+    })
 
 
 @textbook_bp.route("/api/orders/<int:order_id>/status", methods=["PATCH", "POST"])

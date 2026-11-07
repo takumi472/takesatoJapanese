@@ -3,6 +3,7 @@ from flask_login import UserMixin
 from werkzeug.security import generate_password_hash, check_password_hash
 from datetime import datetime
 from sqlalchemy.sql import expression
+from app.crypto import EncryptedString, EncryptedText, EncryptedDate
 
 @login_manager.user_loader
 def load_user(user_id):
@@ -55,17 +56,17 @@ class Staff(db.Model):
     )
     face_photo_path = db.Column(db.String(255), nullable=True)
 
-    # プロフィール詳細項目
-    email = db.Column(db.String(120), nullable=False)
-    submission_date = db.Column(db.Date)
-    last_name_kanji = db.Column(db.String(50), nullable=False)
-    first_name_kanji = db.Column(db.String(50), nullable=False)
-    last_name_kana = db.Column(db.String(50))
-    first_name_kana = db.Column(db.String(50))
-    post_code = db.Column(db.String(10))
-    address = db.Column(db.String(255))
-    tel_main = db.Column(db.String(20))
-    tel_sub = db.Column(db.String(20))
+    # プロフィール詳細項目（暗号化して保存）
+    email = db.Column(EncryptedString(512), nullable=False)
+    submission_date = db.Column(EncryptedDate)
+    last_name_kanji = db.Column(EncryptedString(512), nullable=False)
+    first_name_kanji = db.Column(EncryptedString(512), nullable=False)
+    last_name_kana = db.Column(EncryptedString(512))
+    first_name_kana = db.Column(EncryptedString(512))
+    post_code = db.Column(EncryptedString(512))
+    address = db.Column(EncryptedText)
+    tel_main = db.Column(EncryptedString(512))
+    tel_sub = db.Column(EncryptedString(512))
     exp_jp = db.Column(db.Text)
     exp_other = db.Column(db.Text)
     hobbies = db.Column(db.String(255))
@@ -161,6 +162,12 @@ class TextbookOrder(db.Model):
         ("kanji_1", "「かんじ 1」注文部数"),
         ("hajimete_kanji_2", "「はじめてのかんじ その2」注文部数"),
         ("hajimete_kanji_3", "「はじめてのかんじ その3」注文部数"),
+        ("hajimete_kanji_4", "「はじめてのかんじ その4」注文部数"),
+        ("hajimete_kanji_5", "「はじめてのかんじ その5」注文部数"),
+        ("nihongo_yomimono_shokyu_1", "「にほんご よみもの 初級1」注文部数"),
+        ("nihongo_yomimono_chukyu_1", "「にほんご よみもの 中級1」注文部数"),
+        ("nihongo_yomimono_chukyu_2", "「にほんご よみもの 中級2」注文部数"),
+        ("hiragana_katakana_sheet", "「ひらがなカタカナ一覧シート」注文部数"),
     ]
 
     id = db.Column(db.Integer, primary_key=True)
@@ -180,6 +187,12 @@ class TextbookOrder(db.Model):
     kanji_1 = db.Column(db.Integer, default=0, nullable=False)
     hajimete_kanji_2 = db.Column(db.Integer, default=0, nullable=False)
     hajimete_kanji_3 = db.Column(db.Integer, default=0, nullable=False)
+    hajimete_kanji_4 = db.Column(db.Integer, default=0, nullable=False)
+    hajimete_kanji_5 = db.Column(db.Integer, default=0, nullable=False)
+    nihongo_yomimono_shokyu_1 = db.Column(db.Integer, default=0, nullable=False)
+    nihongo_yomimono_chukyu_1 = db.Column(db.Integer, default=0, nullable=False)
+    nihongo_yomimono_chukyu_2 = db.Column(db.Integer, default=0, nullable=False)
+    hiragana_katakana_sheet = db.Column(db.Integer, default=0, nullable=False)
 
     note = db.Column(db.Text, nullable=True)  # 備考・連絡事項
     status = db.Column(db.String(50), default="注文済み", nullable=False)  # 注文済み / 準備中 / 完了 / キャンセル
