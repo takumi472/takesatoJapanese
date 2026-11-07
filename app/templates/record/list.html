@@ -109,7 +109,7 @@
                 <p style="white-space: pre-wrap; font-size: 14px;">{{ r.today_learning_content }}</p>
             </div>
             <div class="text-end text-muted" style="font-size: 12px;">
-                担当スタッフ: {{ r.writer_staff.name }}
+                担当スタッフ: {{ r.writer_staff.name | decrypt }}
             </div>
         </div>
         {% endfor %}

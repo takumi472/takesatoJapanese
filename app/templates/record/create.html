@@ -116,7 +116,7 @@
                 {% if is_admin %}
         <select name="staff_id" class="form-select" required>
             {% for staff in staff_list %}
-            <option value="{{ staff.user_id }}">{{ staff.last_name_kanji }} {{ staff.first_name_kanji }}</option>
+            <option value="{{ staff.user_id }}">{{ staff.last_name_kanji | decrypt }} {{ staff.first_name_kanji | decrypt }}</option>
             {% endfor %}
         </select>
     {% else %} 

@@ -523,7 +523,7 @@ body {
         <div class="form-card shadow-sm">
             <label class="form-label">ユーザ名<span class="required-star">*</span></label>
             <input type="text" name="email" class="form-control-gf"
-                   value="{{ staff.email if staff else '' }}"
+                   value="{{ (staff.email | decrypt) if staff else '' }}"
                    placeholder="回答を入力" required {% if staff %}readonly style="color: #70757a;"{% endif %}>
         </div>
 
@@ -572,49 +572,49 @@ body {
         <div class="form-card shadow-sm">
             <label class="form-label">苗字（漢字でご記入ください）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
             <input type="text" name="last_name_kanji" class="form-control-gf"
-                   value="{{ staff.last_name_kanji if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
+                   value="{{ (staff.last_name_kanji | decrypt) if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">名前（漢字でご記入ください）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
             <input type="text" name="first_name_kanji" class="form-control-gf"
-                   value="{{ staff.first_name_kanji if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
+                   value="{{ (staff.first_name_kanji | decrypt) if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">苗字（ふりがな）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
             <input type="text" name="last_name_kana" class="form-control-gf"
-                   value="{{ staff.last_name_kana if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
+                   value="{{ (staff.last_name_kana | decrypt) if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">名前（ふりがな）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
             <input type="text" name="first_name_kana" class="form-control-gf"
-                   value="{{ staff.first_name_kana if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
+                   value="{{ (staff.first_name_kana | decrypt) if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">郵便番号（記入例：3440102 ハイフンなし）{% if not is_admin %}<span class="required-star">*</span>{% endif %} <span id="address-loading-status" style="font-size: 12px; font-weight: normal;"></span></label>
             <input type="text" id="zipcode" name="post_code" class="form-control-gf"
-                   value="{{ staff.post_code if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
+                   value="{{ (staff.post_code | decrypt) if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">住所（記入例：春日部市大場1丁目1番1号 春日部アパート101号室）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
             <input type="text" id="address" name="address" class="form-control-gf"
-                   value="{{ staff.address if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
+                   value="{{ (staff.address | decrypt) if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">電話番号（本人 必須）{% if not is_admin %}<span class="required-star">*</span>{% endif %}</label>
             <input type="tel" name="tel_main" class="form-control-gf"
-                   value="{{ staff.tel_main if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
+                   value="{{ (staff.tel_main | decrypt) if staff else '' }}" placeholder="回答を入力" {% if not is_admin %}required{% endif %}>
         </div>
 
         <div class="form-card shadow-sm">
             <label class="form-label">電話番号（本人以外）</label>
             <input type="tel" name="tel_sub" class="form-control-gf"
-                   value="{{ staff.tel_sub if staff else '' }}" placeholder="回答を入力">
+                   value="{{ (staff.tel_sub | decrypt) if staff else '' }}" placeholder="回答を入力">
         </div>
 
         <div class="form-card shadow-sm">

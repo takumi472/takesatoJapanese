@@ -5,6 +5,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
 from flask_login import current_user, login_required
 from app.models import db, User, Staff
+from app.crypto import decrypt_value
 from werkzeug.security import generate_password_hash
 import cloudinary
 import cloudinary.uploader
@@ -85,6 +86,22 @@ def _parse_date_or_none(date_str):
             current_app.logger.warning(f"Invalid date format received: {date_str}")
             return None
     return None
+
+
+def _decrypt_staff_fields(staff):
+    """Staffモデルの暗号化フィールドを確実に復号するヘルパー"""
+    if not staff:
+        return staff
+    staff.last_name_kanji = decrypt_value(staff.last_name_kanji) or staff.last_name_kanji
+    staff.first_name_kanji = decrypt_value(staff.first_name_kanji) or staff.first_name_kanji
+    staff.last_name_kana = decrypt_value(staff.last_name_kana) or staff.last_name_kana
+    staff.first_name_kana = decrypt_value(staff.first_name_kana) or staff.first_name_kana
+    staff.email = decrypt_value(staff.email) or staff.email
+    staff.post_code = decrypt_value(staff.post_code) or staff.post_code
+    staff.address = decrypt_value(staff.address) or staff.address
+    staff.tel_main = decrypt_value(staff.tel_main) or staff.tel_main
+    staff.tel_sub = decrypt_value(staff.tel_sub) or staff.tel_sub
+    return staff
 
 
 # --- ルート定義 ---
@@ -308,6 +325,7 @@ def edit_staff(id):
             current_app.logger.error(f"Error updating staff {id}: {e}", exc_info=True)
             flash(f"更新中にエラーが発生しました: {str(e)}", "danger")
 
+    _decrypt_staff_fields(staff)
     return render_template("staff/edit.html", staff=staff, user=user)
 
 
@@ -325,6 +343,9 @@ def staff_list():
 
     region_data = get_region_data()
     for staff in all_staff:
+        # 暗号化フィールドを確実に復号
+        _decrypt_staff_fields(staff)
+
         # DB内の staff.address は変更せず、表示専用の display_address 属性に格納
         staff.display_address = staff.address or "未登録"
         if not staff.address:
