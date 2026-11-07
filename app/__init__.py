@@ -1,5 +1,6 @@
 # app/__init__.py
 import os
+import mimetypes
 from flask import Flask
 from flask_sqlalchemy import SQLAlchemy
 from flask_login import LoginManager
@@ -8,6 +9,9 @@ from dotenv import load_dotenv  # .envファイルをロードするために追
 import cloudinary.uploader
 from datetime import timedelta
 from werkzeug.middleware.proxy_fix import ProxyFix
+
+# 動画などのMIMEタイプを確実に登録（コンテナ環境対策）
+mimetypes.add_type("video/mp4", ".mp4")
 
 db = SQLAlchemy()
 login_manager = LoginManager()
@@ -39,6 +43,15 @@ def create_app(env_name="development"):
             secret_key = "dev-key-placeholder"
     app.config["SECRET_KEY"] = secret_key
     app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_prefix=1)
+
+    # Cloud Run 等の本番コンテナ環境向け静的ファイル配信 (WhiteNoise)
+    try:
+        from whitenoise import WhiteNoise
+
+        static_dir = os.path.join(basedir, "static")
+        app.wsgi_app = WhiteNoise(app.wsgi_app, root=static_dir, prefix="static/")
+    except ImportError:
+        pass
 
     # 1. Vercel(本番)でもローカル(開発)でも、環境変数からDATABASE_URLを取得する
     raw_db_url = os.environ.get("DATABASE_URL")
