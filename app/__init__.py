@@ -83,6 +83,17 @@ def create_app(env_name="development"):
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
         return response
 
+    trusted_origins_env = os.environ.get("CSRF_TRUSTED_ORIGINS")
+    if trusted_origins_env:
+        app.config["WTF_CSRF_TRUSTED_ORIGINS"] = [
+            origin.strip() for origin in trusted_origins_env.split(",")
+        ]
+    else:
+        app.config["WTF_CSRF_TRUSTED_ORIGINS"] = [
+            "https://www.takesato-japanese.net",
+            "https://takesato-japanese-service-452319758682.asia-northeast1.run.app",
+        ]
+
     # CSRF保護（Origin / Referer検証によるクロスサイトPOST攻撃遮断）
     from app.csrf import init_csrf_protection
 
