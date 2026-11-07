@@ -172,6 +172,13 @@ def create_app(env_name="development"):
     from app.csrf import init_csrf_protection
 
     init_csrf_protection(app)
+
+    # テンプレート用フィルター: 暗号化文字列の復号
+    from app.crypto import decrypt_value
+
+    app.jinja_env.filters["decrypt"] = (
+        lambda v: decrypt_value(v) if v is not None else ""
+    )
     cloudinary.config(
         cloud_name=os.environ.get("CLOUDINARY_CLOUD_NAME"),
         api_key=os.environ.get("CLOUDINARY_API_KEY"),

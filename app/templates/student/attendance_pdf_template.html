@@ -167,7 +167,7 @@
                 </td>
                 {% for d in date_columns %}
                 <td class="date-col">
-                    {{ student.attendance_by_date.get(d.date, '') }}
+                    {{ student.attendance_by_date.get(d.date, '') | decrypt }}
                 </td>
                 {% endfor %}
             </tr>

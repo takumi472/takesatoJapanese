@@ -249,7 +249,7 @@
             <select class="form-select select-responsive" id="staff_in_charge" name="staff_in_charge" required>
                 <option value="" selected disabled>選択</option>
                 {% for staff in staff_list %}
-            <option value="{{ staff.id }}">{{ staff.last_name_kanji  }}</option>
+            <option value="{{ staff.id }}">{{ staff.last_name_kanji | decrypt }}</option>
         {% endfor %}
             </select>
         </div>

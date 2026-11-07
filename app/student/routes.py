@@ -26,6 +26,7 @@ from sqlalchemy.orm import joinedload
 
 from app import db
 from app.limiter import limiter
+from app.crypto import decrypt_value
 from app.models import User, Student, LearningRecord, Staff
 from app.decorators import roles_required
 
@@ -361,7 +362,8 @@ def get_fiscal_year(target_date):
 
 def get_attendance_matrix(student_ids, dates):
     """
-    各生徒・各日付の担当スタッフ名マップと、各日付の出席者数カウントを返す
+    各生徒・各日付の担当スタッフ名マップと、各日付の出席者数カウントを返す。
+    スタッフ名が暗号化されている場合も確実に decrypt_value で復号して表示する。
     """
     records = (
         LearningRecord.query.options(
@@ -380,13 +382,22 @@ def get_attendance_matrix(student_ids, dates):
     for rec in records:
         staff_name = "─"
         if rec.writer_staff:
-            if (
-                rec.writer_staff.staff_profile
-                and rec.writer_staff.staff_profile.last_name_kanji
-            ):
-                staff_name = rec.writer_staff.staff_profile.last_name_kanji
+            profile = rec.writer_staff.staff_profile
+            if profile and profile.last_name_kanji:
+                raw_name = profile.last_name_kanji
+                staff_name = decrypt_value(raw_name) or raw_name
             elif rec.writer_staff.name:
-                staff_name = rec.writer_staff.name.split()[0]
+                raw_user_name = rec.writer_staff.name
+                staff_name = decrypt_value(raw_user_name) or raw_user_name
+
+        if staff_name and staff_name != "─":
+            # 二重暗号化や文字列に残るトークンも確実に復号
+            staff_name = decrypt_value(staff_name) or staff_name
+            # 姓（苗字）を取得（半角・全角スペース両対応）
+            if " " in staff_name:
+                staff_name = staff_name.split()[0]
+            elif "　" in staff_name:
+                staff_name = staff_name.split("　")[0]
 
         student_attendance[rec.student_id][rec.lesson_date] = staff_name
         attendance_counts[rec.lesson_date] = (
