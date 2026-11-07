@@ -3,34 +3,26 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>マニュアル - 武里日本語教室</title>
-    <link rel="icon" type="image/png" href="{{ url_for('static', filename='images/icon-192.png') }}?v=1">
+    <title>アプリケーションマニュアル - 武里日本語教室</title>
+    <link rel="icon" type="image/png" href="/static/images/icon-192.png?v=1">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
-    
-    <script>
-        window.si = window.si || function () { (window.siq = window.siq || []).push(arguments); };
-    </script>
-    {% if not config.DEBUG %}
-        <script src="/_vercel/speed-insights/script.js" defer></script>
-    {% endif %}
-    
     <style>
-        body { 
-            background-color: #f0ebf8; 
-            color: #202124; 
-            font-family: 'Helvetica Neue', Arial, sans-serif;
+        body {
+            background-color: #f0ebf8;
+            color: #202124;
+            font-family: 'Helvetica Neue', Arial, 'Hiragino Kaku Gothic ProN', Meiryo, sans-serif;
         }
-        .dashboard-container { 
-            max-width: 1000px; 
-            margin: 30px auto; 
+        .dashboard-container {
+            max-width: 1000px;
+            margin: 30px auto;
             padding: 0 15px;
         }
-        .welcome-header { 
-            background-color: #fff; 
-            border-top: 10px solid #673ab7; 
-            border-radius: 8px; 
-            padding: 30px; 
+        .welcome-header {
+            background-color: #fff;
+            border-top: 10px solid #673ab7;
+            border-radius: 8px;
+            padding: 30px;
         }
         .accordion-item {
             background-color: #fff;
@@ -56,7 +48,17 @@
         }
         .accordion-body {
             padding: 24px;
-            line-height: 1.6;
+            line-height: 1.7;
+        }
+        .step-badge {
+            display: inline-block;
+            background-color: #f0ebf8;
+            color: #673ab7;
+            font-weight: 700;
+            font-size: 0.8rem;
+            padding: 2px 10px;
+            border-radius: 999px;
+            margin-right: 6px;
         }
         .btn-back {
             color: #673ab7;
@@ -81,106 +83,216 @@
 
     <div class="welcome-header shadow-sm mb-4 d-flex justify-content-between align-items-center flex-wrap gap-3">
         <div>
-            <h1 class="h3 mb-2" style="font-weight: 700;">アプリケーションマニュアル</h1>
-            <p class="text-muted mb-0">このページでは、管理システムの基本的な使い方を説明します。</p>
+            <h1 class="h3 mb-2" style="font-weight: 700;">武里日本語教室 管理システム マニュアル</h1>
+            <p class="text-muted mb-0">画面ごとの操作方法と解説動画を確認できます。各項目をクリックして開いてください。</p>
         </div>
-        <a href="{{ url_for('auth.dashboard') }}" class="btn-back d-flex align-items-center gap-1">
+        <a href="/dashboard" class="btn-back d-flex align-items-center gap-1">
             <i class="bi bi-house-door"></i> トップへ戻る
         </a>
     </div>
 
     <div class="accordion" id="manualAccordion">
 
+        <!-- 1. ログイン・ダッシュボード -->
         <div class="accordion-item">
             <h2 class="accordion-header" id="headingOne">
                 <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#collapseOne" aria-expanded="true" aria-controls="collapseOne">
-                    <i class="bi bi-mortarboard-fill me-2"></i> 生徒管理
+                    <i class="bi bi-speedometer2 me-2"></i> 1. ログイン・ダッシュボード画面
                 </button>
             </h2>
             <div id="collapseOne" class="accordion-collapse collapse show" aria-labelledby="headingOne" data-bs-parent="#manualAccordion">
                 <div class="accordion-body">
-                    <strong>生徒の新規登録:</strong><br>
-                    ナビゲーションバーの「生徒管理」から「生徒新規登録」を選択し、必要情報を入力して登録します。顔写真のアップロードも可能です。<br><br>
-                    <strong>生徒一覧:</strong><br>
-                    「生徒一覧」ページでは、登録されている生徒を一覧で確認できます。活動中の生徒と、長期間活動のない生徒（非アクティブ）に分かれて表示されます。名前をクリックすると詳細情報や学習記録を確認できます。
-                    
+                    <p><span class="step-badge">ログイン</span><strong>ログイン方法:</strong><br>
+                    <code>/login</code> 画面にて、登録された「ユーザー名（メールアドレスまたはローマ字小文字）」と「パスワード」を入力して「ログイン」ボタンを押します。パスワードを忘れた場合は「パスワードを忘れた場合」リンクから再設定が可能です。</p>
+                    <p><span class="step-badge">メインメニュー</span><strong>ダッシュボードの構成:</strong><br>
+                    画面上部の6つのカードから各機能（受講生一覧・スタッフ一覧・スタッフミーティング・出席リスト・テキスト発注・生徒顔認識）へ移動できます。</p>
+                    <p><span class="step-badge">グラフ・統計</span><strong>出席推移とデータ分析:</strong><br>
+                    「週間出席者数 推移」ではプルダウンで対象週を切り替えられます。下部の「受講生データ分析」の4つの円グラフ（きっかけ・JLPTレベル・居住地域・出身国）は、凡例ラベルをクリックすると特定項目の表示／非表示を切り替えられます。</p>
+
                     <hr class="my-4 text-muted">
-                    <p class="fw-bold mb-2 text-dark">▼ 生徒管理の操作動画</p>
+                    <p class="fw-bold mb-2 text-dark">▼ ログイン・ダッシュボードの操作動画</p>
                     <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
                         <video controls class="w-100 h-100">
-                            <source src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E7%94%9F%E5%BE%92%E3%81%AE%E6%96%B0%E8%A6%8F%E7%99%BB%E9%8C%B2.mp4?_s=vp-3.7.2" type="video/mp4">
+                            <source src="{{ url_for('static', filename='video/01_login_dashboard.mp4') }}" type="video/mp4">
                         </video>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- 2. 受講生一覧・新規登録 -->
         <div class="accordion-item">
             <h2 class="accordion-header" id="headingTwo">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseTwo" aria-expanded="false" aria-controls="collapseTwo">
-                    <i class="bi bi-pencil-square me-2"></i> 学習記録
+                    <i class="bi bi-mortarboard-fill me-2"></i> 2. 受講生一覧・新規登録画面
                 </button>
             </h2>
             <div id="collapseTwo" class="accordion-collapse collapse" aria-labelledby="headingTwo" data-bs-parent="#manualAccordion">
                 <div class="accordion-body">
-                    <strong>記録の作成:</strong><br>
-                    「学習記録」メニューの「記録作成」から、日付、担当スタッフ、学習内容などを記録できます。生徒一覧の詳細ページからも直接記録を追加することが可能です。<br><br>
-                    <strong>記録の確認と編集:</strong><br>
-                    生徒一覧から特定の生徒を選び、「学習記録一覧」ボタンを押すと、過去の記録をすべて閲覧できます。各記録の横にある「編集」ボタンから内容を修正できます。
+                    <p><span class="step-badge">一覧・検索</span><strong>受講生の検索と確認:</strong><br>
+                    「受講生一覧（<code>/student/</code>）」では、「継続中の受講生」と「休止中の受講生」に分かれて顔写真付きカードが表示されます。上部の検索バーに名前・国籍・居住地・JLPTレベル（例: N5）を入力するとリアルタイムで絞り込めます。</p>
+                    <p><span class="step-badge">優先設定</span><strong>優先スイッチと学習記録:</strong><br>
+                    各カードの「優先」スイッチで優先生徒の設定ができ、「学習記録リスト」ボタンから個人の学習カルテ画面へ移動します。</p>
+                    <p><span class="step-badge">新規登録</span><strong>受講生の新規作成:</strong><br>
+                    右上の「＋ 新規作成（<code>/student/create</code>）」ボタンから、顔写真のアップロードおよび基本情報（氏名・国籍・母語・居住地域・JLPTレベル・学習目的・本日の学習内容・記入担当者など (1)〜(14) の項目）を入力して登録します。</p>
 
                     <hr class="my-4 text-muted">
-                    <p class="fw-bold mb-2 text-dark">▼ 学習記録の操作動画</p>
+                    <p class="fw-bold mb-2 text-dark">▼ 受講生一覧・新規登録の操作動画</p>
                     <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
                         <video controls class="w-100 h-100">
-                            <source src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E5%AD%A6%E7%BF%92%E8%A8%98%E9%8C%B2%E4%BD%9C%E6%88%90%E6%96%B9%E6%B3%95_rwkcam.mp4?_s=vp-3.7.2" src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E3%82%B9%E3%82%BF%E3%83%83%E3%83%95%E6%96%B0%E8%A6%8F%E4%BD%9C%E6%88%90.mp4?_s=vp-3.7.2" type="video/mp4">
+                            <source src="{{ url_for('static', filename='video/02_students.mp4') }}" type="video/mp4">
                         </video>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- 3. 学習記録（カルテ） -->
         <div class="accordion-item">
             <h2 class="accordion-header" id="headingThree">
                 <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                    <i class="bi bi-people-fill me-2"></i> スタッフ管理
+                    <i class="bi bi-pencil-square me-2"></i> 3. 学習記録（カルテ）一覧・作成画面
                 </button>
             </h2>
             <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#manualAccordion">
                 <div class="accordion-body">
-                    <strong>スタッフの新規登録・編集:</strong><br>
-                    「スタッフ一覧」から新しいスタッフのアカウント作成や、プロフィール情報の編集が行えます。登録には顔写真、連絡先、ボランティア活動歴などの詳細情報が必要です。<br><br>
-                    <strong>アカウントと権限:</strong><br>
-                    登録されたメールアドレスとパスワードはログイン時に使用します。スタッフごとに適切な権限を設定し、円滑な教室運営をサポートします。
+                    <p><span class="step-badge">履歴確認</span><strong>学習履歴の閲覧:</strong><br>
+                    受講生一覧や出席表の「学習記録リスト（記録）」ボタンを押すと、その受講生の過去のレッスン記録（日付・使用テキスト・学習内容・担当スタッフ）が新しい順に一覧表示されます。</p>
+                    <p><span class="step-badge">記録追加</span><strong>新しい学習記録の入力:</strong><br>
+                    右上の「＋ 新規追加」ボタンから入力フォームを開き、「レッスン日」「担当受講生」「担当スタッフ」「学習内容（テキストブック回数）」「学習内容の詳細（自由記述）」を入力して保存します。</p>
+
+                    <hr class="my-4 text-muted">
+                    <p class="fw-bold mb-2 text-dark">▼ 学習記録（カルテ）の操作動画</p>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <video controls class="w-100 h-100">
+                            <source src="{{ url_for('static', filename='video/03_learning_records.mp4') }}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 4. スタッフ一覧・新規登録 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingFour">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFour" aria-expanded="false" aria-controls="collapseFour">
+                    <i class="bi bi-people-fill me-2"></i> 4. スタッフ一覧・新規登録・編集画面
+                </button>
+            </h2>
+            <div id="collapseFour" class="accordion-collapse collapse" aria-labelledby="headingFour" data-bs-parent="#manualAccordion">
+                <div class="accordion-body">
+                    <p><span class="step-badge">一覧・編集</span><strong>スタッフ一覧とプロフィール編集:</strong><br>
+                    「スタッフ一覧（<code>/staff/</code>）」では登録スタッフの顔写真・氏名を確認できます。自分のカードにある「編集する」ボタンから登録情報の更新が可能です。</p>
+                    <p><span class="step-badge">新規登録</span><strong>新しいスタッフの登録:</strong><br>
+                    右上の「＋ 新規作成（<code>/staff/create</code>）」から、ユーザ名・LINE ID・初期パスワード・顔写真・氏名（漢字／ふりがな）・郵便番号（ハイフンなし入力で住所を自動補完）・電話番号・ボランティア活動歴・趣味・特技・資格を入力して登録します。</p>
 
                     <hr class="my-4 text-muted">
                     <p class="fw-bold mb-2 text-dark">▼ スタッフ管理の操作動画</p>
                     <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
                         <video controls class="w-100 h-100">
-                            <source src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E3%82%B9%E3%82%BF%E3%83%83%E3%83%95%E6%96%B0%E8%A6%8F%E4%BD%9C%E6%88%90.mp4?_s=vp-3.7.2" type="video/mp4">
+                            <source src="{{ url_for('static', filename='video/04_staff.mp4') }}" type="video/mp4">
                         </video>
                     </div>
                 </div>
             </div>
         </div>
 
+        <!-- 5. スタッフミーティング -->
         <div class="accordion-item">
-            <h2 class="accordion-header" id="headingThree">
-                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseThree" aria-expanded="false" aria-controls="collapseThree">
-                    <i class="bi bi-calendar-check-fill me-2"></i> 出席簿
+            <h2 class="accordion-header" id="headingFive">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFive" aria-expanded="false" aria-controls="collapseFive">
+                    <i class="bi bi-journal-text me-2"></i> 5. スタッフミーティング（議事録）画面
                 </button>
             </h2>
-            <div id="collapseThree" class="accordion-collapse collapse" aria-labelledby="headingThree" data-bs-parent="#manualAccordion">
+            <div id="collapseFive" class="accordion-collapse collapse" aria-labelledby="headingFive" data-bs-parent="#manualAccordion">
                 <div class="accordion-body">
-                    <strong>日別の出席確認:</strong><br>
-                    「出席簿」ページでは、指定した日付に出席した生徒を国籍ごとに一覧表示します。日付を変更して過去の出席状況も確認できます。<br><br>
-                    <strong>PDFダウンロード:</strong><br>
-                    表示されている出席リストをPDF形式でダウンロードする機能があります。印刷や保管に便利です。
+                    <p><span class="step-badge">議事録閲覧</span><strong>ミーティング一覧と詳細確認:</strong><br>
+                    「スタッフミーティング一覧（<code>/meeting/</code>）」またはダッシュボードの「最新のミーティング」から、各回の議事録をクリックして開きます。</p>
+                    <p><span class="step-badge">添付PDF</span><strong>配布資料（PDF）の表示:</strong><br>
+                    詳細ページ下部の「添付資料一覧」にある「表示」ボタンをクリックすると、ミーティングの配布資料PDFをブラウザで閲覧・印刷できます。</p>
 
                     <hr class="my-4 text-muted">
-                    <p class="fw-bold mb-2 text-dark">▼ 出席簿の操作動画</p>
+                    <p class="fw-bold mb-2 text-dark">▼ スタッフミーティングの操作動画</p>
                     <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
                         <video controls class="w-100 h-100">
-                            <source src="https://res.cloudinary.com/dga0a3qkd/video/upload/%E7%94%BB%E9%9D%A2%E5%8F%8E%E9%8C%B2_2026-06-19_13.39.32_esu0cz.mp4?_s=vp-3.7.2" type="video/mp4">
+                            <source src="{{ url_for('static', filename='video/05_meetings.mp4') }}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 6. 出席リスト（受講生 出席表） -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingSix">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSix" aria-expanded="false" aria-controls="collapseSix">
+                    <i class="bi bi-calendar-check-fill me-2"></i> 6. 出席リスト（受講生 出席表）画面
+                </button>
+            </h2>
+            <div id="collapseSix" class="accordion-collapse collapse" aria-labelledby="headingSix" data-bs-parent="#manualAccordion">
+                <div class="accordion-body">
+                    <p><span class="step-badge">日付切替</span><strong>対象日の変更:</strong><br>
+                    「出席リスト（<code>/student/attendance</code>）」上部の「前週」「翌週」ボタン、または日付選択カレンダーで任意の日付を選んで「変更」を押すと、該当週の日曜日の出席表に切り替わります。</p>
+                    <p><span class="step-badge">並び替え</span><strong>ドラッグ＆ドロップ並び替え・五十音順ソート:</strong><br>
+                    番号横のアイコン（<i class="bi bi-grip-vertical"></i>）をドラッグして行を並び替えたり、「受講生 氏名」見出しをクリックして五十音順に並び替えることができます。「順番を保存」ボタンで現在の並び順をデータベースに保存できます。</p>
+                    <p><span class="step-badge">PDF出力</span><strong>PDF出力 / 最終確認:</strong><br>
+                    右上の緑色の「PDF出力 / 最終確認」ボタンを押すと、印刷・配布に最適化されたPDFプレビュー画面へ移動します。</p>
+
+                    <hr class="my-4 text-muted">
+                    <p class="fw-bold mb-2 text-dark">▼ 出席リストの操作動画</p>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <video controls class="w-100 h-100">
+                            <source src="{{ url_for('static', filename='video/06_attendance.mp4') }}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 7. テキスト発注・管理 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingSeven">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSeven" aria-expanded="false" aria-controls="collapseSeven">
+                    <i class="bi bi-book-fill me-2"></i> 7. テキスト発注履歴・新規発注フォーム画面
+                </button>
+            </h2>
+            <div id="collapseSeven" class="accordion-collapse collapse" aria-labelledby="headingSeven" data-bs-parent="#manualAccordion">
+                <div class="accordion-body">
+                    <p><span class="step-badge">履歴確認</span><strong>発注履歴とステータス絞り込み:</strong><br>
+                    「テキスト発注（<code>/textbook/list</code>）」では、これまでの発注履歴を「すべて」「注文済み」「準備中」「受取・手配完了」のタブで切り替えて確認できます。</p>
+                    <p><span class="step-badge">新規発注</span><strong>テキストブックの発注フォーム:</strong><br>
+                    右上の「＋ 新規発注フォーム（<code>/textbook/order</code>）」から発注画面へ移動し、「発注担当者氏名」と必要なテキストの冊数を選択します。画面下部のサマリーバーに選択合計冊数が自動表示され、「注文を確定する」で発注が完了します（上部リンクから各テキストのPDFダウンロードも可能です）。</p>
+
+                    <hr class="my-4 text-muted">
+                    <p class="fw-bold mb-2 text-dark">▼ テキスト発注の操作動画</p>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <video controls class="w-100 h-100">
+                            <source src="{{ url_for('static', filename='video/07_textbooks.mp4') }}" type="video/mp4">
+                        </video>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 8. 生徒顔認識 -->
+        <div class="accordion-item">
+            <h2 class="accordion-header" id="headingEight">
+                <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseEight" aria-expanded="false" aria-controls="collapseEight">
+                    <i class="bi bi-person-bounding-box me-2"></i> 8. 生徒顔認識（AI顔認証 出席管理）画面
+                </button>
+            </h2>
+            <div id="collapseEight" class="accordion-collapse collapse" aria-labelledby="headingEight" data-bs-parent="#manualAccordion">
+                <div class="accordion-body">
+                    <p><span class="step-badge">カメラ撮影</span><strong>AI顔認識による受講生照合:</strong><br>
+                    ダッシュボードの「生徒顔認識」カードをクリックすると顔認証出席管理ページが開きます。カメラの使用を許可し、画面中央のガイド枠内に受講生の顔を合わせて「撮影して出席を確認」ボタンを押します。</p>
+                    <p><span class="step-badge">照合結果</span><strong>結果の確認:</strong><br>
+                    登録されている受講生の顔写真とAI照合が行われ、一致すると下部に「受講生番号」「お名前（カナ）」「類似度スコア」が表示されます。</p>
+
+                    <hr class="my-4 text-muted">
+                    <p class="fw-bold mb-2 text-dark">▼ 生徒顔認識の操作動画</p>
+                    <div class="ratio ratio-16x9 border rounded overflow-hidden shadow-sm">
+                        <video controls class="w-100 h-100">
+                            <source src="{{ url_for('static', filename='video/08_face_recognition.mp4') }}" type="video/mp4">
                         </video>
                     </div>
                 </div>
