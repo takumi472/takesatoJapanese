@@ -25,6 +25,7 @@ from flask_login import login_required, current_user
 from sqlalchemy.orm import joinedload
 
 from app import db
+from app.limiter import limiter
 from app.models import User, Student, LearningRecord, Staff
 from app.decorators import roles_required
 
@@ -69,6 +70,9 @@ def _fill_student_data_from_form(student, form):
     student.life_troubles = form.get("life_troubles")
     student.how_knew_class = form.get("how_knew_class")
     student.how_knew_class_other = form.get("how_knew_class_other")
+    max_order = db.session.query(db.func.max(Student.display_order)).scalar() or 0
+    student.display_order = max_order + 1
+
     return student
 
 
@@ -481,6 +485,7 @@ def attendance_list():
 
 @student_bp.route("/attendance/pdf-preview")
 @login_required
+@limiter.limit("20 per minute")
 def attendance_pdf_preview():
     """PDF出力前の最終確認・並び替え画面を表示する"""
 
@@ -566,6 +571,7 @@ def attendance_pdf_preview():
 
 @student_bp.route("/attendance/download-pdf")
 @login_required
+@limiter.limit("20 per minute")
 def download_attendance_pdf():
     date_str = request.args.get("date")
     order_str = request.args.get("order", "")

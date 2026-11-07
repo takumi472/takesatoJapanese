@@ -87,14 +87,75 @@ def create_app(env_name="development"):
         MAX_CONTENT_LENGTH=16 * 1024 * 1024,  # リクエスト最大16MB制限 (DoS対策)
     )
 
-    # セキュリティヘッダーの自動付与 (クリックジャッキング・MIMEスニッフィング・XSS対策)
+    # レートリミット初期化 (DDoS / 総当たり攻撃防止)
+    from app.limiter import limiter
+
+    limiter.init_app(app)
+
+    # セキュリティヘッダーの自動付与 (XSS, クリックジャッキング, MIMEスニッフィング, HSTS, 情報漏洩対策)
     @app.after_request
     def set_security_headers(response):
         response.headers["X-Frame-Options"] = "SAMEORIGIN"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["X-XSS-Protection"] = "1; mode=block"
         response.headers["Referrer-Policy"] = "strict-origin-when-cross-origin"
+        response.headers["Permissions-Policy"] = (
+            "camera=(self), microphone=(), geolocation=(), payment=()"
+        )
+        if is_production:
+            response.headers["Strict-Transport-Security"] = (
+                "max-age=31536000; includeSubDomains; preload"
+            )
+
+        # XSS防止のための Content-Security-Policy (CSP)
+        csp_directives = [
+            "default-src 'self'",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://maps.googleapis.com",
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+            "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:",
+            "img-src 'self' data: https: res.cloudinary.com blob:",
+            "media-src 'self' https: res.cloudinary.com blob:",
+            "connect-src 'self' https: wss:",
+            "frame-src 'self' https://access.line.me",
+            "frame-ancestors 'self'",
+        ]
+        response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
+
+        # サーバー情報の秘匿
+        response.headers.pop("Server", None)
         return response
+
+    # エラー時の情報漏洩防止（スタックトレースやDB内部スキーマ露出防止）
+    from flask import request as flask_req
+
+    @app.errorhandler(429)
+    def ratelimit_handler(e):
+        app.logger.warning(
+            f"Rate limit exceeded: {flask_req.remote_addr} on {flask_req.path}"
+        )
+        if flask_req.is_json or flask_req.path.startswith("/api/"):
+            return {
+                "status": "error",
+                "message": "リクエスト数が上限を超えました。しばらく待ってから再試行してください。",
+            }, 429
+        return (
+            "アクセスが集中しています。しばらく待ってから再度お試しください。(429 Too Many Requests)",
+            429,
+        )
+
+    @app.errorhandler(500)
+    def internal_server_error(e):
+        app.logger.error(f"Internal server error: {e}", exc_info=True)
+        db.session.rollback()
+        if flask_req.is_json or flask_req.path.startswith("/api/"):
+            return {
+                "status": "error",
+                "message": "サーバー内部でエラーが発生しました。",
+            }, 500
+        return (
+            "サーバー内部でエラーが発生しました。管理者にお問い合わせください。(500 Internal Server Error)",
+            500,
+        )
 
     trusted_origins_env = os.environ.get("CSRF_TRUSTED_ORIGINS")
     if trusted_origins_env:
