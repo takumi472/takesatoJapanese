@@ -131,9 +131,8 @@
                 <label class="form-label">学習内容（テキストブック回数）</label>
                 <select name="textbook_progress" class="form-select">
                     <option value="">選択してください</option>
-                    <option value="ゼロ初級テキスト 利用せず">ゼロ初級テキスト 利用せず</option>
-                    {% for i in range(1, 5) %}
-                    <option value="ゼロ初級テキスト 第{{i}}回目">ゼロ初級テキスト 第{{i}}回目</option>
+                    {% for choice in textbook_choices %}
+                    <option value="{{ choice }}">{{ choice }}</option>
                     {% endfor %}
                 </select>
             </div>

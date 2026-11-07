@@ -240,12 +240,7 @@
         </div>
 
         <div class="card-question shadow-sm">
-            <label for="today_learning_content" class="form-label fw-bold">(13) 本日の学習内容 <span class="required-star">*</span><span class="text-muted fw-normal small">※本日学習した内容を入力してください。</span></label>
-            <textarea class="form-control border-0 border-bottom rounded-0 px-0" id="today_learning_content" name="today_learning_content" rows="3" placeholder="回答を入力" required></textarea>
-        </div>
-
-        <div class="card-question shadow-sm">
-            <label for="staff_in_charge" class="form-label fw-bold">(14) 記入担当者 <span class="required-star">*</span></label>
+            <label for="staff_in_charge" class="form-label fw-bold">(13) 記入担当者 <span class="required-star">*</span></label>
             <select class="form-select select-responsive" id="staff_in_charge" name="staff_in_charge" required>
                 <option value="" selected disabled>選択</option>
                 {% for staff in staff_list %}
