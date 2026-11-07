@@ -91,7 +91,7 @@ def create_app(env_name="development"):
     else:
         app.config["WTF_CSRF_TRUSTED_ORIGINS"] = [
             "https://www.takesato-japanese.net",
-            "https://takesato-japanese-service-452319758682.asia-northeast1.run.app",
+            "http://www.takesato-japanese.net",
         ]
 
     # CSRF保護（Origin / Referer検証によるクロスサイトPOST攻撃遮断）
