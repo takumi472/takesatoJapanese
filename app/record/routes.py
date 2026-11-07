@@ -18,6 +18,21 @@ from app.models import Student, Staff, LearningRecord
 record_bp = Blueprint("record", __name__)
 
 
+def get_textbook_choices():
+    """
+    発注画面（TEXTBOOK_ITEMS）と同じテキスト教材の一覧を返す。
+    「注文部数」を除去した綺麗な教材名リスト。
+    """
+    from app.textbook.routes import TEXTBOOK_ITEMS
+
+    choices = ["テキスト 利用せず"]
+    for item in TEXTBOOK_ITEMS:
+        label = item.get("label", "").replace("注文部数", "").strip()
+        if label and label not in choices:
+            choices.append(label)
+    return choices
+
+
 @record_bp.route("/create", methods=["GET", "POST"])
 @login_required
 def create_record():
@@ -90,6 +105,7 @@ def create_record():
         selected_student_id=int(student_id) if student_id else None,
         today=date.today().isoformat(),  # 今日の日付を渡す
         is_admin=is_admin,
+        textbook_choices=get_textbook_choices(),
     )
 
 
@@ -150,4 +166,8 @@ def edit_record(record_id):
             )
             flash(f"更新エラー: {str(e)}", "danger")
 
-    return render_template("record/edit.html", record=record)
+    return render_template(
+        "record/edit.html",
+        record=record,
+        textbook_choices=get_textbook_choices(),
+    )

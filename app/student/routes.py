@@ -146,7 +146,7 @@ def create_student():
             db.session.add(new_student)
             db.session.flush()  # new_student.id を確定させる
 
-            today_content = request.form.get("today_learning_content")
+            today_content = (request.form.get("today_learning_content") or "").strip()
             if today_content:
                 # LearningRecord.staff_id は users.id を参照するため current_user.id を使用
                 new_record = LearningRecord(
@@ -156,9 +156,12 @@ def create_student():
                     lesson_date=date.today(),
                 )
                 db.session.add(new_record)
+                db.session.commit()
+                flash("受講生の新規登録と学習記録の保存が完了しました！", "success")
+            else:
+                db.session.commit()
+                flash("受講生の新規登録が完了しました！", "success")
 
-            db.session.commit()
-            flash("受講生の新規登録と学習記録の保存が完了しました！", "success")
             return redirect(url_for("student.student_list"))
 
         except Exception as e:
