@@ -517,7 +517,7 @@ body {
             <div class="staff-card h-100 d-flex flex-column shadow-sm">
                 <div class="avatar-container">
                     {% if s.face_photo_path %}
-                        <img src="{{ s.face_photo_path }}" class="staff-avatar" alt="{{ s.last_name_kanji }} さんの顔写真">
+                        <img src="{{ s.face_photo_path }}" class="staff-avatar" alt="{{ s.last_name_kanji | decrypt }} さんの顔写真">
                     {% else %}
                         <i class="bi bi-person-bounding-box text-muted" style="font-size: 3.5rem;"></i>
                     {% endif %}
@@ -526,13 +526,13 @@ body {
                 <div class="p-2 p-sm-3 text-center d-flex flex-column flex-grow-1 justify-content-between">
                     <div>
                         <div class="staff-name text-truncate">
-                            {{ s.last_name_kanji }} {{ s.first_name_kanji }}
+                            {{ s.last_name_kanji | decrypt }} {{ s.first_name_kanji | decrypt }}
                         </div>
                         <div class="text-muted text-truncate mb-2" style="font-size: 12px;">
-                            {{ s.last_name_kana }} {{ s.first_name_kana }}
+                            {{ s.last_name_kana | decrypt }} {{ s.first_name_kana | decrypt }}
                         </div>
                         <div class="staff-info text-truncate">
-                            {{ s.display_address if s.display_address else (s.address.split(' ')[0] if s.address else '未登録') }}
+                            {{ (s.display_address | decrypt) if s.display_address else ((s.address | decrypt).split(' ')[0] if s.address else '未登録') }}
                         </div>
                     </div>
 

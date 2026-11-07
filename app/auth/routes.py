@@ -14,6 +14,7 @@ from sqlalchemy import func
 from urllib.parse import urlparse
 from datetime import datetime, timedelta
 from app import db
+from app.limiter import limiter
 from app.models import User, Student, Staff, Meeting, LearningRecord, TextbookOrder
 from authlib.integrations.flask_client import OAuth
 
@@ -106,6 +107,7 @@ def serve_contact():
 
 
 @auth_bp.route("/login", methods=["GET", "POST"])
+@limiter.limit("5 per minute", methods=["POST"])
 def login():
     # 既にログイン済みの場合は、ダッシュボードへリダイレクト
     if current_user.is_authenticated:
@@ -379,6 +381,7 @@ def logout():
 
 
 @auth_bp.route("/forgot-password", methods=["GET", "POST"])
+@limiter.limit("5 per minute", methods=["POST"])
 def forgot_password():
     is_admin = current_user.is_authenticated and current_user.role in ["admin", "管理者"]
 

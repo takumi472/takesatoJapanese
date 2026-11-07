@@ -292,7 +292,7 @@
                 <option value="" disabled>選択</option>
                 {% for staff in staff_list %}
             <option value="{{ staff.id }}" {% if student.assigned_staff_id == staff.id %}selected{% endif %}>
-                {{ staff.last_name_kanji }}
+                {{ staff.last_name_kanji | decrypt }}
             </option>
         {% endfor %}
             </select>

@@ -174,7 +174,7 @@
                     <td class="text-center font-monospace">
                         {% set staff_val = s.attendance_by_date.get(d.date) %}
                         {% if staff_val and staff_val != '─' %}
-                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">{{ staff_val }}</span>
+                            <span class="badge bg-primary-subtle text-primary border border-primary-subtle px-2 py-1">{{ staff_val | decrypt }}</span>
                         {% else %}
                             <span class="text-muted">─</span>
                         {% endif %}
