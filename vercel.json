@@ -1,19 +1,9 @@
 {
-  "version": 2,
-  "builds": [
+  "redirects": [
     {
-      "src": "run.py",
-      "use": "@vercel/python"
-    }
-  ],
-  "routes": [
-    {
-      "src": "/static/(.*)",
-      "dest": "app/static/$1"
-    },
-    {
-      "src": "/(.*)",
-      "dest": "run.py"
+      "source": "/(.*)",
+      "destination": "https://www.takesato-japanese.net/",
+      "permanent": true
     }
   ]
 }
