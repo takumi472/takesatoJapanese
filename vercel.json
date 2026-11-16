@@ -1,5 +1,6 @@
 {
   "framework": null,
+  "installCommand": "echo 'Skipping installation'",
   "buildCommand": "mkdir -p dist",
   "outputDirectory": "dist",
   "redirects": [
