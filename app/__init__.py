@@ -110,13 +110,13 @@ def create_app(env_name="development"):
         # XSS防止のための Content-Security-Policy (CSP)
         csp_directives = [
             "default-src 'self'",
-            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://maps.googleapis.com",
-            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com",
+            "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net https://maps.googleapis.com https://translate.google.com https://translate.googleapis.com https://translate-pa.googleapis.com",
+            "style-src 'self' 'unsafe-inline' https://cdn.jsdelivr.net https://fonts.googleapis.com https://www.gstatic.com",
             "font-src 'self' https://cdn.jsdelivr.net https://fonts.gstatic.com data:",
             "img-src 'self' data: https: res.cloudinary.com blob:",
             "media-src 'self' https: res.cloudinary.com blob:",
             "connect-src 'self' https: wss:",
-            "frame-src 'self' https://access.line.me",
+            "frame-src 'self' https://access.line.me https://calendar.google.com",
             "frame-ancestors 'self'",
         ]
         response.headers["Content-Security-Policy"] = "; ".join(csp_directives)
