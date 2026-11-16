@@ -1,8 +1,11 @@
 {
+  "framework": null,
+  "buildCommand": "mkdir -p dist",
+  "outputDirectory": "dist",
   "redirects": [
     {
       "source": "/(.*)",
-      "destination": "https://www.takesato-japanese.net/",
+      "destination": "https://www.takesato-japanese.net/$1",
       "permanent": true
     }
   ]
