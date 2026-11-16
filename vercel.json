@@ -1,7 +1,7 @@
 {
   "framework": null,
   "installCommand": "echo 'Skipping installation'",
-  "buildCommand": "mkdir -p dist",
+  "buildCommand": "mkdir -p dist && echo '<meta http-equiv=\"refresh\" content=\"0;url=https://www.takesato-japanese.net/\">' > dist/index.html",
   "outputDirectory": "dist",
   "redirects": [
     {
