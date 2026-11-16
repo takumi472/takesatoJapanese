@@ -65,10 +65,47 @@ def on_load(state):
     oauth.init_app(state.app)
 
 
+def load_news():
+    """app/common/news.txt からお知らせを上から順番に読み込む"""
+    news_path = os.path.join(current_app.root_path, "common", "news.txt")
+    news_list = []
+    if not os.path.exists(news_path):
+        return news_list
+
+    with open(news_path, "r", encoding="utf-8") as f:
+        for raw_line in f:
+            line = raw_line.strip()
+            if not line or line.startswith("#"):
+                continue
+            parts = [p.strip() for p in line.split("|", 3)]
+            image_url = ""
+            if len(parts) == 4:
+                date_str, badge, text, image_url = parts
+            elif len(parts) == 3:
+                date_str, badge, text = parts
+            elif len(parts) == 2:
+                date_str, text = parts
+                badge = "お知らせ"
+            else:
+                date_str = ""
+                badge = "お知らせ"
+                text = parts[0]
+
+            news_list.append(
+                {
+                    "date": date_str,
+                    "badge": badge,
+                    "text": text,
+                    "image": image_url,
+                }
+            )
+    return news_list
+
+
 @auth_bp.route("/")
 @auth_bp.route("/index")
 def serve_index():
-    return render_template("site/index.html")
+    return render_template("site/index.html", news_list=load_news())
 
 
 @auth_bp.route("/about")
