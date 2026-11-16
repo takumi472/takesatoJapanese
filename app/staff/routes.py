@@ -352,17 +352,33 @@ def staff_list():
             continue
 
         found = False
+        # 1. 住所に都道府県名が含まれる場合はその都道府県内を優先探索（高速化）
         for region, prefs in region_data.items():
             for pref, cities in prefs.items():
-                for city in cities:
-                    if city in staff.address:
-                        staff.display_address = f"{pref}{city}"
-                        found = True
-                        break
+                if pref in staff.address:
+                    for city in cities:
+                        if city in staff.address:
+                            staff.display_address = f"{pref}{city}"
+                            found = True
+                            break
                 if found:
                     break
             if found:
                 break
+
+        # 2. 都道府県名が記載されていない場合は全体から探索
+        if not found:
+            for region, prefs in region_data.items():
+                for pref, cities in prefs.items():
+                    for city in cities:
+                        if city in staff.address:
+                            staff.display_address = f"{pref}{city}"
+                            found = True
+                            break
+                    if found:
+                        break
+                if found:
+                    break
 
     return render_template(
         "staff/list.html", staff_list=all_staff, current_user=current_user

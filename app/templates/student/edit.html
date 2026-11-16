@@ -215,8 +215,11 @@
         <div class="card-question shadow-sm">
             <label for="region-select" class="form-label fw-bold">(7) 居住地域 <span class="required-star">*</span></label>
             <div class="mb-3">
-                <input type="text" id="area-search" class="form-control-gf" placeholder="🔍 市区町村名で検索 (例: 春日部市)">
-                <div id="search-feedback" class="small text-muted mt-1">入力してEnterを押すと該当する地域を自動で選択します</div>
+                <div class="d-flex align-items-center gap-2">
+                    <input type="text" id="area-search" class="form-control-gf flex-grow-1" placeholder="🔍 市区町村名や町名で検索 (例: 春日部市大場、武里、谷原)">
+                    <button type="button" id="btn-area-search" class="btn btn-sm btn-outline-primary text-nowrap">検索</button>
+                </div>
+                <div id="search-feedback" class="small text-muted mt-1">町名や市区町村名を入力してEnter（または検索ボタン）を押すと該当地域を自動選択します</div>
             </div>
             <div class="row g-2">
                 <div class="col-md-4">
@@ -408,9 +411,173 @@
         }
     }
 
-    // --- 居住地域のキーワード検索機能 ---
+    // --- 居住地域のキーワード検索機能（市区町村名・町名対応） ---
     const areaSearchInput = document.getElementById('area-search');
+    const areaSearchBtn = document.getElementById('btn-area-search');
     const searchFeedback = document.getElementById('search-feedback');
+
+    // 都道府県名から地方名を逆引きする関数
+    function findRegionByPref(prefecture) {
+        for (const region in regionData) {
+            if (regionData[region][prefecture]) return region;
+        }
+        return null;
+    }
+
+    // 住所文字列から都道府県名と最も詳細な市区町村・町名を抽出する
+    function extractPrefAndCity(title) {
+        if (!title) return null;
+        for (const region in regionData) {
+            for (const pref in regionData[region]) {
+                if (title.includes(pref)) {
+                    let bestCity = '';
+                    for (const c of regionData[region][pref]) {
+                        if (title.includes(c) && c.length > bestCity.length) {
+                            bestCity = c;
+                        }
+                    }
+                    if (bestCity) {
+                        return { pref, city: bestCity };
+                    }
+                }
+            }
+        }
+        for (const region in regionData) {
+            for (const pref in regionData[region]) {
+                let bestCity = '';
+                for (const c of regionData[region][pref]) {
+                    if (title.includes(c) && c.length > bestCity.length) {
+                        bestCity = c;
+                    }
+                }
+                if (bestCity) {
+                    return { pref, city: bestCity };
+                }
+            }
+        }
+        return null;
+    }
+
+    // ローカルのregionDataから入力クエリに最も適した地域を高速探索する
+    function findLocalMatch(q) {
+        // 1. 完全一致（例: 「春日部市大場」「春日部市」）
+        for (const region in regionData) {
+            for (const pref in regionData[region]) {
+                const exact = regionData[region][pref].find(c => c === q);
+                if (exact) return { pref, city: exact };
+            }
+        }
+
+        // 探索優先度リストの作成（クエリに都道府県名が含まれる場合はその都道府県最優先、次いで教室所在地の埼玉県、その他の順）
+        const prefOrder = [];
+        for (const region in regionData) {
+            for (const pref in regionData[region]) {
+                if (q.includes(pref)) {
+                    prefOrder.unshift(pref);
+                } else if (pref === '埼玉県') {
+                    prefOrder.push(pref);
+                }
+            }
+        }
+        for (const region in regionData) {
+            for (const pref in regionData[region]) {
+                if (!prefOrder.includes(pref)) {
+                    prefOrder.push(pref);
+                }
+            }
+        }
+
+        // 2. クエリが地域名を含んでいる場合（例: 「埼玉県春日部市大場1-2-3」→「春日部市大場」）
+        // 最も長い一致（町名付き）を優先
+        for (const pref of prefOrder) {
+            const reg = findRegionByPref(pref);
+            if (!reg) continue;
+            let bestCity = '';
+            for (const c of regionData[reg][pref]) {
+                if (c.length >= 3 && q.includes(c) && c.length > bestCity.length) {
+                    bestCity = c;
+                }
+            }
+            if (bestCity) return { pref, city: bestCity };
+        }
+
+        // 3. 地域名がクエリを含んでいる場合（例: 「大場」→「春日部市大場」、「武里」→「春日部市武里中野」など）
+        for (const pref of prefOrder) {
+            const reg = findRegionByPref(pref);
+            if (!reg) continue;
+            const match = regionData[reg][pref].find(c => c.includes(q));
+            if (match) return { pref, city: match };
+        }
+
+        return null;
+    }
+
+    async function performAreaSearch() {
+        const query = areaSearchInput.value.trim();
+
+        // 以前のフィードバックをクリアし、スタイルをリセット
+        searchFeedback.textContent = '';
+        searchFeedback.style.color = '#6c757d';
+
+        if (query.length < 2) {
+            searchFeedback.textContent = '2文字以上入力して検索してください';
+            searchFeedback.style.color = '#6c757d';
+            return;
+        }
+
+        // 1. ローカルデータでの高速マッチング
+        const localMatch = findLocalMatch(query);
+        if (localMatch) {
+            updateDropdownsFromAddress(localMatch.pref, localMatch.city);
+            searchFeedback.textContent = `✅ 「${localMatch.pref} ${localMatch.city}」を見つけて選択しました`;
+            searchFeedback.style.color = '#198754';
+            return;
+        }
+
+        // 2. ローカルで見つからない場合の国土地理院 住所検索APIフォールバック
+        searchFeedback.textContent = `🔍 「${query}」を住所データベースで検索中...`;
+        searchFeedback.style.color = '#0d6efd';
+
+        try {
+            const apiUrl = `https://msearch.gsi.go.jp/address-search/AddressSearch?q=${encodeURIComponent(query)}`;
+            const response = await fetch(apiUrl);
+            if (!response.ok) {
+                throw new Error('Address API network error');
+            }
+            const data = await response.json();
+
+            if (Array.isArray(data) && data.length > 0) {
+                let bestMatch = null;
+                for (const item of data) {
+                    const title = item.properties?.title || '';
+                    const match = extractPrefAndCity(title);
+                    if (match) {
+                        if (!bestMatch) {
+                            bestMatch = { ...match, title };
+                        }
+                        if (match.pref === '埼玉県') {
+                            bestMatch = { ...match, title };
+                            break;
+                        }
+                    }
+                }
+
+                if (bestMatch) {
+                    updateDropdownsFromAddress(bestMatch.pref, bestMatch.city);
+                    searchFeedback.textContent = `✅ 「${query}」から「${bestMatch.pref} ${bestMatch.city}」を特定して選択しました（${bestMatch.title}）`;
+                    searchFeedback.style.color = '#198754';
+                    return;
+                }
+            }
+
+            searchFeedback.textContent = `「${query}」に一致する市区町村・町名は見つかりませんでした。`;
+            searchFeedback.style.color = '#dc3545';
+        } catch (error) {
+            console.error('住所検索エラー:', error);
+            searchFeedback.textContent = `住所の自動検索に失敗しました。手動で選択してください。`;
+            searchFeedback.style.color = '#dc3545';
+        }
+    }
 
     areaSearchInput.addEventListener('keydown', function(event) {
         // IME変換中（未確定）のEnterキー入力は無視する
@@ -419,43 +586,15 @@
         }
         if (event.key === 'Enter') {
             event.preventDefault(); // Enterキーによるフォーム送信などを防止
-            const query = this.value.trim();
-
-            // 以前のフィードバックをクリアし、スタイルをリセット
-            searchFeedback.textContent = '';
-            searchFeedback.style.color = '#6c757d';
-            // 2文字以上で検索開始
-            if (query.length < 2) {
-                searchFeedback.textContent = '入力すると該当する地域を自動で選択します';
-                searchFeedback.style.color = '#6c757d';
-                return;
-            }
-
-            let found = false;
-            let foundPref = '';
-            let foundCity = '';
-            for (const region in regionData) {
-                for (const pref in regionData[region]) {
-                    const city = regionData[region][pref].find(c => c.includes(query));
-                    if (city) {
-                        foundPref = pref;
-                        foundCity = city;
-                        found = true;
-                        break;
-                    }
-                }
-                if (found) break; // 該当地域が見つかったら外側のループも抜ける
-            }
-            if (found) {
-                updateDropdownsFromAddress(foundPref, foundCity);
-                searchFeedback.textContent = `✅ 「${foundPref} ${foundCity}」を見つけて選択しました`;
-                searchFeedback.style.color = '#198754';
-            } else {
-                searchFeedback.textContent = `「${query}」に一致する地域は見つかりませんでした。`;
-                searchFeedback.style.color = '#dc3545'; // 見つからない場合は赤色
-            }
+            performAreaSearch();
         }
     });
+
+    if (areaSearchBtn) {
+        areaSearchBtn.addEventListener('click', function() {
+            performAreaSearch();
+        });
+    }
 
     // ページロード時に初期値を設定
     document.addEventListener('DOMContentLoaded', function() {

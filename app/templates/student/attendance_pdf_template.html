@@ -212,8 +212,39 @@
                     </td>
                     {% endfor %}
             </tr>
-            </tbody></table>
+        </tbody>
+    </table>
 
+    <!-- 最終ページ：新規・追加記入用の空ページ -->
+    <div class="page-break"></div>
+    <div class="title-container">
+        <div class="title">{{ fiscal_year }}年度 受講生 出席表（新規記入用）</div>
+        {% if date_columns %}
+        <div style="font-size: 11pt; font-weight: bold; margin-top: 4px; text-align: right;">
+            日付：{{ date_columns[-1].date.strftime('%Y年%m月%d日') if date_columns[-1].date is defined else date_columns[-1].label }}
+        </div>
+        {% endif %}
+    </div>
+
+    <table class="attendance-table">
+        <thead>
+            <tr>
+                <th style="width: 30%;">受講者氏名</th>
+                <th style="width: 20%;">国籍</th>
+                <th style="width: 20%;">日付</th>
+                <th style="width: 25%;">顔写真撮影</th>
+                <th style="width: 25%;">新規受講者登録回収</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for _ in range(13) %}
+            <tr>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+                <td>&nbsp;</td>
+            </tr>
+            {% endfor %}
         </tbody>
     </table>
 </body>
