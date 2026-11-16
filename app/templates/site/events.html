@@ -397,6 +397,41 @@
         }
       }
 
+      /* 画像が4枚ある場合のタイミング設定（1枚あたり4秒・合計16秒） */
+      .event-gallery-auto.gallery-4 img {
+        animation: slideAnimation4 16s infinite;
+      }
+      .event-gallery-auto.gallery-4 img:nth-child(1) {
+        animation-delay: 0s;
+      }
+      .event-gallery-auto.gallery-4 img:nth-child(2) {
+        animation-delay: 4s;
+      }
+      .event-gallery-auto.gallery-4 img:nth-child(3) {
+        animation-delay: 8s;
+      }
+      .event-gallery-auto.gallery-4 img:nth-child(4) {
+        animation-delay: 12s;
+      }
+
+      @keyframes slideAnimation4 {
+        0% {
+          opacity: 0;
+        }
+        6% {
+          opacity: 1;
+        }
+        25% {
+          opacity: 1;
+        }
+        31% {
+          opacity: 0;
+        }
+        100% {
+          opacity: 0;
+        }
+      }
+
       .sns-links {
         display: flex;
         gap: 0.75rem;
@@ -659,7 +694,7 @@
         </p>
 
         <!-- 写真を入れる場所 -->
-        <div class="event-gallery-auto">
+        <div class="event-gallery-auto gallery-4">
           <img
             src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1792629938/winter_party1_o7jidu.jpg"
             alt="ウィンターパーティ 写真1"
@@ -671,6 +706,11 @@
           <img
             src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1792629946/winter_party3_ugl1n7.jpg"
             alt="ウィンターパーティ 写真3"
+          />
+          <img
+            style="object-fit: contain; background-color: #faf6ee;"
+            src="https://res.cloudinary.com/dga0a3qkd/image/upload/v1794835714/winter_party_poster_suehzs.jpg"
+            alt="ウィンターパーティ お知らせポスター"
           />
         </div>
 

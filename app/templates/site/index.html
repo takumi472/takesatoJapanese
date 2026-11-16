@@ -509,6 +509,58 @@
         text-align: center;
     }
 }
+
+/* お知らせセクション */
+.news-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+}
+.news-item {
+    display: flex;
+    align-items: baseline;
+    gap: 0.85rem;
+    padding: 0.9rem 0;
+    border-bottom: 1px solid #e5e7eb;
+}
+.news-item:last-child {
+    border-bottom: none;
+}
+.news-date {
+    font-size: 0.9rem;
+    color: var(--text-light, #6b7280);
+    font-weight: 600;
+    white-space: nowrap;
+}
+.news-badge {
+    display: inline-block;
+    padding: 0.15rem 0.6rem;
+    font-size: 0.75rem;
+    font-weight: 700;
+    border-radius: 9999px;
+    background-color: #dbeafe;
+    color: #1e40af;
+    white-space: nowrap;
+}
+.news-badge.badge-recruit {
+    background-color: #dcfce7;
+    color: #166534;
+}
+.news-text {
+    font-size: 0.95rem;
+    color: var(--text-dark, #1f2937);
+    line-height: 1.6;
+}
+.news-text a {
+    color: var(--primary, #2563eb);
+    text-decoration: underline;
+}
+@media (max-width: 640px) {
+    .news-item {
+        flex-direction: column;
+        gap: 0.35rem;
+    }
+}
     </style>
   </head>
   <body>
@@ -602,6 +654,39 @@
     </section>
 
     <main class="container">
+      <!-- お知らせセクション -->
+      <section class="card-section">
+        <h2>📢 お知らせ</h2>
+        {% if news_list %}
+        <ul class="news-list">
+          {% for item in news_list %}
+          <li class="news-item">
+            {% if item.date %}
+            <span class="news-date">{{ item.date }}</span>
+            {% endif %}
+            <span class="news-badge {% if '募集' in item.badge %}badge-recruit{% endif %}">{{ item.badge }}</span>
+            <div style="flex: 1; min-width: 0;">
+              <span class="news-text">{{ item.text }}</span>
+              {% if item.image %}
+              <div style="margin-top: 0.75rem;">
+                <a href="{{ item.image }}" target="_blank" rel="noopener noreferrer">
+                  <img
+                    src="{{ item.image }}"
+                    alt="お知らせ画像"
+                    style="max-width: 280px; width: 100%; height: auto; border-radius: 8px; box-shadow: 0 2px 6px rgba(0, 0, 0, 0.12); display: block;"
+                  />
+                </a>
+              </div>
+              {% endif %}
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <p style="color: var(--text-light); font-size: 0.95rem;">現在お知らせはありません。</p>
+        {% endif %}
+      </section>
+
       <section class="card-section">
         <h2>武里日本語教室について</h2>
         <p class="section-lead">
